@@ -15,6 +15,7 @@ import autoload 'path.vim'
 :set hlsearch
 :set shortmess+=c
 :set spelllang+=cjk
+:set dir-=.
 
 :nohlsearch
 :syntax on
