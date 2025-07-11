@@ -30,9 +30,25 @@ def SmartQuitall()
     :quitall
 enddef
 
+var last_mode = ""
 augroup MYVIMRC
     autocmd BufReadPost * vim9 JumpBack() | HighlightTailSpace()
     autocmd BufEnter * vim9 SmartQuitall()
     autocmd WinEnter,BufEnter * setlocal cursorline
     autocmd WinLeave,BufLeave * setlocal nocursorline
+
+    if executable("ibus")
+	autocmd InsertLeave * {
+	    last_mode = system("ibus engine")->trim()
+	    if mode !=# "xkb:us::eng"
+		system("ibus engine xkb:us::eng")
+	    endif
+	}
+
+	autocmd InsertEnter * {
+	    if last_mode !=# ""
+		system("ibus engine " .. last_mode)
+	    endif
+	}
+    endif
 augroup END
