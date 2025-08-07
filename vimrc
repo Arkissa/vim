@@ -18,15 +18,16 @@ import autoload 'path.vim'
 :set dir-=.
 
 :nohlsearch
-:syntax on
 :colorscheme catppuccin
 :filetype plugin indent on
+:syntax on
 
 &ttimeoutlen = 50
 &scrolloff = 99
 &pumheight = 15
 &shiftwidth = 4
 &softtabstop = 4
+&tabstop = 4
 &laststatus = 2
 &updatetime = 300
 &completeslash = "slash"

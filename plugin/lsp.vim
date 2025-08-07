@@ -5,7 +5,7 @@ import autoload "lsp/lsp.vim"
 
 autocmd User LspAttached {
     :setlocal tagfunc=lsp.TagFunc
-    :setlocal formatexpr=lsp.FormatExpr
+    :setlocal formatexpr=:LspFormat
 
     :nnoremap <silent> <buffer> K <CMD>LspHover<CR>
     :nnoremap <silent> <buffer> <Leader>r <CMD>LspRename<CR>
@@ -19,7 +19,7 @@ autocmd User LspAttached {
     :nnoremap <silent> <buffer> ]I <CMD>LspOutline<CR>
     :nnoremap <silent> <buffer> gd <CMD>LspGotoDefinition<CR>
     :nnoremap <silent> <buffer> gD <CMD>LspGotoTypeDef<CR>
-    :nnoremap <silent> <buffer> * <CMD>LspShowReferences<CR>
+    :nnoremap <silent> <buffer> * <CMD>LspPeekReferences<CR>
     :nnoremap <silent> <buffer> <C-w>d <CMD>LspDiagCurrent<CR>
     :nnoremap <silent> <buffer> [e <CMD>LspDiagNextWrap<CR>
     :nnoremap <silent> <buffer> ]e <CMD>LspDiagPrevWrap<CR>
@@ -85,7 +85,7 @@ g:LspOptionsSet({
     },
 })
 
-g:LspAddServer([
+var lsp_servers = [
     {
 	name: 'python',
 	filetype: ['python'],
@@ -109,4 +109,39 @@ g:LspAddServer([
 	},
 	syncInit: true,
     },
-])
+    {
+	name: 'golang',
+	filetype: ['go', 'gomod', 'gohtmltmpl', 'gotexttmpl'],
+	path: 'gopls',
+	args: ['serve'],
+	syncInit: true,
+	workspaceConfig: {
+	    go: {
+		codelenses: {
+		    tests: true,
+		    tidy: true,
+		    upgrade_dependency: true,
+		    vendor: true,
+		},
+		usePlaceholders: true,
+		gofumpt: true,
+		analyss: {
+		    shadow: false,
+		    unusedparams: false,
+		},
+		staticcheck: true,
+		hints: {
+		    assignVariableTypes: true,
+		    compositeLiteralFields: true,
+		    constantValues: true,
+		    rangeVariableTypes: true,
+		    parameterNames: true,
+		    functionTypeParameters: true
+		},
+		semanticTokens: true,
+	    }
+	}
+    }
+]
+
+g:LspAddServer(lsp_servers->filter((_, server) => executable(server.path) == 1))

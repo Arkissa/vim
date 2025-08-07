@@ -8,7 +8,7 @@ if exists("syntax on")
     :syntax reset
 endif
 
-g:colors_name = "catppuccin_mocha"
+g:colors_name = "catppuccin"
 :set t_Co=256
 :set termguicolors
 
@@ -137,6 +137,7 @@ hlset([
     {name: "StatusLineTermNC", default: true, linksto: "StatusLineNC"},
     {name: "Terminal", default: true, linksto: "Normal"},
     {name: "Ignore", default: true, linksto: "Comment"},
+	{name: "LspTextRef", default: true, linksto: "Visual"},
     {name: "LspDiagSignErrorText", guifg: "#f38ba9"},
     {name: "LspDiagSignWarningText", guifg: "#f9e2b0"},
     {name: "LspDiagSignInfoText", guifg: "#89dcec"},
