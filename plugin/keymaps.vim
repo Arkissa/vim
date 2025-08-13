@@ -9,15 +9,15 @@ vim9script
 
 :imap <silent> <nowait> <C-v> <C-R>+
 :imap <silent> <nowait> <C-A> <HOME>
-:inoremap <C-F>  <Right>
-:inoremap <C-B>  <Left>
-:inoremap <A-b> <C-Left>
-:inoremap <A-f> <C-Right>
+:inoremap <C-f>  <Right>
+:inoremap <C-b>  <Left>
+:inoremap <M-b> <C-Left>
+:inoremap <M-f> <C-Right>
 
-:cnoremap <C-F>  <Right>
-:cnoremap <C-B>  <Left>
-:cnoremap <A-b> <C-Left>
-:cnoremap <A-f> <C-Right>
+:cnoremap <C-f> <Right>
+:cnoremap <C-b> <Left>
+:cnoremap <M-b> <C-Left>
+:cnoremap <M-f> <C-Right>
 :cnoremap <C-k> <CMD>vim9 (() => setcmdline(strpart(getcmdline(), 0, getcmdpos() - 1)))()<CR>
 :cnoremap <silent> <nowait> <C-A> <HOME>
 

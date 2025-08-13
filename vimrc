@@ -44,6 +44,10 @@ var stateDir = path.OsStateDir()
 g:mapleader = " "
 g:netrw_dirhistmax = 0
 
+if getcwd() .. '/' == $MYVIMDIR
+	g:cgrep_prune_dirs = ["pack"]
+endif
+
 if has('gui_running')
     set guicursor=n-v-c:block,i-ci:ver25,r-cr:hor20,o:hor50
 else
