@@ -8,7 +8,7 @@ export def OsStateDir(): string
 	    : expand('~/.local/state/vim'))
 
     if !isdirectory(stateDir)
-	mkdir(stateDir, 'p')
+		mkdir(stateDir, 'p')
     endif
 
     return stateDir

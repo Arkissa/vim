@@ -8,23 +8,23 @@ def JumpBack()
     if lnum >= 1
 	&& lnum <= line("$")
 	&& index(exclude_filetype, &filetype) == -1
-	:execute "normal! g`\""
+		:execute "normal! g`\""
     endif
 enddef
 
 def HighlightTailSpace()
     if index(exclude_filetype, &filetype) == -1
 	|| index(exclude_buftype, &buftype) == -1
-	match Search /\s\+$/
+		match Search /\s\+$/
     endif
 enddef
 
 def SmartQuitall()
     var wininfos = getwininfo()
     for wininfo in wininfos
-	if getbufvar(wininfo.bufnr, "&buftype") ==# ""
-	    return
-	endif
+		if getbufvar(wininfo.bufnr, "&buftype") ==# ""
+			return
+		endif
     endfor
 
     :quitall
@@ -41,13 +41,13 @@ augroup MYVIMRC
 	autocmd InsertLeave * {
 	    last_mode = system("ibus engine")->trim()
 	    if mode !=# "xkb:us::eng"
-		system("ibus engine xkb:us::eng")
+			system("ibus engine xkb:us::eng")
 	    endif
 	}
 
 	autocmd InsertEnter * {
 	    if last_mode !=# ""
-		system("ibus engine " .. last_mode)
+			system("ibus engine " .. last_mode)
 	    endif
 	}
     endif
