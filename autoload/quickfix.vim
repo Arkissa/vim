@@ -1,5 +1,7 @@
 vim9script
 
+import "./popup.vim"
+
 export enum Action
 	A("a"),
 	R("r"),
@@ -141,7 +143,7 @@ def GetFname(bufname: string, limit: number): string
 		return bufname
 	endif
 
-	return "…" .. bufname[len - limit + 1 : ]
+	return $"…{bufname[len - limit + 1 : ]}"
 enddef
 
 export def QuickfixTextFunc(info: dict<any>): list<string>
@@ -166,3 +168,20 @@ export def QuickfixTextFunc(info: dict<any>): list<string>
 			return printf(line, item.type, fname, lc, item.text)
 		})
 enddef
+
+# peek quickfix buffer with popup window.
+export class QuickfixPeektor
+	var prop_id: number
+	var qf: Quickfixer
+	var window: popup.PopupWindow
+
+	def new()
+		var wininfo = getwininfo(winnr())[1]
+		if wininfo.quickfix == 0
+			return
+		endif
+
+		this.qf = wininfo.loclist == 1 ? Location.new(winnr) : Quickfix.new()
+		# this.window = popup.PopupWindow.new()
+	enddef
+endclass
