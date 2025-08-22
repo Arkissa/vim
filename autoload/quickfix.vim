@@ -146,7 +146,7 @@ def GetFname(bufname: string, limit: number): string
 	return $"…{bufname[len - limit + 1 : ]}"
 enddef
 
-export def QuickfixTextFunc(info: dict<any>): list<string>
+export def TextFunc(info: dict<any>): list<string>
 	var information = info->copy()
 	if !information->has_key('items')
 		information['items'] = 1

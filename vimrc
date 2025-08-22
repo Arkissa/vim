@@ -49,7 +49,7 @@ if getcwd() .. '/' == $MYVIMDIR
 endif
 
 if has('gui_running')
-    set guicursor=n-v-c:block,i-ci:ver25,r-cr:hor20,o:hor50
+    :set guicursor=n-v-c:block,i-ci:ver25,r-cr:hor20,o:hor50
 else
     &t_SI = "\e[6 q"
     &t_EI = "\e[2 q"
@@ -57,7 +57,7 @@ else
 endif
 
 if exists("+comments")
-    packadd comment
+    :packadd comment
 endif
 
-packadd cfilter
+:packadd cfilter
