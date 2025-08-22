@@ -13,12 +13,14 @@ endenum
 
 export interface Quickfixer
 	def SetList(entry: list<dict<any>>, action: Action, what: dict<any>): bool
-	def GetList(what: dict<any>): list<dict<any>>
+	def GetList(what: dict<any> = null_dict): any
+	def GetItemUnderTheCursor(): dict<any>
 	def JumpFirst(bufnr: number)
 	def Open(height: number)
 	def Close()
 	def Window(height: number)
 	def IsLocation(): bool
+	def Empty(): bool
 endinterface
 
 export class Quickfix implements Quickfixer
@@ -30,8 +32,25 @@ export class Quickfix implements Quickfixer
 		return setqflist(entry, action.Value) == 0
 	enddef
 
-	def GetList(what: dict<any>): list<dict<any>>
-		return getqflist(what)->map((_, entry) => this._to_entry(entry))
+	def GetList(what: dict<any> = null_dict): any
+		if what == null_dict
+			return getqflist()
+		endif
+
+		return getqflist(what)
+	enddef
+
+	def GetItemUnderTheCursor(): dict<any>
+		if this.Empty()
+			return null_dict
+		endif
+
+		var item = this.GetList()[line('.') - 1]
+		if item.valid != 1
+			return null_dict
+		endif
+
+		return item
 	enddef
 
 	def JumpFirst(bufnr: number)
@@ -53,6 +72,11 @@ export class Quickfix implements Quickfixer
 	def IsLocation(): bool
 		return false
 	enddef
+
+	def Empty(): bool
+		var items = this.GetList()
+		return items is null_list || items is null_dict
+	enddef
 endclass
 
 export class Location implements Quickfixer
@@ -69,8 +93,25 @@ export class Location implements Quickfixer
 		return setloclist(this.winnr, entry, action.Value) == 0
 	enddef
 
-	def GetList(what: dict<any>): list<dict<any>>
-		return getloclist(this.winnr, what)->map((_, entry) => this._to_entry(entry))
+	def GetList(what: dict<any> = null_dict): any
+		if what is null_dict
+			return getloclist()
+		endif
+
+		return getloclist(this.winnr, what)
+	enddef
+
+	def GetItemUnderTheCursor(): dict<any>
+		if this.Empty()
+			return null_dict
+		endif
+
+		var item = this.GetList()[line('.') - 1]
+		if item.valid != 1
+			return null_dict
+		endif
+
+		return item
 	enddef
 
 	def JumpFirst(bufnr: number)
@@ -91,6 +132,11 @@ export class Location implements Quickfixer
 
 	def IsLocation(): bool
 		return true
+	enddef
+
+	def Empty(): bool
+		var items = this.GetList()
+		return items is null_list || items is null_dict
 	enddef
 endclass
 
@@ -170,18 +216,147 @@ export def TextFunc(info: dict<any>): list<string>
 enddef
 
 # peek quickfix buffer with popup window.
-export class QuickfixPeektor
-	var prop_id: number
-	var qf: Quickfixer
-	var window: popup.PopupWindow
+export class Previewer
+	static var _prop_name: string = "quickfix.Previewer"
+	static var _qf: Quickfixer
+	static var _window: popup.Window
 
-	def new()
-		var wininfo = getwininfo(winnr())[1]
-		if wininfo.quickfix == 0
+	static def _Filter(win: popup.Window, key: string): bool
+		if index(["\<C-u>", "\<C-d>", "G", "gg"], key) != -1
+			win.FeedKeys(key, "mx")
+			return true
+		endif
+
+		return false
+	enddef
+
+	static def _WinOption(win: popup.Window)
+		win.SetVar("&number", 1)
+		win.SetVar("&relativenumber", 0)
+		win.SetVar("&cursorline", 1)
+	enddef
+
+	static def _DetectFiletype(win: popup.Window)
+		var ft = getbufvar(win.GetBufnr(), '&filetype')
+		if ft == ""
+			win.Execute("filetype detect")
+		endif
+	enddef
+
+	static def _AddHightlightText(win: popup.Window)
+		var item = _qf.GetItemUnderTheCursor()
+		if item == null_dict
 			return
 		endif
 
-		this.qf = wininfo.loclist == 1 ? Location.new(winnr) : Quickfix.new()
-		# this.window = popup.PopupWindow.new()
+		prop_add(item.lnum, item.col, {
+			type: _prop_name,
+			end_lnum: item.end_lnum != 0 ? item.end_lnum : item.lnum,
+			end_col: item.end_col != 0 ? item.end_col : item.col,
+			bufnr: win.GetBufnr(),
+		})
+	enddef
+
+	static def _RemoveHightlightText(win: popup.Window)
+		prop_remove({
+			type: _prop_name,
+			bufnr: win.GetBufnr()
+		})
+	enddef
+
+	static def _DeleteHightlightName(win: popup.Window, _: any)
+		prop_remove({
+			type: _prop_name,
+			bufnr: win.GetBufnr()
+		})
+		prop_type_delete(_prop_name)
+	enddef
+
+	static def Open()
+		var winId = win_getid()
+		var wt = win_gettype(winId)
+		if ["quickfix", "loclist"]->index(wt) == -1
+			return
+		endif
+
+		_qf = wt == "loclist"
+			? Location.new(winId)
+			: Quickfix.new()
+
+		if _qf.Empty()
+			return
+		endif
+
+		prop_type_add(_prop_name, {
+			highlight: 'Cursor',
+			override: true,
+		})
+
+		var wininfo = getwininfo(winId)[0]
+		var bufnr = winbufnr(winId)
+		var lines = float2nr(getwinvar(winId, "&lines") * 0.5)
+		_window = popup.Window.new(bufnr, {
+			pos: "botleft",
+			padding: [1, 1, 1, 1],
+			border: [1, 1, 1, 1],
+			borderchars: ['─', '│', '─', '│', '╭', '╮', '╯', '╰'],
+			maxheight: lines,
+			minheight: wininfo.width - 5,
+			minwidth: wininfo.width - 5,
+			maxwidth: wininfo.width - 5,
+			col: wininfo.wincol,
+			line: wininfo.winrow - 2,
+		})
+
+		_window.SetFilter(_Filter)
+		_window.OnSetBufPre(_RemoveHightlightText)
+		_window.OnSetBufAfter(_DetectFiletype, _WinOption, _AddHightlightText)
+		_window.OnClose(_DeleteHightlightName)
+		_CreateAutocmd(bufnr)
+		SetCursorUnderBuff()
+	enddef
+
+	static def _CreateAutocmd(bufnr: number)
+		:execute $"augroup Quickfix.Previewer_{bufnr}"
+			:autocmd CursorMoved <buffer> quickfix#Previewer.SetCursorUnderBuff()
+			:autocmd WinLeave,WinClosed,WinLeave,BufWipeout,BufHidden <buffer> quickfix#Previewer.Close()
+		:augroup END
+
+		_window.OnClose((_: popup.Window, _: any) => {
+			:execute $"augroup Quickfix.Previewer_{bufnr}"
+				:autocmd!
+			:augroup END
+		})
+	enddef
+
+	static def SetCursorUnderBuff()
+		if _window is null_object || _qf is null_object
+			return
+		endif
+
+		var item = _qf.GetItemUnderTheCursor()
+		if item is null_dict
+			return
+		endif
+
+		_window.SetBuf(item.bufnr)
+		var bufinfo = getbufinfo(item.bufnr)[0]
+		_window.SetTitle($" [{item.lnum}/{bufinfo.linecount}] buffer {item.bufnr}: {fnamemodify(bufinfo.name, ":~:.")} {bufinfo.changed == 1 ? "[+]" : ""}")
+		_window.SetCursor(item.lnum, item.col)
+		_window.FeedKeys("z.", "mx")
+	enddef
+
+	static def Toggle()
+		if _window isnot null_object && _window.IsOpen()
+			Close()
+		else
+			Open()
+		endif
+	enddef
+
+	static def Close()
+		if _window isnot null_object && _window.IsOpen()
+			_window.Close()
+		endif
 	enddef
 endclass

@@ -2,40 +2,46 @@ vim9script
 
 export class Window
 	var winnr: number = -1
-	var _on_set_buf_pre: list<func(number, number)>
-	var _on_set_buf_after: list<func(number, number)>
-	var _on_close: list<func(number, any)>
+	var _on_set_buf_pre: list<func(Window)>
+	var _on_set_buf_after: list<func(Window)>
+	var _on_close: list<func(Window, any)>
 	var _hidden: bool = false
 
-	def new(options: dict<any>, bufnr: number = 0)
+	def new(bufnr: number, options: dict<any>)
 		options.callback = this._CloseCallback
 		this.winnr = popup_create(bufnr, options)
-		this.SetVar("&foldenable", "off")
+		this.SetVar("&foldenable", 0)
 		this.SetVar("&foldcolumn", 0)
-		this.SetVar("&foldmenthod", "manual")
+		this.SetVar("&foldmethod", "manual")
 		this.SetVar("&signcolumn", "no")
 	enddef
 
 	def SetVar(name: string, value: any)
-		this.winnr->setwinvar(name, value)
+		setwinvar(this.winnr, name, value)
+	enddef
+
+	def SetFilter(F: func(Window, string): bool)
+		this.SetOptions({
+			filter: (_: number, key: string) => F(this, key)
+		})
 	enddef
 
 	def SetOptions(options: dict<any>)
-		this.winnr->popup_setoptions(options)
+		popup_setoptions(this.winnr, options)
 	enddef
 
 	def SetBuf(bufnr: number): bool
-		for f in this._on_set_buf_pre
-			f(this.winnr, bufnr)
+		for F in this._on_set_buf_pre
+			F(this)
 		endfor
 
-		var ok = this.winnr->popup_setbuf(bufnr)
+		var ok = popup_setbuf(this.winnr, bufnr)
 		if !ok
 			return false
 		endif
 
-		for f in this.on_set_buf_pre
-			f(this.winnr, bufnr)
+		for F in this._on_set_buf_after
+			F(this)
 		endfor
 
 		return true
@@ -46,32 +52,36 @@ export class Window
 	enddef
 
 	def SetCursor(lnum: number, col: number)
-		this.Execute($"cursor({lnum}, {col})")
+		this.Execute($"eval cursor({lnum}, {col})")
+	enddef
+
+	def GetBufnr(): number
+		return winbufnr(this.winnr)
 	enddef
 
 	def GetVar(name: string): any
-		return this.winnr->getwinvar(name)
+		return getwinvar(this.winnr, name)
 	enddef
 
 	def GetOptions()
-		return this.winnr->popup_getoptions()
+		return popup_getoptions(this.winnr)
 	enddef
 
-	def OnSetBufPre(...f: list<func(number, number)>)
-		this._on_set_buf_pre->extend(f)
+	def OnSetBufPre(...f: list<func(Window)>)
+		extend(this._on_set_buf_pre, f)
 	enddef
 
-	def OnSetBufAfter(...f: list<func(number, number)>)
-		this._on_set_buf_after->extend(f)
+	def OnSetBufAfter(...f: list<func(Window)>)
+		extend(this._on_set_buf_after, f)
 	enddef
 
-	def OnClose(...f: list<func(number, any)>)
-		this._on_close->extend(f)
+	def OnClose(...f: list<func(Window, any)>)
+		extend(this._on_close, f)
 	enddef
 
 	def _CloseCallback(id: number, result: any)
-		for f in this._on_close_pre
-			f(id, result)
+		for F in this._on_close
+			F(this, result)
 		endfor
 
 		this.winnr = -1
@@ -85,37 +95,35 @@ export class Window
 		return this.IsOpen() && this.hidden
 	enddef
 
-	def Close(result: any = v:none)
-		if result is v:none
-			result = winbufnr(this.winnr)
+	def Close(result: any = null)
+		var r = result
+		if r == null
+			r = winbufnr(this.winnr)
 		endif
 
-		this.winnr->popup_close(result)
+		popup_close(this.winnr, r)
 		this.winnr = -1
 	enddef
 
 	def Execute(...cmds: list<string>)
 		for cmd in cmds
-			this.winnr->win_execute(cmd)
+			win_execute(this.winnr, cmd)
 		endfor
 	enddef
 
-	def FeedKeys(keys: string, mode: string = v:none)
+	def FeedKeys(keys: string, mode: string = "m")
 		var cmd = [keys]
-		if mode is v:none
-			cmd->add(mode)
-		endif
 
-		this.winnr->win_execute($"vim9 feedkeys({cmd->join(', ')})")
+		this.Execute($"call feedkeys('{keys}', '{mode}')")
 	enddef
 
 	def Hide()
-		this.winnr->popup_hide()
+		popup_hide(this.winnr)
 		this._hidden = true
 	enddef
 
 	def Show(): number
-		this.winnr->popup_show()
+		popup_show(this.winnr)
 		this._hidden = false
 	enddef
 endclass
