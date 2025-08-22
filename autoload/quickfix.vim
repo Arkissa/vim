@@ -170,18 +170,40 @@ export def TextFunc(info: dict<any>): list<string>
 enddef
 
 # peek quickfix buffer with popup window.
-export class QuickfixPeektor
-	var prop_id: number
-	var qf: Quickfixer
-	var window: popup.PopupWindow
+export class Previewer
+	static var _bufnr: number = -1
+	static var _prop_id: number = -1
+	static var _qf: Quickfixer = v:none
+	static var _window: popup.Window
 
-	def new()
-		var wininfo = getwininfo(winnr())[1]
-		if wininfo.quickfix == 0
+	static def Open()
+		var winnr = winnr()
+		if getwinvar(winnr, "quickfix") == 0
 			return
 		endif
 
-		this.qf = wininfo.loclist == 1 ? Location.new(winnr) : Quickfix.new()
-		# this.window = popup.PopupWindow.new()
+		_bufnr = getwinvar(winnr, "bufnr")
+		_qf = getwinvar(winnr, "loclist") == 1
+			? Location.new(winnr)
+			: Quickfix.new()
+
+		# TODO open popup and autocmd.
+		# _window = popup.Window.new({
+		# 	}, _bufnr)
+	enddef
+
+	static def Toggle()
+		if this._window.IsOpen()
+			Close()
+		else
+			Open()
+		endif
+	enddef
+
+	static def Close()
+		if _IsOpen()
+			_window.Close()
+			_qf = v:none
+		endif
 	enddef
 endclass
