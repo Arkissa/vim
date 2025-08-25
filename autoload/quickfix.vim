@@ -13,7 +13,8 @@ endenum
 
 export interface Quickfixer
 	def SetList(entry: list<dict<any>>, action: Action, what: dict<any>): bool
-	def GetList(what: dict<any>): list<dict<any>>
+	def GetList(what: dict<any> = null_dict): any
+	def GetItemUnderTheCursor(): dict<any>
 	def JumpFirst(bufnr: number)
 	def Open(height: number)
 	def Close()
@@ -30,8 +31,26 @@ export class Quickfix implements Quickfixer
 		return setqflist(entry, action.Value) == 0
 	enddef
 
-	def GetList(what: dict<any>): list<dict<any>>
+	def GetList(what: dict<any> = null_dict): any
+		if what == null_dict
+			return getqflist()
+		endif
+
 		return getqflist(what)
+	enddef
+
+	def GetItemUnderTheCursor(): dict<any>
+		var items = this.GetList()
+		if items->len() == 0
+			return null_dict
+		endif
+
+		var item = items[line('.') - 1]
+		if item.valid != 1
+			return null_dict
+		endif
+
+		return item
 	enddef
 
 	def JumpFirst(bufnr: number)
@@ -69,8 +88,26 @@ export class Location implements Quickfixer
 		return setloclist(this.winnr, entry, action.Value) == 0
 	enddef
 
-	def GetList(what: dict<any>): list<dict<any>>
+	def GetList(what: dict<any> = null_dict): any
+		if what == null_dict
+			return getloclist()
+		endif
+
 		return getloclist(this.winnr, what)
+	enddef
+
+	def GetItemUnderTheCursor(): dict<any>
+		var items = this.GetList()
+		if items->len() == 0
+			return null_dict
+		endif
+
+		var item = items[line('.') - 1]
+		if item.valid != 1
+			return null_dict
+		endif
+
+		return item
 	enddef
 
 	def JumpFirst(bufnr: number)
@@ -171,86 +208,135 @@ enddef
 
 # peek quickfix buffer with popup window.
 export class Previewer
-	static var _prop_id: number = -1
-	static var _qf: Quickfixer = v:none
+	static var _prop_name: string = "quickfix.Previewer"
+	static var _qf: Quickfixer
 	static var _window: popup.Window
 
-	static def Open()
-		var winnr = winnr()
-		if getwinvar(winnr, "quickfix") == 0
+	static def _Filter(win: popup.Window, key: string): bool
+		if index(["\<C-u>", "\<C-d>", "G", "gg"], key) != -1
+			win.FeedKeys(key, "mx")
+			return true
+		endif
+
+		return false
+	enddef
+
+	static def _WinOption(win: popup.Window)
+		win.SetVar("&number", 1)
+		win.SetVar("&relativenumber", 0)
+		win.SetVar("&cursorline", 1)
+	enddef
+
+	static def _DetectFiletype(win: popup.Window)
+		var ft = getbufvar(win.GetBufnr(), '&filetype')
+		if ft == ""
+			win.Execute("filetype detect")
+		endif
+	enddef
+
+	static def _AddHightlightText(win: popup.Window)
+		var item = _qf.GetItemUnderTheCursor()
+		if item == null_dict
 			return
 		endif
 
-		var bufnr = getwinvar(winnr, "bufnr")
-		_CreateAutocmd(bufnr)
+		echom item
+		prop_add(item.lnum, item.col, {
+			type: _prop_name,
+			# end_lnum: item.end_lnum,
+			# end_col: item.end_col,
+			bufnr: win.GetBufnr(),
+		})
+	enddef
 
-		_qf = getwinvar(winnr, "loclist") == 1
-			? Location.new(winnr)
+	static def _RemoveHightlightText(win: popup.Window)
+		prop_remove({
+			type: _prop_name,
+			bufnr: win.GetBufnr()
+		})
+	enddef
+
+	static def _DeleteHightlightName(win: popup.Window, _: any)
+		prop_remove({
+			type: _prop_name,
+			bufnr: win.GetBufnr()
+		})
+		prop_type_delete(_prop_name)
+	enddef
+
+	static def Open()
+		var winId = win_getid()
+		var wt = win_gettype(winId)
+		if ["quickfix", "loclist"]->index(wt) == -1
+			return
+		endif
+
+		_qf = wt == "loclist"
+			? Location.new(winId)
 			: Quickfix.new()
 
-		# TODO open popup and autocmd.
+		if _qf.GetList()->len() == 0
+			return
+		endif
+
+		prop_type_add(_prop_name, {highlight: 'Cursor'})
+
+		var wininfo = getwininfo(winId)[0]
+		var bufnr = winbufnr(winId)
+		var lines = float2nr(getwinvar(winId, "&lines") * 0.5)
 		_window = popup.Window.new(bufnr, {
 			pos: "botleft",
-			border: [],
-			maxheight: 1,
-			minwidth: 1,
-			maxwidth: 1,
-			col: 1,
-			line: 1,
+			padding: [1, 1, 1, 1],
+			border: [1, 1, 1, 1],
+			borderchars: ['─', '│', '─', '│', '╭', '╮', '╯', '╰'],
+			maxheight: lines,
+			minheight: wininfo.width - 5,
+			minwidth: wininfo.width - 5,
+			maxwidth: wininfo.width - 5,
+			col: wininfo.wincol,
+			line: wininfo.winrow - 2,
 		})
 
-		_SetCursorUnderBuff()
+		_window.SetFilter(_Filter)
+		_window.OnSetBufPre(_RemoveHightlightText)
+		_window.OnSetBufAfter(_DetectFiletype, _WinOption, _AddHightlightText)
+		_window.OnClose(_DeleteHightlightName)
+		_CreateAutocmd(bufnr)
+		SetCursorUnderBuff()
 	enddef
 
 	static def _CreateAutocmd(bufnr: number)
-		var group = "Previewer"
-		var autocmd = [
-			_CursorMoved(group, bufnr),
-			_QuickfixLeave(group, bufnr),
-		]
+		:execute $"augroup Quickfix.Previewer_{bufnr}"
+			:autocmd CursorMoved <buffer> quickfix#Previewer.SetCursorUnderBuff()
+			:autocmd WinLeave,WinClosed,WinLeave,BufWipeout,BufHidden <buffer> quickfix#Previewer.Close()
+		:augroup END
 
-		autocmd_add(autocmd)
-
-		_window.OnClose((_, _) => autocmd_delete(autocmd))
+		_window.OnClose((_: popup.Window, _: any) => {
+			:execute $"augroup Quickfix.Previewer_{bufnr}"
+				:autocmd!
+			:augroup END
+		})
 	enddef
 
-	static def _SetCursorUnderBuff()
-		var items = _qf.GetList({})
-		if items->len() == 0
+	static def SetCursorUnderBuff()
+		if _window is null_object || _qf is null_object
 			return
 		endif
 
-		var item = items[line('.') - 1]
-		if item.valid != 1
+		var item = _qf.GetItemUnderTheCursor()
+		if item == null_dict
 			return
 		endif
 
 		_window.SetBuf(item.bufnr)
-		_window.SetTitle($" [{item.lnum}/{line('$')}] buf {item.bufnr}: {fnamemodify(bufname(bufnr), ":~:.")} {getbufvar(item.bufnr, "modified") == 1 ? "[+]" : ""}")
+		var bufinfo = getbufinfo(item.bufnr)[0]
+		_window.SetTitle($" [{item.lnum}/{bufinfo.linecount}] buffer {item.bufnr}: {fnamemodify(bufinfo.name, ":~:.")} {bufinfo.changed == 1 ? "[+]" : ""}")
 		_window.SetCursor(item.lnum, item.col)
-		_window.FeedKeys("zz")
-	enddef
-
-	static def _CursorMoved(group: string, bufnr: number): dict<any>
-		return {
-				group: group,
-				bufnr: bufnr,
-				event: "CursorMoved",
-				cmd: 'call _SetCursorUnderBuff()',
-			}
-	enddef
-
-	static def _QuickfixLeave(group: string, bufnr: number)
-		return {
-			group: group,
-			bufnr: bufnr,
-			event: ["WinLeave", "WinClosed", "WinLeave", "BufWipeout", "BufHidden"],
-			cmd: 'call Close()'
-		}
+		_window.FeedKeys("z.", "mx")
 	enddef
 
 	static def Toggle()
-		if this._window.IsOpen()
+		if _window isnot null_object && _window.IsOpen()
 			Close()
 		else
 			Open()
@@ -258,9 +344,8 @@ export class Previewer
 	enddef
 
 	static def Close()
-		if _IsOpen()
+		if _window isnot null_object && _window.IsOpen()
 			_window.Close()
-			_qf = v:none
 		endif
 	enddef
 endclass
