@@ -7,7 +7,7 @@ export class Window
 	var _on_close: list<func(number, any)>
 	var _hidden: bool = false
 
-	def new(options: dict<any>, bufnr: number = 0)
+	def new(bufnr: number, options: dict<any>)
 		options.callback = this._CloseCallback
 		this.winnr = popup_create(bufnr, options)
 		this.SetVar("&foldenable", "off")
@@ -47,6 +47,10 @@ export class Window
 
 	def SetCursor(lnum: number, col: number)
 		this.Execute($"cursor({lnum}, {col})")
+	enddef
+
+	def GetBufnr(): number
+		return this.GetVar("bufnr")
 	enddef
 
 	def GetVar(name: string): any

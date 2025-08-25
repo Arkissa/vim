@@ -31,7 +31,7 @@ export class Quickfix implements Quickfixer
 	enddef
 
 	def GetList(what: dict<any>): list<dict<any>>
-		return getqflist(what)->map((_, entry) => this._to_entry(entry))
+		return getqflist(what)
 	enddef
 
 	def JumpFirst(bufnr: number)
@@ -70,7 +70,7 @@ export class Location implements Quickfixer
 	enddef
 
 	def GetList(what: dict<any>): list<dict<any>>
-		return getloclist(this.winnr, what)->map((_, entry) => this._to_entry(entry))
+		return getloclist(this.winnr, what)
 	enddef
 
 	def JumpFirst(bufnr: number)
@@ -171,7 +171,6 @@ enddef
 
 # peek quickfix buffer with popup window.
 export class Previewer
-	static var _bufnr: number = -1
 	static var _prop_id: number = -1
 	static var _qf: Quickfixer = v:none
 	static var _window: popup.Window
@@ -182,14 +181,72 @@ export class Previewer
 			return
 		endif
 
-		_bufnr = getwinvar(winnr, "bufnr")
+		var bufnr = getwinvar(winnr, "bufnr")
+		_CreateAutocmd(bufnr)
+
 		_qf = getwinvar(winnr, "loclist") == 1
 			? Location.new(winnr)
 			: Quickfix.new()
 
 		# TODO open popup and autocmd.
-		# _window = popup.Window.new({
-		# 	}, _bufnr)
+		_window = popup.Window.new(bufnr, {
+			pos: "botleft",
+			border: [],
+			maxheight: 1,
+			minwidth: 1,
+			maxwidth: 1,
+			col: 1,
+			line: 1,
+		})
+
+		_SetCursorUnderBuff()
+	enddef
+
+	static def _CreateAutocmd(bufnr: number)
+		var group = "Previewer"
+		var autocmd = [
+			_CursorMoved(group, bufnr),
+			_QuickfixLeave(group, bufnr),
+		]
+
+		autocmd_add(autocmd)
+
+		_window.OnClose((_, _) => autocmd_delete(autocmd))
+	enddef
+
+	static def _SetCursorUnderBuff()
+		var items = _qf.GetList({})
+		if items->len() == 0
+			return
+		endif
+
+		var item = items[line('.') - 1]
+		if item.valid != 1
+			return
+		endif
+
+		_window.SetBuf(item.bufnr)
+		_window.SetTitle($" [{item.lnum}/{line('$')}] buf {item.bufnr}: {fnamemodify(bufname(bufnr), ":~:.")} {getbufvar(item.bufnr, "modified") == 1 ? "[+]" : ""}")
+		_window.SetCursor(item.lnum, item.col)
+		_window.FeedKeys("zz")
+	enddef
+
+	static def _CursorMoved(group: string, bufnr: number): dict<any>
+		return {
+				group: group,
+				bufnr: bufnr,
+				event: "CursorMoved",
+				cmd: 'call _SetCursorUnderBuff()',
+			}
+	enddef
+
+	static def _QuickfixLeave(group: string, bufnr: number)
+		return {
+			group: group,
+			bufnr: bufnr,
+			event: ["WinLeave", "WinClosed", "WinLeave", "BufWipeout", "BufHidden"],
+			cmd: 'call Close()'
+		}
 	enddef
 
 	static def Toggle()
