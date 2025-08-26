@@ -300,6 +300,7 @@ export class Previewer
 			padding: [1, 1, 1, 1],
 			border: [1, 1, 1, 1],
 			borderchars: ['─', '│', '─', '│', '╭', '╮', '╯', '╰'],
+			borderhighlight: ["Title", "Title", "Title", "Title"],
 			maxheight: lines,
 			minheight: wininfo.width - 5,
 			minwidth: wininfo.width - 5,
