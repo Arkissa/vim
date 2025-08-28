@@ -220,6 +220,13 @@ export class Previewer
 	static var _prop_name: string = "quickfix.Previewer"
 	static var _qf: Quickfixer
 	static var _window: popup.Window
+	public static Config: dict<any> = {
+		BorderHighlight: ["Title", "Title", "Title", "Title"],
+		BorderChars: ['─', '│', '─', '│', '╭', '╮', '╯', '╰'],,
+		PropHighlight: "Cursor",
+		Number: true,
+		CursorLine: true,
+	}
 
 	static def _Filter(win: popup.Window, key: string): bool
 		if index(["\<C-u>", "\<C-d>", "G", "gg"], key) != -1
@@ -231,9 +238,15 @@ export class Previewer
 	enddef
 
 	static def _WinOption(win: popup.Window)
-		win.SetVar("&number", 1)
+		if Config.Number
+			win.SetVar("&number", 1)
+		endif
+
+		if Config.CursorLine
+			win.SetVar("&cursorline", 1)
+		endif
+
 		win.SetVar("&relativenumber", 0)
-		win.SetVar("&cursorline", 1)
 	enddef
 
 	static def _DetectFiletype(win: popup.Window)
@@ -283,12 +296,12 @@ export class Previewer
 			? Location.new(winId)
 			: Quickfix.new()
 
-		if _qf.Empty()
+		if _qf.Empty() || _qf.GetItemUnderTheCursor() is null_dict
 			return
 		endif
 
 		prop_type_add(_prop_name, {
-			highlight: 'Cursor',
+			highlight: Config.PropHighlight,
 			override: true,
 		})
 
@@ -299,8 +312,8 @@ export class Previewer
 			pos: "botleft",
 			padding: [1, 1, 1, 1],
 			border: [1, 1, 1, 1],
-			borderchars: ['─', '│', '─', '│', '╭', '╮', '╯', '╰'],
-			borderhighlight: ["Title", "Title", "Title", "Title"],
+			borderchars: Config.BorderChars,
+			borderhighlight: Config.BorderHighlight,
 			maxheight: lines,
 			minheight: wininfo.width - 5,
 			minwidth: wininfo.width - 5,
