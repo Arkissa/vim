@@ -17,7 +17,6 @@ import autoload 'path.vim'
 :set spelllang+=cjk
 :set dir-=.
 
-:nohlsearch
 :colorscheme catppuccin
 :filetype plugin indent on
 :syntax on
@@ -61,3 +60,7 @@ if exists("+comments")
 endif
 
 :packadd cfilter
+:packadd editexisting
+:packadd nohlsearch
+:packadd hlyank
+:packadd helptoc

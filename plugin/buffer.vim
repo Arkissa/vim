@@ -7,7 +7,7 @@ def Buffers(bang: bool)
 	var buffers = getbufinfo()
 		->map((_, info) => buffer.Buffer.new(info.bufnr))
 		->filter((_, b) => b.IsExists())
-		->filter((_, b) => b.GetVar("&buftype") == "" && b.LineCount() != 0)
+		->filter((_, b) => b.LineCount() != 0)
 
 	if bang
 		buffers = buffers->filter((_, b) => b.IsLoaded() && index(["netrw"], b.GetVar("&filetype")) == -1 )
