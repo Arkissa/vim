@@ -16,9 +16,9 @@ export interface Quickfixer
 	def GetList(what: dict<any> = null_dict): any
 	def GetItemUnderTheCursor(): dict<any>
 	def JumpFirst(bufnr: number)
-	def Open(height: number)
+	def Open(height: number = 0)
 	def Close()
-	def Window(height: number)
+	def Window(height: number = 0)
 	def IsLocation(): bool
 	def Empty(): bool
 endinterface
@@ -46,7 +46,7 @@ export class Quickfix implements Quickfixer
 		endif
 
 		var item = this.GetList()[line('.') - 1]
-		if item.valid != 1
+		if item.valid != 1 || bufname(item.bufnr)->isdirectory()
 			return null_dict
 		endif
 
@@ -57,16 +57,24 @@ export class Quickfix implements Quickfixer
 		:silent cc bufnr
 	enddef
 
-	def Open(height: number)
-		:copen height
+	def Open(height: number = 0)
+		if height != 0
+			:copen height
+		else
+			:copen
+		endif
 	enddef
 
 	def Close()
 		:cclose
 	enddef
 
-	def Window(height: number)
-		:cwindow height
+	def Window(height: number = 0)
+		if height != 0
+			:cwindow height
+		else
+			:cwindow
+		endif
 	enddef
 
 	def IsLocation(): bool
@@ -118,16 +126,24 @@ export class Location implements Quickfixer
 		:silent ll bufnr
 	enddef
 
-	def Open(height: number)
-		:lopen height
+	def Open(height: number = 0)
+		if height != 0
+			:lopen height
+		else
+			:lopen
+		endif
 	enddef
 
 	def Close()
 		:lclose
 	enddef
 
-	def Window(height: number)
-		:lwindow height
+	def Window(height: number = 0)
+		if height != 0
+			:lwindow height
+		else
+			:lwindow
+		endif
 	enddef
 
 	def IsLocation(): bool
@@ -220,9 +236,9 @@ export class Previewer
 	static var _prop_name: string = "quickfix.Previewer"
 	static var _qf: Quickfixer
 	static var _window: popup.Window
-	public static Config: dict<any> = {
+	public static var Config: dict<any> = {
 		BorderHighlight: ["Title", "Title", "Title", "Title"],
-		BorderChars: ['─', '│', '─', '│', '╭', '╮', '╯', '╰'],,
+		BorderChars: ['─', '│', '─', '│', '╭', '╮', '╯', '╰'],
 		PropHighlight: "Cursor",
 		Number: true,
 		CursorLine: true,
