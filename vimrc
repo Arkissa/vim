@@ -1,6 +1,7 @@
 vim9script
 
 import autoload 'path.vim'
+import autoload 'cgrep.vim'
 
 :set number
 :set autoindent
@@ -44,7 +45,7 @@ g:mapleader = " "
 g:netrw_dirhistmax = 0
 
 if getcwd() .. '/' == $MYVIMDIR
-	g:cgrep_prune_dirs = ["pack"]
+	cgrep.Config({ dirs: ["pack"] })
 endif
 
 if has('gui_running')

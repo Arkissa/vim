@@ -360,6 +360,10 @@ export class Previewer
 			return
 		endif
 
+		if item.lnum == 0 || item.col == 0
+			return
+		endif
+
 		prop_add(item.lnum, item.col, {
 			type: _prop_name,
 			end_lnum: item.end_lnum != 0 ? item.end_lnum : item.lnum,

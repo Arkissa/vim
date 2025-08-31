@@ -2,22 +2,18 @@ vim9script
 
 var grepprg = ["cgrep", "-r"]
 
-export def AddTypeFilter(...types: list<string>)
-	for type in types
-		grepprg->add("--type-filter=" .. type)
-	endfor
-enddef
+export def Config(conf: dict<any>)
+	if conf->has_key("types")
+		grepprg->extend(map(conf.types, (_, type) => $"--type-filter={type}"))
+	endif
 
-export def AddPruneDir(...dirs: list<string>)
-	for dir in dirs
-		grepprg->add("--prune-dir=" .. dir)
-	endfor
-enddef
+	if conf->has_key("dirs")
+		grepprg->extend(map(conf.dirs, (_, dir) => $"--prune-dir={dir}"))
+	endif
 
-export def AddKindFilter(...kinds: list<string>)
-	for kind in kinds
-		grepprg->add("--kind-filter=" .. kind)
-	endfor
+	if conf->has_key("kinds")
+		grepprg->extend(map(conf.kinds, (_, kind) => $"--kind-filter={kind}"))
+	endif
 enddef
 
 augroup cgrep
