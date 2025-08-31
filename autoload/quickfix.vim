@@ -1,6 +1,8 @@
 vim9script
 
 import "./popup.vim"
+import "./buffer.vim"
+import "./log.vim"
 
 export enum Action
 	A("a"),
@@ -11,10 +13,81 @@ export enum Action
 	var Value: string
 endenum
 
+export enum Type
+	E("E"),
+	W("W"),
+	I("I"),
+	N("N"),
+	Empty("")
+
+	var Value: string
+	static def FromString(t: string): Type
+		if t == "E"
+			return E
+		elseif t == "W"
+			return W
+		elseif t == "I"
+			return I
+		elseif t == "N"
+			return N
+		else
+			return Empty
+		endif
+	enddef
+endenum
+
+export class QuickfixItem
+	var buffer: buffer.Buffer
+	var lnum: number
+	var col: number
+	var end_lnum: number
+	var end_col: number
+	var text: string
+	var module: string
+	var vcol: bool
+	var nr: number
+	var type: Type
+	var valid: bool
+	var pattern: string
+	const user_data: dict<any>
+
+	def new(item: dict<any>)
+		this.buffer = buffer.Buffer.newByBufnr(item.bufnr)
+		this.lnum = item.lnum
+		this.col = item.col
+		this.end_lnum = item.end_lnum
+		this.end_col = item.end_col
+		this.text = item.text
+		this.valid = item.valid
+		this.type = has_key(item, "type") ? Type.FromString(item.type) : ""
+		this.vcol = has_key(item, "vcol") ? item.vcol : ""
+		this.module = has_key(item, "module") ? item.module : ""
+		this.user_data = has_key(item, "user_data") ? item.user_data : null_dict
+		this.pattern = has_key(item, "pattern") ? item.pattern : ""
+		this.nr = has_key(item, "nr") ? item.nr : 0
+	enddef
+
+	def ToRow(): dict<any>
+		return {
+			bufnr: this.buffer.bufnr,
+			lnum: this.lnum
+			end_lnum: this.end_lnum,
+			col: this.col,
+			end_col: this.end_col,
+			module: this.module,
+			vcol: this.vcol,
+			nr: this.nr,
+			type: this.type.Value,
+			valid: this.valid,
+			user_data: this.user_data
+		}
+	enddef
+endclass
+
 export interface Quickfixer
-	def SetList(entry: list<dict<any>>, action: Action, what: dict<any>): bool
-	def GetList(what: dict<any> = null_dict): any
-	def GetItemUnderTheCursor(): dict<any>
+	def SetList(entry: list<QuickfixItem>, action: Action, what: dict<any>): bool
+	def GetList(what: dict<any> = null_dict): list<QuickfixItem>
+	def GetItemUnderTheCursor(): QuickfixItem
 	def JumpFirst(bufnr: number)
 	def Open(height: number = 0)
 	def Close()
@@ -24,30 +97,34 @@ export interface Quickfixer
 endinterface
 
 export class Quickfix implements Quickfixer
-	def SetList(entry: list<dict<any>>, action: Action, what: dict<any> = {}): bool
-		if !what->empty()
-			return setqflist(entry, action.Value, what) == 0
-		endif
-
-		return setqflist(entry, action.Value) == 0
+	def SetList(entry: list<QuickfixItem>, action: Action, what: dict<any> = null_dict): bool
+		var items = entry->map((_, item) => item.ToRow())
+		return (what == null_dict
+			? setqflist(items, action.Value, what)
+			: setqflist(items, action.Value)) == 0
 	enddef
 
-	def GetList(what: dict<any> = null_dict): any
-		if what == null_dict
-			return getqflist()
+	def GetList(what: dict<any> = null_dict): list<QuickfixItem>
+		var qfitems: any = what == null_dict
+				? getqflist()
+				: getqflist(what)
+
+		if type(qfitems) == type({})
+			qfitems = [qfitems]
 		endif
 
-		return getqflist(what)
+		return qfitems->mapnew((_, item) => QuickfixItem.new(item))
 	enddef
 
-	def GetItemUnderTheCursor(): dict<any>
+	def GetItemUnderTheCursor(): QuickfixItem
 		if this.Empty()
-			return null_dict
+			return null_object
 		endif
 
-		var item = this.GetList()[line('.') - 1]
-		if item.valid != 1 || bufname(item.bufnr)->isdirectory()
-			return null_dict
+		var b = buffer.Buffer.new()
+		var item = this.GetList()[b.GetLinePosition() - 1]
+		if !item.valid || item.buffer.IsDirectory()
+			return null_object
 		endif
 
 		return item
@@ -82,8 +159,7 @@ export class Quickfix implements Quickfixer
 	enddef
 
 	def Empty(): bool
-		var items = this.GetList()
-		return items is null_list || items is null_dict
+		return this.GetList() == null_list
 	enddef
 endclass
 
@@ -93,30 +169,34 @@ export class Location implements Quickfixer
 	def new(this.winnr)
 	enddef
 
-	def SetList(entry: list<dict<any>>, action: Action, what: dict<any> = {}): bool
-		if !what->empty()
-			return setloclist(this.winnr, entry, action.Value, what) == 0
-		endif
-
-		return setloclist(this.winnr, entry, action.Value) == 0
+	def SetList(entry: list<QuickfixItem>, action: Action, what: dict<any> = null_dict): bool
+		var items = entry->map((_, item) => item.ToRow())
+		return (what == null_dict
+			? setloclist(this.winnr, items, action.Value)
+			: setloclist(this.winnr, items, action.Value, what)) == 0
 	enddef
 
 	def GetList(what: dict<any> = null_dict): any
-		if what is null_dict
-			return getloclist()
+		var locitems: any = what == null_dict
+			? getloclist(this.winnr)
+			: getloclist(this.winnr, what)
+
+		if type(locitems) == type({})
+			locitems = [locitems]
 		endif
 
-		return getloclist(this.winnr, what)
+		return locitems->mapnew((_, item) => QuickfixItem.new(item))
 	enddef
 
-	def GetItemUnderTheCursor(): dict<any>
+	def GetItemUnderTheCursor(): QuickfixItem
 		if this.Empty()
-			return null_dict
+			return null_object
 		endif
 
-		var item = this.GetList()[line('.') - 1]
-		if item.valid != 1
-			return null_dict
+		var b = buffer.Buffer.new()
+		var item = this.GetList()[b.GetLinePosition() - 1]
+		if !item.valid || item.buffer.IsDirectory()
+			return null_object
 		endif
 
 		return item
@@ -128,8 +208,7 @@ export class Location implements Quickfixer
 
 	def Open(height: number = 0)
 		if height != 0
-			:lopen height
-		else
+			:lopen height else
 			:lopen
 		endif
 	enddef
@@ -151,8 +230,7 @@ export class Location implements Quickfixer
 	enddef
 
 	def Empty(): bool
-		var items = this.GetList()
-		return items is null_list || items is null_dict
+		return this.GetList() == null_list
 	enddef
 endclass
 
@@ -233,10 +311,10 @@ enddef
 
 # peek quickfix buffer with popup window.
 export class Previewer
-	static var _prop_name: string = "quickfix.Previewer"
+	static var _prop_name = "quickfix.Previewer"
 	static var _qf: Quickfixer
 	static var _window: popup.Window
-	public static var Config: dict<any> = {
+	static var _config = {
 		BorderHighlight: ["Title", "Title", "Title", "Title"],
 		BorderChars: ['─', '│', '─', '│', '╭', '╮', '╯', '╰'],
 		PropHighlight: "Cursor",
@@ -244,8 +322,12 @@ export class Previewer
 		CursorLine: true,
 	}
 
+	static def Config(c: dict<any>)
+		_config->extend(c)
+	enddef
+
 	static def _Filter(win: popup.Window, key: string): bool
-		if index(["\<C-u>", "\<C-d>", "G", "gg"], key) != -1
+		if ["\<C-u>", "\<C-d>", "G", "gg"]->index(key) != -1
 			win.FeedKeys(key, "mx")
 			return true
 		endif
@@ -254,11 +336,11 @@ export class Previewer
 	enddef
 
 	static def _WinOption(win: popup.Window)
-		if Config.Number
+		if _config.Number
 			win.SetVar("&number", 1)
 		endif
 
-		if Config.CursorLine
+		if _config.CursorLine
 			win.SetVar("&cursorline", 1)
 		endif
 
@@ -274,7 +356,7 @@ export class Previewer
 
 	static def _AddHightlightText(win: popup.Window)
 		var item = _qf.GetItemUnderTheCursor()
-		if item == null_dict
+		if item == null_object
 			return
 		endif
 
@@ -312,12 +394,12 @@ export class Previewer
 			? Location.new(winId)
 			: Quickfix.new()
 
-		if _qf.Empty() || _qf.GetItemUnderTheCursor() is null_dict
+		if _qf.Empty() || _qf.GetItemUnderTheCursor() == null_object
 			return
 		endif
 
 		prop_type_add(_prop_name, {
-			highlight: Config.PropHighlight,
+			highlight: _config.PropHighlight,
 			override: true,
 		})
 
@@ -328,8 +410,8 @@ export class Previewer
 			pos: "botleft",
 			padding: [1, 1, 1, 1],
 			border: [1, 1, 1, 1],
-			borderchars: Config.BorderChars,
-			borderhighlight: Config.BorderHighlight,
+			borderchars: _config.BorderChars,
+			borderhighlight: _config.BorderHighlight,
 			maxheight: lines,
 			minheight: wininfo.width - 5,
 			minwidth: wininfo.width - 5,
@@ -347,37 +429,49 @@ export class Previewer
 	enddef
 
 	static def _CreateAutocmd(bufnr: number)
-		:execute $"augroup Quickfix.Previewer_{bufnr}"
-			:autocmd CursorMoved <buffer> quickfix#Previewer.SetCursorUnderBuff()
-			:autocmd WinLeave,WinClosed,WinLeave,BufWipeout,BufHidden <buffer> quickfix#Previewer.Close()
-		:augroup END
+		var group = "Quickfix.Previewer"
+		var events = [
+			{
+				bufnr: bufnr,
+				group: group,
+				event: "CursorMoved",
+				cmd: "vim9 quickfix#Previewer.SetCursorUnderBuff()",
+			},
+			{
+				bufnr: bufnr,
+				group: group,
+				event: ["WinLeave", "WinClosed", "WinLeave", "BufWipeout", "BufHidden"],
+				cmd: "vim9 quickfix#Previewer.Close()",
+			}
+		]
+
+		autocmd_add(events)
 
 		_window.OnClose((_: popup.Window, _: any) => {
-			:execute $"augroup Quickfix.Previewer_{bufnr}"
-				:autocmd!
-			:augroup END
+			autocmd_delete([{group: group}])
 		})
 	enddef
 
 	static def SetCursorUnderBuff()
-		if _window is null_object || _qf is null_object
+		if _window == null_object || _qf == null_object || !_window.IsOpen()
+			log.Error("Unable to set the qfitem buffer under cursor line for preview window.")
 			return
 		endif
 
 		var item = _qf.GetItemUnderTheCursor()
-		if item is null_dict
+		if item == null_object
 			return
 		endif
 
-		_window.SetBuf(item.bufnr)
-		var bufinfo = getbufinfo(item.bufnr)[0]
-		_window.SetTitle($" [{item.lnum}/{bufinfo.linecount}] buffer {item.bufnr}: {fnamemodify(bufinfo.name, ":~:.")} {bufinfo.changed == 1 ? "[+]" : ""}")
+		_window.SetBuf(item.buffer.bufnr)
+		var bufinfo = item.buffer.GetInfo()
+		_window.SetTitle($" [{item.lnum}/{bufinfo.linecount}] buffer {item.buffer.bufnr}: {fnamemodify(bufinfo.name, ":~:.")} {bufinfo.changed ? "[+]" : ""}")
 		_window.SetCursor(item.lnum, item.col)
 		_window.FeedKeys("z.", "mx")
 	enddef
 
 	static def Toggle()
-		if _window isnot null_object && _window.IsOpen()
+		if _window != null_object && _window.IsOpen()
 			Close()
 		else
 			Open()
@@ -385,7 +479,7 @@ export class Previewer
 	enddef
 
 	static def Close()
-		if _window isnot null_object && _window.IsOpen()
+		if _window != null_object && _window.IsOpen()
 			_window.Close()
 		endif
 	enddef
