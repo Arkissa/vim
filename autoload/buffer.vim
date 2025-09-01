@@ -185,4 +185,8 @@ export class Buffer
 			has_key(info, "signs") ? map(info.signs, (_, sign) => Sign.new(sign.id, sign.lnum, sign.name)) : null_list
 		)
 	enddef
+
+	def Readable(): bool
+		return filereadable(this.name) == 1
+	enddef
 endclass

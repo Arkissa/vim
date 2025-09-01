@@ -123,7 +123,7 @@ export class Quickfix implements Quickfixer
 
 		var b = buffer.Buffer.new()
 		var item = this.GetList()[b.GetLinePosition() - 1]
-		if !item.valid || item.buffer.IsDirectory()
+		if !item.valid || item.buffer.IsDirectory() || !item.buffer.Readable()
 			return null_object
 		endif
 
@@ -348,7 +348,7 @@ export class Previewer
 	enddef
 
 	static def _DetectFiletype(win: popup.Window)
-		var ft = getbufvar(win.GetBufnr(), '&filetype')
+		var ft = win.GetVar('&filetype')
 		if ft == ""
 			win.Execute("filetype detect")
 		endif
