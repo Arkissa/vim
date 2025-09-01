@@ -88,7 +88,7 @@ export interface Quickfixer
 	def SetList(entry: list<QuickfixItem>, action: Action, what: dict<any>): bool
 	def GetList(what: dict<any> = null_dict): list<QuickfixItem>
 	def GetItemUnderTheCursor(): QuickfixItem
-	def JumpFirst(bufnr: number)
+	def JumpFirst(nr: number = 1)
 	def Open(height: number = 0)
 	def Close()
 	def Window(height: number = 0)
@@ -100,8 +100,8 @@ export class Quickfix implements Quickfixer
 	def SetList(entry: list<QuickfixItem>, action: Action, what: dict<any> = null_dict): bool
 		var items = entry->map((_, item) => item.ToRow())
 		return (what == null_dict
-			? setqflist(items, action.Value, what)
-			: setqflist(items, action.Value)) == 0
+			? setqflist(items, action.Value)
+			: setqflist(items, action.Value, what)) == 0
 	enddef
 
 	def GetList(what: dict<any> = null_dict): list<QuickfixItem>
@@ -130,13 +130,13 @@ export class Quickfix implements Quickfixer
 		return item
 	enddef
 
-	def JumpFirst(bufnr: number)
-		:silent cc bufnr
+	def JumpFirst(nr: number = 1)
+		exe $"silent cc {nr}"
 	enddef
 
 	def Open(height: number = 0)
 		if height != 0
-			:copen height
+			exe $"copen {height}"
 		else
 			:copen
 		endif
@@ -148,7 +148,7 @@ export class Quickfix implements Quickfixer
 
 	def Window(height: number = 0)
 		if height != 0
-			:cwindow height
+			exe $":cwindow {height}"
 		else
 			:cwindow
 		endif
@@ -202,13 +202,14 @@ export class Location implements Quickfixer
 		return item
 	enddef
 
-	def JumpFirst(bufnr: number)
-		:silent ll bufnr
+	def JumpFirst(nr: number = 1)
+		exe $"silent ll {nr}"
 	enddef
 
 	def Open(height: number = 0)
 		if height != 0
-			:lopen height else
+			exe $"lopen {height}"
+		else
 			:lopen
 		endif
 	enddef
@@ -219,7 +220,7 @@ export class Location implements Quickfixer
 
 	def Window(height: number = 0)
 		if height != 0
-			:lwindow height
+			exe $"lwindow  {height}"
 		else
 			:lwindow
 		endif
@@ -302,7 +303,10 @@ export def TextFunc(info: dict<any>): list<string>
 	var tlen = lens.type != 0 ? lens.type + 1 : 0
 
 	return qflist->mapnew((_, item) => {
-			var fname = GetFname(GetBufName(item.bufnr), maxFnameWidth)
+			var fname: string
+			if item.valid
+				fname = GetFname(GetBufName(item.bufnr), maxFnameWidth)
+			endif
 			var lc = GetLnumAndColStr(item)
 			var line = $"%-{tlen}s%-{maxFnameWidth}s │%{lens.row_col}s│%{min([99, item.text->len() + 1])}s"
 			return printf(line, item.type, fname, lc, item.text)
