@@ -3,7 +3,7 @@ vim9script
 import "./quickfix.vim"
 import "./log.vim"
 
-export class Lint
+export class Linter
 	var cmd: list<string>
 	var efm: list<string>
 
@@ -11,7 +11,7 @@ export class Lint
 	enddef
 endclass
 
-export class Manager
+export class Job
 	static var _job: job
 
 	static def _Callback(qf: quickfix.Quickfix, efm: string, chan: channel, msg: string)
@@ -21,9 +21,10 @@ export class Manager
 			return
 		endif
 
+		echom msg
 		qf.SetList([], quickfix.Action.A, {
 			efm: efm,
-			lines: msg->split('\n')
+			lines: [msg]
 		})
 	enddef
 
@@ -39,19 +40,19 @@ export class Manager
 		endif
 	enddef
 
-	static def RunLint(bang: bool)
-		var ftLinters = get(g:, 'Linters', {})
-		if ftLinters == null_dict
-			return
+	static def Run(bang: bool)
+		if _job->job_status() == "run"
+			_job->job_stop()
+			if _job->job_status() == "run" # when still running, will be kill it.
+				_job->job_stop("kill")
+			endif
 		endif
 
-		var ft = &filetype
-		if !ftLinters->has_key(ft)
-			log.Warn($"Warn: unsupported {ft} filetype")
+		var linters = get(b:, 'linters', [])
+		if linters == null_list
+			log.Warn($"Warn: b:linters is empty")
 			return
 		endif
-
-		var linters = ftLinters[ft]
 
 		var qf = quickfix.Quickfix.new()
 

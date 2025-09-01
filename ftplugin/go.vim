@@ -1,6 +1,7 @@
 vim9script
 
 import autoload "cgrep.vim"
+import autoload "linter.vim"
 
 g:go_highlight_types = 1
 g:go_highlight_fields = 1
@@ -14,5 +15,17 @@ g:go_highlight_generate_tags = 1
 cgrep.Config({
 	types: ["Go"]
 })
+
+b:linters = [
+	linter.Linter.new(
+		["golangci-lint", "run"],
+		[
+			"%E%f:%l:%c:\\ Error%m",
+			"%-G",
+			"%-G%\\\\d%\\\\+\\ issues:",
+			"%-G*\\ errcheck: %\\\\d%\\\\+",
+		],
+	)
+]
 
 :command! -nargs=* Go Dispatch go <args>
