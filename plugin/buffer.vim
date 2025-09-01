@@ -5,12 +5,12 @@ import autoload "quickfix.vim"
 
 def Buffers(bang: bool)
 	var buffers = getbufinfo()
-		->map((_, info) => buffer.Buffer.new(info.bufnr))
+		->map((_, info) => buffer.Buffer.newByBufnr(info.bufnr))
 		->filter((_, b) => b.IsExists())
 		->filter((_, b) => b.LineCount() != 0)
 
 	if bang
-		buffers = buffers->filter((_, b) => b.IsLoaded() && index(["netrw"], b.GetVar("&filetype")) == -1 )
+		buffers = buffers->filter((_, b) => b.IsLoaded())
 	endif
 
 	var qf = quickfix.Quickfix.new()
@@ -18,4 +18,4 @@ def Buffers(bang: bool)
 	qf.Window()
 enddef
 
-:command -bang Buffers Buffers(empty(<q-bang>) ? true : false)
+:command -bang Buffers Buffers(!empty(<q-bang>))

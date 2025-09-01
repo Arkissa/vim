@@ -25,9 +25,9 @@ hi def qfSeparator1 guifg=#B4BEFE
 hi def qfSeparator2 guifg=#B4BEFE
 hi def link qfText Normal
 
-hi def link qfError DiagnosticError
-hi def link qfWarn DiagnosticWarn
-hi def link qfInfo DiagnosticInfo
-hi def link qfNote DiagnosticHint
+hi def link qfError LspDiagSignErrorText
+hi def link qfWarn LspDiagSignWarningText
+hi def link qfInfo LspDiagSignInfoText
+hi def link qfNote LspDiagSignHintText
 
 let b:current_syntax = 'qf'

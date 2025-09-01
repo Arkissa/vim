@@ -12,13 +12,7 @@ export class Lint
 endclass
 
 export class Manager
-	# static var _ftLinters: dict<list<Lint>>
-	# public static var Linters: dict<list<Lint>>
 	static var _job: job
-
-	# static def Config(conf: dict<list<Lint>>)
-	# 	_ftLinters->extend(conf)
-	# enddef
 
 	static def _Callback(qf: quickfix.Quickfix, efm: string, chan: channel, msg: string)
 		var job = ch_getjob(chan)
