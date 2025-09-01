@@ -21,7 +21,6 @@ export class Job
 			return
 		endif
 
-		echom msg
 		qf.SetList([], quickfix.Action.A, {
 			efm: efm,
 			lines: [msg]
