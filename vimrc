@@ -1,7 +1,6 @@
 vim9script
 
 import autoload 'path.vim'
-import autoload 'cgrep.vim'
 
 :set number
 :set autoindent
@@ -43,10 +42,6 @@ var stateDir = path.OsStateDir()
 
 g:mapleader = " "
 g:netrw_dirhistmax = 0
-
-if getcwd() .. '/' == $MYVIMDIR
-	cgrep.Config({ dirs: ["pack"] })
-endif
 
 if has('gui_running')
     :set guicursor=n-v-c:block,i-ci:ver25,r-cr:hor20,o:hor50
