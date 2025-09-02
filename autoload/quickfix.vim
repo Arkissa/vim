@@ -331,7 +331,7 @@ export class Previewer
 	enddef
 
 	static def _Filter(win: popup.Window, key: string): bool
-		if ["\<C-u>", "\<C-d>", "G", "gg"]->index(key) != -1
+		if ["\<C-u>", "\<C-d>"]->index(key) != -1
 			win.FeedKeys(key, "mx")
 			return true
 		endif
@@ -352,10 +352,12 @@ export class Previewer
 	enddef
 
 	static def _DetectFiletype(win: popup.Window)
-		var ft = win.GetVar('&filetype')
-		if ft == ""
-			win.Execute("filetype detect")
-		endif
+		timer_start(0, (_) => {
+			var ft = win.GetVar('&filetype')
+			if ft == ""
+				win.Execute("filetype detect")
+			endif
+		})
 	enddef
 
 	static def _AddHightlightText(win: popup.Window)
@@ -401,8 +403,8 @@ export class Previewer
 		_qf = wt == "loclist"
 			? Location.new(winId)
 			: Quickfix.new()
-
-		if _qf.Empty() || _qf.GetItemUnderTheCursor() == null_object
+		var item = _qf.GetItemUnderTheCursor()
+		if _qf.Empty() || item == null_object
 			return
 		endif
 
@@ -412,9 +414,8 @@ export class Previewer
 		})
 
 		var wininfo = getwininfo(winId)[0]
-		var bufnr = winbufnr(winId)
 		var lines = float2nr(getwinvar(winId, "&lines") * 0.5)
-		_window = popup.Window.new(bufnr, {
+		_window = popup.Window.new(item.buffer.bufnr, {
 			pos: "botleft",
 			padding: [1, 1, 1, 1],
 			border: [1, 1, 1, 1],
@@ -432,11 +433,10 @@ export class Previewer
 		_window.OnSetBufPre(_RemoveHightlightText)
 		_window.OnSetBufAfter(_DetectFiletype, _WinOption, _AddHightlightText)
 		_window.OnClose(_DeleteHightlightName)
-		_CreateAutocmd(bufnr)
-		SetCursorUnderBuff()
+		_CreateAutocmd(_window, winbufnr(winId))
 	enddef
 
-	static def _CreateAutocmd(bufnr: number)
+	static def _CreateAutocmd(win: popup.Window, bufnr: number)
 		var group = "Quickfix.Previewer"
 		var events = [
 			{
@@ -455,7 +455,7 @@ export class Previewer
 
 		autocmd_add(events)
 
-		_window.OnClose((_: popup.Window, _: any) => {
+		win.OnClose((_: popup.Window, _: any) => {
 			autocmd_delete([{group: group}])
 		})
 	enddef
