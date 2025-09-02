@@ -16,11 +16,11 @@ export def Config(conf: dict<any>)
 	endif
 enddef
 
-augroup cgrep
-	au!
-	au VimEnter * {
-		grepprg->add("$*")
-		&grepprg = grepprg->join(' ')
-		&grepformat = "%-G,%f:%l:%c:%m"
-	}
-augroup END
+# augroup cgrep
+# 	au!
+# 	au VimEnter * {
+# 		grepprg->add("$*")
+# 		&grepprg = grepprg->join(' ')
+# 		&grepformat = "%-G,%f:%l:%c:%m"
+# 	}
+# augroup END
