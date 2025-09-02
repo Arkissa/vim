@@ -16,14 +16,16 @@ export class Job
 
 	static def _Callback(qf: quickfix.Quickfix, efm: string, chan: channel, msg: string)
 		var job = ch_getjob(chan)
-		if job->job_status() == 'fail'
+		var jobinfo = job->job_info()
+		if jobinfo.status == 'fail'
 			log.Error("Error: Job is failed on output callback.")
 			return
 		endif
 
 		qf.SetList([], quickfix.Action.A, {
 			efm: efm,
-			lines: [msg]
+			lines: [msg],
+			title: jobinfo.cmd->join(' ')
 		})
 	enddef
 
