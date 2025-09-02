@@ -4,21 +4,11 @@ import "./quickfix.vim"
 import "./log.vim"
 import "./job.vim" as jb
 
-export class Command extends jb.Job
+export abstract class Command extends jb.Job
 	var _bang: bool
-	var _efm: string
-	var _cmd: string
 
-	def new(
-		this._cmd,
-		this._efm,
-		this._bang,
-	)
-	enddef
-
-	def Cmd(): string
-		return this._cmd
-	enddef
+	abstract def Cmd(): string
+	abstract def Efm(): string
 
 	def Callback(qf: quickfix.Quickfix, chan: channel, msg: string)
 		var job = ch_getjob(chan)
@@ -29,7 +19,7 @@ export class Command extends jb.Job
 		endif
 
 		qf.SetList([], quickfix.Action.A, {
-			efm: this._efm,
+			efm: this.Efm(),
 			lines: [msg],
 			title: jobinfo.cmd->join(' ')
 		})

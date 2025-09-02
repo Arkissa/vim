@@ -44,9 +44,9 @@ export class QuickfixItem
 	var end_col: number
 	var text: string
 	var module: string
-	var vcol: bool
+	var vcol: number
 	var nr: number
-	var type: Type
+	var type: Type = Type.Empty
 	var valid: bool
 	var pattern: string
 	const user_data: dict<any>
@@ -60,22 +60,36 @@ export class QuickfixItem
 		this.text = item.text
 		this.valid = item.valid
 		this.type = has_key(item, "type") ? Type.FromString(item.type) : ""
-		this.vcol = has_key(item, "vcol") ? item.vcol : ""
+		this.vcol = has_key(item, "vcol") ? item.vcol : 0
 		this.module = has_key(item, "module") ? item.module : ""
 		this.user_data = has_key(item, "user_data") ? item.user_data : null_dict
 		this.pattern = has_key(item, "pattern") ? item.pattern : ""
 		this.nr = has_key(item, "nr") ? item.nr : 0
 	enddef
 
+	def newByBuffer(buf: buffer.Buffer)
+		var [lnum, col] = buf.LastCursorPosition()
+
+		this.buffer = buf
+		this.lnum = lnum
+		this.col = col
+		this.end_lnum = 0
+		this.end_col = 0
+		this.nr = 0
+		this.text = buf.GetOneLine(lnum)
+		this.valid = 1
+	enddef
+
 	def ToRow(): dict<any>
 		return {
 			bufnr: this.buffer.bufnr,
-			lnum: this.lnum
+			lnum: this.lnum,
 			end_lnum: this.end_lnum,
 			col: this.col,
 			end_col: this.end_col,
 			module: this.module,
 			vcol: this.vcol,
+			text: this.text,
 			nr: this.nr,
 			type: this.type.Value,
 			valid: this.valid,
@@ -98,7 +112,7 @@ endinterface
 
 export class Quickfix implements Quickfixer
 	def SetList(entry: list<QuickfixItem>, action: Action, what: dict<any> = null_dict): bool
-		var items = entry->map((_, item) => item.ToRow())
+		var items = entry->mapnew((_, item) => item.ToRow())
 		return (what == null_dict
 			? setqflist(items, action.Value)
 			: setqflist(items, action.Value, what)) == 0
@@ -170,7 +184,7 @@ export class Location implements Quickfixer
 	enddef
 
 	def SetList(entry: list<QuickfixItem>, action: Action, what: dict<any> = null_dict): bool
-		var items = entry->map((_, item) => item.ToRow())
+		var items = entry->mapnew((_, item) => item.ToRow())
 		return (what == null_dict
 			? setloclist(this.winnr, items, action.Value)
 			: setloclist(this.winnr, items, action.Value, what)) == 0
@@ -415,7 +429,7 @@ export class Previewer
 
 		var wininfo = getwininfo(winId)[0]
 		var lines = float2nr(getwinvar(winId, "&lines") * 0.5)
-		_window = popup.Window.new(item.buffer.bufnr, {
+		_window = popup.Window.new(wininfo.bufnr, {
 			pos: "botleft",
 			padding: [1, 1, 1, 1],
 			border: [1, 1, 1, 1],
@@ -434,6 +448,7 @@ export class Previewer
 		_window.OnSetBufAfter(_DetectFiletype, _WinOption, _AddHightlightText)
 		_window.OnClose(_DeleteHightlightName)
 		_CreateAutocmd(_window, winbufnr(winId))
+		SetCursorUnderBuff()
 	enddef
 
 	static def _CreateAutocmd(win: popup.Window, bufnr: number)

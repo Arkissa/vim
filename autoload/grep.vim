@@ -3,19 +3,22 @@ vim9script
 import "./errorformat.vim" as efm
 
 export class Grep extends efm.Command
-	def new(bang: bool)
-		var grepprg = &grepprg
+	var _grepprg: string
 
-		var grepargs = get(b:, "grepargs", [])
+	def new(this._bang)
+		this._grepprg = &grepprg
+
+		var grepargs = get(b:, 'grepargs', [])
 		if !grepargs->empty()
-			grepprg = $"{grepprg} {grepargs->join(' ')}"
+			this._grepprg = substitute(this._grepprg, '\$\*', $'{grepargs->join(' ')} $*', '')
 		endif
+	enddef
 
-		grepprg = substitute(grepprg, '\$\*', grepargs->join(' '), 'g') .. " $*"
-		&grepprg = grepprg
+	def Cmd(): string
+		return this._grepprg
+	enddef
 
-		this._cmd = &grepprg
-		this._efm = &grepformat
-		this._bang = bang
+	def Efm(): string
+		return &grepformat
 	enddef
 endclass

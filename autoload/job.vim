@@ -3,40 +3,48 @@ vim9script
 import "./quickfix.vim"
 
 export abstract class Job # maybe more extensions for channel-mode?
-	var job: job
+	static var _job: job
 	abstract def Cmd(): string
 	abstract def Callback(qf: quickfix.Quickfix, chan: channel, msg: string)
 	abstract def ExitCb(qf: quickfix.Quickfix, job: job, code: number)
 
 	def Status(): string
-		if this.job == null_job
+		if _job == null_job
 			return "dead"
 		endif
 
-		return job_status(this.job)
+		return job_status(_job)
 	enddef
 
 	def Stop()
-		if this.job != null_job && this.Status() == "run"
-			job_stop(job)
+		if _job != null_job
+			job_stop(_job)
 		endif
 	enddef
 
 	def Run(args: string)
+		if this.Status() == "run"
+			this.Stop()
+		endif
+
 		var cmd = substitute(this.Cmd(), '\$\*', args, '')
 		if cmd == this.Cmd()
 			cmd = $"{trim(cmd)} {args}"
 		endif
 
 		cmd = expand(cmd)
-		echom cmd
 
 		var qf = quickfix.Quickfix.new()
 		qf.SetList([], quickfix.Action.R)
 
-		this.job = job_start(cmd, {
+		_job = job_start(cmd, {
 			callback: function(this.Callback, [qf]),
-			exit_cb: function(this.ExitCb, [qf])
+			exit_cb: function(this.ExitCb, [qf]),
+			in_io: 'null'
 		})
 	enddef
 endclass
+
+export def Cmd(...s: list<string>): string
+	return s->join(' ')
+enddef

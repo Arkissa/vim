@@ -76,22 +76,6 @@ export class Buffer
 		return (pos[1] > lastLine ? lastLine : pos[1], pos[2])
 	enddef
 
-	def QuickfixItem(): dict<any>
-		var [lnum, col] = this.LastCursorPosition()
-		var line = getbufoneline(this.bufnr, lnum)
-
-		return {
-			bufnr: this.bufnr,
-			col: col,
-			lnum: lnum,
-			end_col: 0,
-			end_lnum: 0,
-			nr: 0,
-			text: line,
-			valid: 1,
-		}
-	enddef
-
 	def GetVar(name: string): any
 		return getbufvar(this.bufnr, name)
 	enddef

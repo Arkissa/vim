@@ -14,8 +14,11 @@ def Buffers(bang: bool)
 	endif
 
 	var qf = quickfix.Quickfix.new()
-	qf.SetList(buffers->map((_, b) => b.QuickfixItem()), quickfix.Action.R)
+
+	var items = buffers->map((_, b) => quickfix.QuickfixItem.newByBuffer(b))
+	echom typename(items)
+	qf.SetList(items, quickfix.Action.R)
 	qf.Window()
 enddef
 
-:command -bang Buffers Buffers(!empty(<q-bang>))
+:command -bang Buffers Buffers(empty(<q-bang>))
