@@ -25,7 +25,7 @@ export abstract class Command extends jb.Job
 		})
 	enddef
 
-	def ExitCb(qf: quickfix.Quickfix, job: job, _: number)
+	def ExitCb(qf: quickfix.Quickfix, job: job, code: number)
 		if job->job_status() == 'fail'
 			log.Error("Error: Job is failed on exit callback.")
 			return
@@ -35,5 +35,7 @@ export abstract class Command extends jb.Job
 		if this._bang
 			qf.JumpFirst()
 		endif
+
+		echo $"Exit code: {code}"
 	enddef
 endclass

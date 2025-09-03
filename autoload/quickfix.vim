@@ -458,13 +458,13 @@ export class Previewer
 				bufnr: bufnr,
 				group: group,
 				event: "CursorMoved",
-				cmd: "vim9 quickfix#Previewer.SetCursorUnderBuff()",
+				cmd: "quickfix#Previewer.SetCursorUnderBuff()",
 			},
 			{
 				bufnr: bufnr,
 				group: group,
 				event: ["WinLeave", "WinClosed", "WinLeave", "BufWipeout", "BufHidden"],
-				cmd: "vim9 quickfix#Previewer.Close()",
+				cmd: "quickfix#Previewer.Close()",
 			}
 		]
 

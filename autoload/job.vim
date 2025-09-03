@@ -27,12 +27,12 @@ export abstract class Job # maybe more extensions for channel-mode?
 			this.Stop()
 		endif
 
-		var cmd = substitute(this.Cmd(), '\$\*', args, '')
-		if cmd == this.Cmd()
-			cmd = $"{trim(cmd)} {args}"
-		endif
+		var param = expandcmd(args)
 
-		cmd = expand(cmd)
+		var cmd = substitute(this.Cmd(), '\$\*', param, '')
+		if cmd == this.Cmd()
+			cmd = $"{trim(cmd)} {param}"
+		endif
 
 		var qf = quickfix.Quickfix.new()
 		qf.SetList([], quickfix.Action.R)
@@ -44,7 +44,3 @@ export abstract class Job # maybe more extensions for channel-mode?
 		})
 	enddef
 endclass
-
-export def Cmd(...s: list<string>): string
-	return s->join(' ')
-enddef
