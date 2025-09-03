@@ -1,7 +1,5 @@
 vim9script
 
-import autoload 'path.vim'
-
 :set number
 :set autoindent
 :set smartindent
@@ -36,10 +34,6 @@ import autoload 'path.vim'
 &fillchars = 'eob: '
 &signcolumn = "yes"
 
-var stateDir = path.OsStateDir()
-&backupdir = stateDir .. '//'
-&undodir   = stateDir .. '//'
-
 g:mapleader = " "
 g:netrw_dirhistmax = 0
 
@@ -56,7 +50,6 @@ if exists("+comments")
 endif
 
 :packadd cfilter
-:packadd editexisting
 :packadd nohlsearch
 :packadd hlyank
 :packadd helptoc

@@ -2,6 +2,10 @@ vim9script
 
 import autoload 'vim.vim'
 
+:setlocal nobuflisted
+:setlocal nolist
+:setlocal nowrap
+
 g:go_highlight_types = 1
 g:go_highlight_fields = 1
 g:go_highlight_functions = 1
@@ -19,12 +23,31 @@ b:linter = vim.Cmd(
 b:linterformat = [
 	'%-G',
 	'%E%f:%l:%c:\ Error%m',
-	'%-G%\d%\+\ issues:',
+	'%-G%\d%\+\ issues%.',
 	'%-G*\ %\k%\+: %\d%\+',
 ]
-b:grepargs = ["--prune-dir=proto"]
+b:grepargs = ["--prune-dir=proto", "-t Go"]
 
 :command! -bang -buffer -nargs=* Go Dispatch<bang> go <args>
-:setlocal nobuflisted
-:setlocal nolist
-:setlocal nowrap
+
+if exists("+clipboard")
+	import autoload 'path.vim'
+	def RealPath(pt: string): string
+		var gopath = $"^{trim(system('go env GOPATH'))}/pkg/mod"
+		if pt =~ gopath
+			return trim(substitute(pt, gopath, '', ''), '/')
+		endif
+
+		var goroot = $"^{trim(system('go env GOPATH'))}/pkg/mod"
+		if pt =~ goroot
+			return trim(substitute(pt, gopath, '', ''), '/')
+		endif
+
+		return pt
+	enddef
+
+	autocmd User LspAttached {
+		:nnoremap yil <ScriptCmd>setreg('+', $"{path.UnderPath(function(RealPath))}:{line('.')}")<CR>
+		:nnoremap yal <ScriptCmd>setreg('+', $"{expand("%:p")}:{line('.')}")<CR>
+	}
+endif

@@ -1,5 +1,7 @@
 vim9script
 
+import autoload 'lsp/buffer.vim'
+
 export def OsStateDir(): string
     var stateDir = has('win32') || has('win64')
 	? $LOCALAPPDATA .. '/vim'
@@ -12,4 +14,22 @@ export def OsStateDir(): string
     endif
 
     return stateDir
+enddef
+
+export def UnderPath(RealPath: func(string): string): string
+	var server = buffer.CurbufGetServer()
+	if server == null_dict
+		return ""
+	endif
+
+	var file = expand('%:p')
+	var workspace = server.workspaceFolders
+		->map((_, folder) => "^" .. folder)
+		->filter((_, folder) => file =~# folder)
+
+	if !workspace->empty()
+		return trim(substitute(file, workspace[0], '', ''), '/')
+	endif
+
+	return RealPath(file)
 enddef
