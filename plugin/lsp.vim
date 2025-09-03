@@ -1,25 +1,55 @@
 vim9script
 packadd vim9-lsp
 
-import autoload "lsp/lsp.vim"
+import autoload 'lsp/lsp.vim'
+import autoload 'lsp/buffer.vim'
+
+# https://github.com/saccarosium/yegappan-lsp-settings/blob/ca7f3dd4f4390938d9ea18033b7a7729f3e5b162/plugin/lsp_settings.vim#L5
+def LspHas(feature: string): bool
+	return !buffer.CurbufGetServer(feature)->empty()
+enddef
 
 autocmd User LspAttached {
-    :setlocal tagfunc=lsp.TagFunc
-    :setlocal formatexpr=lsp.FormatExpr()
+	if LspHas('documentFormatting')
+		:setlocal formatexpr=lsp.FormatExpr()
+	endif
 
-    :nnoremap <silent> <buffer> K <CMD>LspHover<CR>
-    :nnoremap <silent> <buffer> <Leader>r <CMD>LspRename<CR>
-    :nnoremap <silent> <buffer> <Leader>a <CMD>LspCodeAction<CR>
-    :xnoremap <silent> <buffer> <Leader>a <CMD>LspCodeAction<CR>
-    :nnoremap <silent> <buffer> [d <CMD>LspPeekDefinition<CR>
-    :nnoremap <silent> <buffer> ]d <CMD>LspPeekTypeDef<CR>
-    :nnoremap <silent> <buffer> [D <CMD>LspPeekImpl<CR>
-    :nnoremap <silent> <buffer> [I <CMD>LspDocumentSymbol<CR>
-    :nnoremap <silent> <buffer> ]I <CMD>LspOutline<CR>
-    :nnoremap <silent> <buffer> ]I <CMD>LspOutline<CR>
-    :nnoremap <silent> <buffer> gd <CMD>LspGotoDefinition<CR>
-    :nnoremap <silent> <buffer> gD <CMD>LspGotoTypeDef<CR>
-    :nnoremap <silent> <buffer> * <CMD>LspPeekReferences<CR>
+	if LspHas('hover')
+		:nnoremap <silent> <buffer> K <CMD>LspHover<CR>
+	endif
+
+	if LspHas('rename')
+		:nnoremap <silent> <buffer> <Leader>r <CMD>LspRename<CR>
+	endif
+
+	if LspHas('implementation')
+		:nnoremap <silent> <buffer> [D <CMD>LspPeekImpl<CR>
+	endif
+
+	if LspHas('documentSymbol')
+		:nnoremap <silent> <buffer> [I <CMD>LspDocumentSymbol<CR>
+		:nnoremap <silent> <buffer> ]I <CMD>LspOutline<CR>
+	endif
+
+	if LspHas('definition')
+		:setlocal tagfunc=lsp.TagFunc
+		:nnoremap <silent> <buffer> gd <CMD>LspGotoDefinition<CR>
+		:nnoremap <silent> <buffer> [d <CMD>LspPeekDefinition<CR>
+	endif
+
+	if LspHas('typeDefinition')
+		:nnoremap <silent> <buffer> gD <CMD>LspGotoTypeDef<CR>
+		:nnoremap <silent> <buffer> ]d <CMD>LspPeekTypeDef<CR>
+	endif
+
+	if LspHas('codeAction')
+		:nnoremap <silent> <buffer> <Leader>a <CMD>LspCodeAction<CR>
+	endif
+
+	if LspHas('references')
+		:nnoremap <silent> <buffer> * <CMD>LspPeekReferences<CR>
+	endif
+
     :nnoremap <silent> <buffer> <C-w>d <CMD>LspDiagCurrent<CR>
     :nnoremap <silent> <buffer> ]e <CMD>LspDiagNextWrap<CR>
     :nnoremap <silent> <buffer> [e <CMD>LspDiagPrevWrap<CR>
