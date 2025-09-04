@@ -3,7 +3,12 @@ vim9script
 import autoload 'grep.vim'
 import autoload 'vim.vim'
 
-:command! -bang -nargs=* Grep grep.cmd.SetAttr({bang: !empty(<q-bang>), args: <q-args>}).Run()
+:command! -bang -nargs=* Grep {
+	grep.cmd.SetAttr({
+		bang: !empty(<q-bang>),
+		args: <q-args> })
+	grep.cmd.Run()
+}
 
 &grepprg = vim.Cmd(
 	'cgrep',

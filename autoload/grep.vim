@@ -2,7 +2,7 @@ vim9script
 
 import "./command.vim"
 
-export class Grep extends command.ErrorFormat
+class Grep extends command.ErrorFormat
 	var _grepprg: string
 
 	def Cmd(): string

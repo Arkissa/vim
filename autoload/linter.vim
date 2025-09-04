@@ -3,7 +3,7 @@ vim9script
 import "./log.vim"
 import "./command.vim"
 
-export class Lint extends command.ErrorFormat
+class Lint extends command.ErrorFormat
 	def Cmd(): string
 		var linter = get(b:, 'linter', "")
 		if linter == ""
