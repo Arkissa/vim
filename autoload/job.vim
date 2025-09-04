@@ -4,7 +4,7 @@ import "./quickfix.vim"
 
 export abstract class Job # maybe more extensions for channel-mode?
 	static var _job: job
-	abstract def Cmd(): string
+	var _cmd: string
 	abstract def Callback(qf: quickfix.Quickfix, chan: channel, msg: string)
 	abstract def ExitCb(qf: quickfix.Quickfix, job: job, code: number)
 
@@ -22,22 +22,15 @@ export abstract class Job # maybe more extensions for channel-mode?
 		endif
 	enddef
 
-	def Run(args: string)
+	def Run()
 		if this.Status() == "run"
 			this.Stop()
-		endif
-
-		var param = expandcmd(args)
-
-		var cmd = substitute(this.Cmd(), '\$\*', param, '')
-		if cmd == this.Cmd()
-			cmd = $"{trim(cmd)} {param}"
 		endif
 
 		var qf = quickfix.Quickfix.new()
 		qf.SetList([], quickfix.Action.R)
 
-		_job = job_start(cmd, {
+		_job = job_start(this._cmd, {
 			callback: function(this.Callback, [qf]),
 			exit_cb: function(this.ExitCb, [qf]),
 			in_io: 'null'
