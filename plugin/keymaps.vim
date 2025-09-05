@@ -8,7 +8,7 @@ vim9script
 :vmap <silent> <nowait> <C-c> "+y
 
 :imap <silent> <nowait> <C-v> <C-R>+
-:imap <silent> <nowait> <C-A> <HOME>
+:imap <silent> <nowait> <C-a> <HOME>
 :inoremap <C-f>  <Right>
 :inoremap <C-b>  <Left>
 :inoremap <M-b> <C-Left>
@@ -18,8 +18,8 @@ vim9script
 :cnoremap <C-b> <Left>
 :cnoremap <M-b> <C-Left>
 :cnoremap <M-f> <C-Right>
-:cnoremap <C-k> <CMD>vim9 (() => setcmdline(strpart(getcmdline(), 0, getcmdpos() - 1)))()<CR>
-:cnoremap <silent> <nowait> <C-A> <HOME>
+:cnoremap <C-k> <ScriptCmd>(() => setcmdline(strpart(getcmdline(), 0, getcmdpos() - 1)))()<CR>
+:cnoremap <silent> <nowait> <C-a> <HOME>
 
 :tnoremap <ESC> <C-\><C-n>
 
