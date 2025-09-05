@@ -1,10 +1,8 @@
 vim9script
 
-import "./command.vim"
+import "../command.vim"
 
-class Grep extends command.ErrorFormat
-	var _grepprg: string
-
+class Grepprg extends command.ErrorFormat
 	def Cmd(): string
 		var grepargs = get(b:, 'grepargs', [])
 		if !grepargs->empty()
@@ -18,5 +16,3 @@ class Grep extends command.ErrorFormat
 		return &grepformat
 	enddef
 endclass
-
-export var cmd: command.Command = Grep.new()

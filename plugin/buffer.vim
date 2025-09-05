@@ -1,24 +1,24 @@
 vim9script
 
-import autoload "buffer.vim"
-import autoload "quickfix.vim"
+import autoload 'buffer.vim'
+import autoload 'quickfix.vim'
+import autoload 'command.vim'
 
-def Buffers(bang: bool)
-	var buffers = getbufinfo()
-		->map((_, info) => buffer.Buffer.newByBufnr(info.bufnr))
-		->filter((_, b) => b.IsExists())
-		->filter((_, b) => b.LineCount() != 0)
+command.Command.new("Buffers")
+	.Bang()
+	.Callback((attr) => {
+		var buffers = getbufinfo()
+			->map((_, info) => buffer.Buffer.newByBufnr(info.bufnr))
+			->filter((_, b) => b.IsExists())
+			->filter((_, b) => b.LineCount() != 0)
 
-	if bang
-		buffers = buffers->filter((_, b) => b.IsLoaded())
-	endif
+		if attr.bang
+			buffers = buffers->filter((_, b) => b.IsLoaded())
+		endif
 
-	var qf = quickfix.Quickfix.new()
+		var qf = quickfix.Quickfix.new()
 
-	var items = buffers->map((_, b) => quickfix.QuickfixItem.newByBuffer(b))
-	echom typename(items)
-	qf.SetList(items, quickfix.Action.R)
-	qf.Window()
-enddef
-
-:command -bang Buffers Buffers(empty(<q-bang>))
+		var items = buffers->map((_, b) => quickfix.QuickfixItem.newByBuffer(b))
+		qf.SetList(items, quickfix.Action.R)
+		qf.Window()
+	})
