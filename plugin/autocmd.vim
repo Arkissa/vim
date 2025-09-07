@@ -8,7 +8,7 @@ def JumpBack()
     if lnum >= 1
 	&& lnum <= line("$")
 	&& index(exclude_filetype, &filetype) == -1
-		:execute "normal! g`\""
+		execute("normal! g`\"")
     endif
 enddef
 
@@ -31,8 +31,11 @@ def SmartQuitall()
 enddef
 
 augroup MYVIMRC
-    autocmd BufReadPost * vim9 JumpBack() | HighlightTailSpace()
-    autocmd BufEnter * vim9 SmartQuitall()
+	autocmd BufReadPost * {
+		JumpBack()
+		HighlightTailSpace()
+	}
+    autocmd BufEnter * SmartQuitall()
     autocmd WinEnter,BufEnter * setlocal cursorline
     autocmd WinLeave,BufLeave * setlocal nocursorline
 
