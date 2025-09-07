@@ -1,5 +1,5 @@
 vim9script
 
-import autoload "quickfix.vim"
+import autoload 'quickfix.vim'
 
-&quickfixtextfunc = quickfix.TextFunc
+&quickfixtextfunc = (d) => quickfix.Text.Func(d)
