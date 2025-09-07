@@ -272,8 +272,10 @@ export abstract class Execute extends jb.Job
 			endif
 		})
 
-		:redraw
-		:echo $'Job ({this.Info().process}) Exit Code: {code}'
+		if !this._attr.mods.silent
+			:redraw
+			:echo $'Job ({this.Info().process}) Exit Code: {code}'
+		endif
 	enddef
 
 	def Run()
