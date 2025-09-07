@@ -404,8 +404,8 @@ export class Previewer
 
 		prop_add(item.lnum, item.col, {
 			type: _prop_name,
-			end_lnum: item.end_lnum != 0 ? item.end_lnum : item.lnum,
-			end_col: item.end_col != 0 ? item.end_col : item.col,
+			end_lnum: item.end_lnum ?? item.lnum,
+			end_col: item.end_col ?? item.col,
 			bufnr: win.GetBufnr(),
 		})
 	enddef
