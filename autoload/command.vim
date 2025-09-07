@@ -178,16 +178,11 @@ export class Command
 		return this
 	enddef
 
-	def Mods(): Command
-		this._mods = true
-		return this
-	enddef
-
 	def Complete()
 	enddef
 
 	def Command(cmd: string)
-		execute($'command{this._overlay ? '!' : ''} {join(this._attr, ' ')} {this._name} {this._mods ? '<mods>' : ''} {cmd}')
+		execute($'command{this._overlay ? '!' : ''} {join(this._attr, ' ')} {this._name} {cmd}')
 	enddef
 
 	def Callback(F: func(Attr))
