@@ -8,5 +8,5 @@
 	path = pack/git/start/vim-dispatch
 	url = https://github.com/tpope/vim-dispatch.git
 [submodule "pack/lsp/opt/vim9-lsp"]
-	path = pack/lsp/opt/vim9-lsp
+	path = pack/lsp/start/vim9-lsp
 	url = https://github.com/yegappan/lsp.git

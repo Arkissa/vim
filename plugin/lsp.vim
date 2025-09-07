@@ -58,7 +58,7 @@ autocmd User LspAttached {
 }
 
 g:LspOptionsSet({
-    autoComplete: true,
+    autoComplete: false,
     autoHighlight: true,
     autoHighlightDiags: true,
     completionMatcher: 'fuzzy',
@@ -143,7 +143,6 @@ var lsp_servers = [
 		name: 'golang',
 		filetype: ['go', 'gomod', 'gohtmltmpl', 'gotexttmpl'],
 		path: 'gopls',
-		args: ['serve'],
 		syncInit: true,
 		workspaceConfig: {
 			go: {
