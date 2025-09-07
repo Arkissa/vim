@@ -47,7 +47,7 @@ export class Promise
 			})
 	enddef
 
-	def Await(): any
+	def Await<T>(): T
 		if !this._once
 			this._once = true
 		else
