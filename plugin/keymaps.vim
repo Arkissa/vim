@@ -31,9 +31,11 @@ import autoload 'greps/cgrep.vim'
 :nmap <nowait> [P i 
 :nmap <nowait> ]P a 
 :nmap <C-l> <CMD>nohlsearch<CR>
+:nnoremap <silent> <Leader>[ <ScriptCmd>appendbufline(bufnr(), line('.') - 1, "")<CR>
+:nnoremap <silent> <Leader>] <ScriptCmd>appendbufline(bufnr(), line('.'), "")<CR>
 
 if instanceof(g:Grep, cgrep.Cgrep)
-	:noremap \w :Grep 
-	:noremap \s :Grep --string 
-	:noremap \r :Grep -G 
+	:nnoremap \w :Grep 
+	:nnoremap \s :Grep --string 
+	:nnoremap \r :Grep -G 
 endif
