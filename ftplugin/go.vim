@@ -4,7 +4,6 @@ import autoload 'vim.vim'
 import autoload 'greps/cgrep.vim'
 import autoload 'command.vim'
 
-:setlocal nobuflisted
 :setlocal nolist
 :setlocal nowrap
 
@@ -19,7 +18,8 @@ g:go_highlight_generate_tags = 1
 
 g:Grep = cgrep.Cgrep.new({
 	types: ["Go"],
-	pruneDirs: ["proto"]
+	pruneDirs: ["proto"],
+	kind: ["Language"]
 })
 
 command.Command.new("Go")

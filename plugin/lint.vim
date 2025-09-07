@@ -7,27 +7,59 @@ endif
 import autoload 'command.vim'
 
 # type check
-g:Linters->values()->foreach((_, k: command.Execute) => {
-})
+g:Linters->values()
+	->map((_, d) => d.lint)
+	->foreach((_, k: command.Execute) => {
+	})
 
 def Register()
-	var linter = g:Linters[&filetype]
+	var conf = g:Linters[&filetype]
+	if conf->has_key('onSaveCmd')
+		autocmd_add([{
+			group: group,
+			event: 'BufWritePost',
+			bufnr: bufnr(),
+			replace: true,
+			cmd: conf.onSaveCmd
+		}])
+	endif
+
 	command.Command.new("Lint")
 		.Bang()
 		.Buffer()
 		.Overlay()
 		.NArgs(command.NArgs.Star)
 		.Callback((attr) => {
-			linter.Attr(attr).Run()
+			if attr.args =~ '^[a-zA-Z0-9]\+://'
+				return
+			endif
+
+			conf.lint.Attr(attr).Run()
+		})
+
+	command.Command.new("LLint")
+		.Bang()
+		.Buffer()
+		.Overlay()
+		.NArgs(command.NArgs.Star)
+		.Callback((attr) => {
+			if attr.args =~ '^[a-zA-Z0-9]\+://'
+				return
+			endif
+
+			conf.lint.Attr(attr, true).Run()
 		})
 enddef
 
 var group = "Linter"
-for t in g:Linters->keys()
-	autocmd_add([{
-		group: group,
-		event: 'FileType',
-		pattern: t,
-		cmd: "Register()"
-	}])
-endfor
+
+autocmd_add(g:Linters
+	->keys()
+	->map((_, t) => {
+		return {
+			group: group,
+			event: 'FileType',
+			pattern: t,
+			replace: true,
+			cmd: "Register()"}
+	}))

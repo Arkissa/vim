@@ -29,10 +29,10 @@ export class Cgrep extends command.ErrorFormat
 	enddef
 
 	def Efm(): string
-		return vim.Option(
+		return vim.Option([
 			'%-G',
 			'%f:%l:%c:%m',
-		)
+		])
 	enddef
 endclass
 

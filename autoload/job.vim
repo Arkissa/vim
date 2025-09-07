@@ -1,25 +1,36 @@
 vim9script
 
-import "./quickfix.vim"
+import './quickfix.vim'
+import './vim.vim'
 
 export abstract class Job # maybe more extensions for channel-mode?
-	static var _job: job
+	var _job: job
 	var _cmd: string
-	abstract def Callback(qf: quickfix.Quickfix, chan: channel, msg: string)
-	abstract def ExitCb(qf: quickfix.Quickfix, job: job, code: number)
+	var _location: bool
+	abstract def Callback(qf: quickfix.Quickfixer, chan: channel, msg: string)
+	abstract def CloseCb(qf: quickfix.Quickfixer, chan: channel)
+	abstract def ExitCb(qf: quickfix.Quickfixer, job: job, code: number)
 
 	def Status(): string
-		if _job == null_job
+		if this._job == null_job
 			return "dead"
 		endif
 
-		return job_status(_job)
+		return job_status(this._job)
 	enddef
 
 	def Stop()
-		if _job != null_job
-			job_stop(_job)
+		if this._job != null_job
+			job_stop(this._job)
 		endif
+	enddef
+
+	def Info(): dict<any>
+		if this._job != null_job
+			return job_info(this._job)
+		endif
+
+		return null_dict
 	enddef
 
 	def Run()
@@ -27,11 +38,11 @@ export abstract class Job # maybe more extensions for channel-mode?
 			this.Stop()
 		endif
 
-		var qf = quickfix.Quickfix.new()
-		qf.SetList([], quickfix.Action.R)
+		var qf = !this._location ? quickfix.Quickfix.new() : quickfix.Location.new(winnr())
 
-		_job = job_start(this._cmd, {
+		this._job = job_start(this._cmd, {
 			callback: function(this.Callback, [qf]),
+			close_cb: function(this.CloseCb, [qf]),
 			exit_cb: function(this.ExitCb, [qf]),
 			in_io: 'null'
 		})

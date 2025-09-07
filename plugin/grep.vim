@@ -1,7 +1,8 @@
 vim9script
 
 if !exists("g:Grep")
-	g:Grep = Grepprg.new()
+	import autoload 'greps/grepprg.vim'
+	g:Grep = grepprg.Grepprg.new()
 endif
 
 import autoload 'command.vim'
@@ -12,6 +13,5 @@ command.Command.new("Grep")
 	.Bang()
 	.NArgs(command.NArgs.Star)
 	.Callback((attr) => {
-		var grep: command.Execute = g:Grep
-		grep.Attr(attr).Run()
+		g:Grep.Attr(attr).Run()
 	})

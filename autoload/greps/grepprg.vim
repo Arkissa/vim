@@ -1,15 +1,21 @@
 vim9script
 
 import "../command.vim"
+import "../vim.vim"
 
-class Grepprg extends command.ErrorFormat
+export class Grepprg extends command.ErrorFormat
 	def Cmd(): string
-		var grepargs = get(b:, 'grepargs', [])
-		if !grepargs->empty()
-			return substitute(&grepprg, '\$\*', $'{grepargs->join(' ')} $*', '')
-		endif
+		var args = []
+		var ignores = split(&wildignore, ',')
+		for ignore in ignores
+			if ignore =~# '/'
+				args->add($"--exclude-dir={ignore}")
+			else
+				args->add($"--exclude={ignore}")
+			endif
+		endfor
 
-		return &grepprg
+		return substitute(&grepprg, '\$\*', $'{vim.Cmd(args)} $*', '')
 	enddef
 
 	def Efm(): string

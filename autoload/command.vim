@@ -1,30 +1,31 @@
 vim9script
 
-import "./quickfix.vim"
-import "./log.vim"
-import "./job.vim" as jb
+import './quickfix.vim'
+import './log.vim'
+import './job.vim' as jb
+import './vim.vim'
 
 export enum NArgs
-	Zero("0"),
-	One("1"),
-	Star("*"),
-	Quest("?"),
-	Plus("+")
+	Zero('0'),
+	One('1'),
+	Star('*'),
+	Quest('?'),
+	Plus('+')
 
 	var Value: string
 endenum
 
 export enum Count
-	Zero("0"),
-	N("N")
+	Zero('0'),
+	N('N')
 
 	var Value: string
 endenum
 
 export enum Range
-	Empty(""),
-	Persent("%"),
-	N("N")
+	Empty(''),
+	Persent('%'),
+	N('N')
 
 	var Value: string
 endenum
@@ -98,14 +99,14 @@ export class Attr
 endclass
 
 export enum Addr
-	Lines("lines"),
-	Arguments("arguments"),
-	Buffers("buffers"),
-	Loaded_buffers("loaded_buffers"),
-	Windows("windows"),
-	Tabs("tabs"),
-	Quickfix("quickfix"),
-	Other("other")
+	Lines('lines'),
+	Arguments('arguments'),
+	Buffers('buffers'),
+	Loaded_buffers('loaded_buffers'),
+	Windows('windows'),
+	Tabs('tabs'),
+	Quickfix('quickfix'),
+	Other('other')
 
 	var Value: string
 endenum
@@ -127,7 +128,7 @@ export class Command
 	enddef
 
 	def Bang(): Command
-		add(this._attr, "-bang")
+		add(this._attr, '-bang')
 		return this
 	enddef
 
@@ -137,43 +138,43 @@ export class Command
 	enddef
 
 	def Register(): Command
-		add(this._attr, "-register")
+		add(this._attr, '-register')
 		return this
 	enddef
 
 	def Bar(): Command
-		add(this._attr, "-bar")
+		add(this._attr, '-bar')
 		return this
 	enddef
 
 	def Buffer(): Command
-		add(this._attr, "-buffer")
+		add(this._attr, '-buffer')
 		return this
 	enddef
 
 	def KeepScript(): Command
-		add(this._attr, "-keepscript")
+		add(this._attr, '-keepscript')
 		return this
 	enddef
 
 	def NArgs(n: NArgs = NArgs.Zero): Command
-		add(this._attr, $"-nargs={n.Value}")
+		add(this._attr, $'-nargs={n.Value}')
 		return this
 	enddef
 
 	def Count(n: Count = Count.N): Command
-		add(this._attr, $"-count=${n.Value}")
+		add(this._attr, $'-count=${n.Value}')
 		return this
 	enddef
 
 	def Range(n: Range = Range.N): Command
-		var range = n != Range.Empty ? $"-range={n.Value}" : "-range"
+		var range = n != Range.Empty ? $'-range={n.Value}' : '-range'
 		add(this._attr, range)
 		return this
 	enddef
 
 	def Addr(a: Addr): Command
-		add(this._attr, $"-addr={a.Value}")
+		add(this._attr, $'-addr={a.Value}')
 		return this
 	enddef
 
@@ -186,18 +187,12 @@ export class Command
 	enddef
 
 	def Command(cmd: string)
-		var c = 'command'
-		if this._overlay
-			c ..= '!'
-		endif
-
-		c = $"{c} {join(this._attr, ' ')} {this._name} {cmd}"
-		execute(c)
+		execute($'command{this._overlay ? '!' : ''} {join(this._attr, ' ')} {this._name} {this._mods ? '<mods>' : ''} {cmd}')
 	enddef
 
 	def Callback(F: func(Attr))
 		if _CommandInternalFunctions->has_key(this._name) && !this._overlay
-			throw $"E174: Command already exists: use .Overlay() to replace it: {this._name}"
+			throw $'E174: Command already exists: use .Overlay() to replace it: {this._name}'
 		endif
 
 		var c = 'command'
@@ -253,25 +248,32 @@ export abstract class Execute extends jb.Job
 	var _attrD: dict<any>
 
 	abstract def Cmd(): string
-	abstract def Callback(qf: quickfix.Quickfix, chan: channel, msg: string)
+	abstract def Callback(qf: quickfix.Quickfixer, chan: channel, msg: string)
+	def CloseCb(qf: quickfix.Quickfixer, chan: channel)
+		qf.Close() # Prevent quickfix typographical errors
+	enddef
 
-	def Attr(attr: Attr): Execute
+	def Attr(attr: Attr, location: bool = false): Execute
 		this._attr = attr
+		this._location = location
 		return this
 	enddef
 
-	def ExitCb(qf: quickfix.Quickfix, job: job, code: number)
-		if job->job_status() == 'fail'
-			log.Error("Error: Job is failed on exit callback.")
+	def ExitCb(qf: quickfix.Quickfixer, job: job, code: number)
+		if this.Status() == 'fail'
+			log.Error('Error: Job is failed on exit callback.')
 			return
 		endif
 
-		qf.Window()
-		if this._attr.bang
-			qf.JumpFirst()
-		endif
+		vim.Promise.new(() => {
+			qf.Window()
+			if this._attr.bang
+				qf.JumpFirst()
+			endif
+		})
 
-		echo $"Exit code: {code}"
+		:redraw
+		:echo $'Job ({this.Info().process}) Exit Code: {code}'
 	enddef
 
 	def Run()
@@ -283,7 +285,7 @@ export abstract class Execute extends jb.Job
 		if cmd =~ sep
 			expandedCmd = substitute(cmd, sep, param, '')
 		else
-			expandedCmd = $"{trim(cmd)} {param}"
+			expandedCmd = $'{trim(cmd)} {param}'
 		endif
 
 		this._cmd = expandedCmd
@@ -296,18 +298,18 @@ export abstract class ErrorFormat extends Execute
 	abstract def Cmd(): string
 	abstract def Efm(): string
 
-	def Callback(qf: quickfix.Quickfix, chan: channel, msg: string)
-		var job = ch_getjob(chan)
-		var jobinfo = job->job_info()
-		if jobinfo.status == 'fail'
-			log.Error("Error: Job is failed on output callback.")
+	def Callback(qf: quickfix.Quickfixer, chan: channel, msg: string)
+		if this.Status() == 'fail'
+			log.Error('Error: Job is failed on output callback.')
 			return
 		endif
+
+		var info = this.Info()
 
 		qf.SetList([], quickfix.Action.A, {
 			efm: this.Efm(),
 			lines: [msg],
-			title: jobinfo.cmd->join(' ')
+			title: info == null_dict ? info.cmd : this.Cmd()
 		})
 	enddef
 endclass
