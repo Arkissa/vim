@@ -47,7 +47,7 @@ autocmd User LspAttached {
 	endif
 
 	if LspHas('references')
-		:nnoremap <silent> <buffer> * <CMD>LspPeekReferences<CR>
+		:nnoremap <silent> <buffer> * <CMD>LspShowReferences<CR>
 	endif
 
     :nnoremap <silent> <buffer> <C-w>d <CMD>LspDiagCurrent<CR>

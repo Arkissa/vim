@@ -43,3 +43,20 @@ if exists("+clipboard")
 		:nnoremap yal <ScriptCmd>setreg('+', $"{expand("%:p")}:{line('.')}")<CR>
 	}
 endif
+
+def AutoSave()
+	autocmd_add([{
+		group: 'AutoSave',
+		event: 'BufWritePre',
+		pattern: '*.go',
+		bufnr: bufnr(),
+		cmd: "LspFormat"
+	}])
+enddef
+
+autocmd_add([{
+	event: 'User',
+	pattern: 'LspAttached',
+	bufnr: bufnr(),
+	cmd: 'AutoSave()'
+}])
