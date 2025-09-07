@@ -1,5 +1,7 @@
 vim9script
 
+import autoload 'greps/cgrep.vim'
+
 :nmap <silent> [l <CMD>lprevious<CR>
 :nmap <silent> ]l <CMD>lnext<CR>
 :nmap <silent> [q <CMD>cprevious<CR>
@@ -29,3 +31,9 @@ vim9script
 :nmap <nowait> [P i 
 :nmap <nowait> ]P a 
 :nmap <C-l> <CMD>nohlsearch<CR>
+
+if instanceof(g:Grep, cgrep.Cgrep)
+	:noremap \w :Grep 
+	:noremap \s :Grep --string 
+	:noremap \r :Grep -G 
+endif

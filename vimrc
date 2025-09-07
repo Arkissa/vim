@@ -47,7 +47,6 @@ endif
 :filetype plugin indent on
 :syntax on
 
-
 var stateDir = path.OsStateDir()
 &backupdir = stateDir .. '//'
 &undodir   = stateDir .. '//'
@@ -96,3 +95,9 @@ g:Linters = {
 }
 
 &grepprg = vim.Cmd(['grep', '-r', '-n', '$*'])
+
+g:Grep = cgrep.Cgrep.new({
+	types: ["Go"],
+	pruneDirs: ["proto"],
+	kind: ["Language"]
+})
