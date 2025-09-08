@@ -25,6 +25,7 @@ def Register()
 	endif
 
 	command.Command.new("Lint")
+		.Bar()
 		.Bang()
 		.Buffer()
 		.Overlay()
@@ -38,6 +39,7 @@ def Register()
 		})
 
 	command.Command.new("LLint")
+		.Bar()
 		.Bang()
 		.Buffer()
 		.Overlay()

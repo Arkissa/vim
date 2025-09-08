@@ -11,7 +11,7 @@ export class GolangCiLint extends command.ErrorFormat
 	def Efm(): string
 		return vim.Option([
 			'%-G',
-			'%E%f:%l:%c:\ Error%m',
+			'%W%f:%l:%c:\ %m',
 			'%-G%\d%\+\ issues%.',
 			'%-G*\ %\k%\+: %\d%\+',
 		])

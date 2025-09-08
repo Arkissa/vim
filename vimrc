@@ -95,7 +95,7 @@ g:netrw_dirhistmax = 0
 g:Linters = {
 	go: {
 		lint: golangci.GolangCiLint.new(),
-		onSaveCmd: "silent LLint ."
+		onSaveCmd: "lcd %:h | silent LLint . | lcd -"
 	}
 }
 

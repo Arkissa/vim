@@ -80,8 +80,8 @@ g:LspOptionsSet({
     showDiagInBalloon: true,
     showDiagInPopup: true,
     showDiagWithSign: true,
-    showInlayHints: false,
-    showSignature: false,
+    showInlayHints: true,
+    showSignature: true,
     useQuickfixForLocations: true,
     usePopupInCodeAction: true,
     bufferCompletionTimeout: 100,
@@ -145,7 +145,7 @@ var lsp_servers = [
 		filetype: ['go', 'gomod', 'gohtmltmpl', 'gotexttmpl'],
 		path: 'gopls',
 		workspaceConfig: {
-			go: {
+			gopls: {
 				codelenses: {
 					tests: true,
 					tidy: true,
@@ -154,7 +154,7 @@ var lsp_servers = [
 				},
 				usePlaceholders: true,
 				gofumpt: true,
-				analyss: {
+				analyses: {
 					shadow: false,
 					unusedparams: false,
 					SA5008: false,
@@ -168,7 +168,7 @@ var lsp_servers = [
 					parameterNames: true,
 					functionTypeParameters: true
 				},
-				semanticTokens: true,
+				semanticTokens: false,
 			}
 		}
 	}
