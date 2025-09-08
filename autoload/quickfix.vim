@@ -133,14 +133,14 @@ export class Quickfix implements Quickfixer
 	def SetList(entry: list<QuickfixItem>, action: Action, what: dict<any> = null_dict): bool
 		var items = entry->mapnew((_, item) => item.ToRow())
 		if what == null_dict
-			return setqflist(entry, action.Value) == 0
+			return setqflist(items, action.Value) == 0
 		endif
 
 		if !what->has_key('id')
 			what.id = this.id
 		endif
 
-		return setqflist(entry, action.Value, what) == 0
+		return setqflist(items, action.Value, what) == 0
 	enddef
 
 	def GetList(what: dict<any> = null_dict): any
