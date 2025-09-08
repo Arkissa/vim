@@ -146,6 +146,10 @@ export class Buffer
 		return this.GetInfo() isnot null_object && info.windows != null_list
 	enddef
 
+	def Listed(): bool
+		return buflisted(this.bufnr)
+	enddef
+
 	def GetInfo(): BufferInfo
 		if !this.IsExists()
 			return null_object

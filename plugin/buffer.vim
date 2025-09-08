@@ -9,14 +9,13 @@ command.Command.new("Buffers")
 	.Callback((attr) => {
 		var buffers = getbufinfo()
 			->map((_, info) => buffer.Buffer.newByBufnr(info.bufnr))
-			->filter((_, b) => b.IsExists())
 			->filter((_, b) => b.LineCount() != 0)
 
-		if attr.bang
-			buffers = buffers->filter((_, b) => b.IsLoaded())
+		if !attr.bang
+			buffers = buffers->filter((_, b) => b.Listed())
 		endif
 
-		var qf = quickfix.Quickfix.new()
+		var qf = quickfix.Quickfix.newCurrent()
 
 		var items = buffers->map((_, b) => quickfix.QuickfixItem.newByBuffer(b))
 		qf.SetList(items, quickfix.Action.R)
