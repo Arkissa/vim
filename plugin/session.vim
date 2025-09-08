@@ -25,21 +25,28 @@ command.Command.new('SessionLoad')
 	})
 
 var group = "Sesssion"
-if get(SimpleSession, 'saveOnExit', false)
-	autocmd_add([
-		{
+var autocmds = []
+
+if get(SimpleSession, 'saveOnVimLeave', false)
+	autocmds->add({
 			group: group,
 			event: 'VimLeavePre',
 			once: true,
 			pattern: '*',
-			cmd: 'SessionSave',
-		},
-		{
-			grou: group,
-			event: 'BufEnter',
-			pattern: '*',
-			once: true,
-			cmd: 'silent SessionLoad',
-		}
-	])
+			cmd: 'silent SessionSave'
+	})
 endif
+
+var bufEnter = get(SimpleSession, 'loadOnBufEnter', "")
+
+if !empty(bufEnter)
+	autocmds->add({
+		grou: group,
+		event: bufEnter,
+		pattern: '*',
+		once: true,
+		cmd: 'silent SessionLoad',
+	})
+endif
+
+autocmd_add(autocmds)

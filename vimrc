@@ -37,6 +37,7 @@ endif
 :set wildmenu
 :set smartcase
 :set noshowmode
+:set ruler
 :set hlsearch
 :set lazyredraw
 :set shortmess+=c
@@ -65,7 +66,7 @@ var stateDir = path.OsStateDir()
 &signcolumn = 'yes'
 &display = 'lastline'
 &sessionoptions = vim.Option([
-	'buffers', 'curdir', 'tabpages', 'winsize',
+	'buffers', 'tabpages', 'winsize',
 	'winpos', 'resize', 'terminal', 'folds', 'help',
 	'localoptions'
 ])
@@ -94,7 +95,7 @@ g:netrw_dirhistmax = 0
 g:Linters = {
 	go: {
 		lint: golangci.GolangCiLint.new(),
-		onSaveCmd: "silent LLint %"
+		onSaveCmd: "silent LLint ."
 	}
 }
 
@@ -107,5 +108,5 @@ g:Grep = cgrep.Cgrep.new({
 })
 
 g:SimpleSession = {
-	saveOnExit: true
+	saveOnVimLeave: true
 }

@@ -22,7 +22,7 @@ export class Session
 	enddef
 
 	static def All(dir: string): list<string>
-		return globpath(dir, '**/Session.vim', false, true)
+		return globpath(dir ?? _Join(_GetCacheDir(), 'vim-simple-session'), '**/Session.vim', false, true)
 	enddef
 
 	static def Save(dir: string, sessionName: string, silent: bool)
@@ -42,14 +42,13 @@ export class Session
 	enddef
 
 	static def Load(dir: string, sessionName: string, silent: bool)
-		var d = dir ?? _Join(_GetCacheDir(), 'vim-simple-session')
 		var sname = sessionName ?? fnamemodify(getcwd(), ':t')
-		var sessions = All(d)->filter((_, name) => name =~# $'\/{sname}\/')
+		var sessions = All(dir)->filter((_, name) => name =~# $'\/{sname}\/')
 
 		if empty(sessions)
 			if !silent
 				:redraw
-				log.Error($'Load Session error: {sname} not found in {fnamemodify(d, ':~:.')}')
+				log.Error($'Load Session error: {sname} not found in {fnamemodify(dir, ':~:.')}')
 			endif
 
 			return
