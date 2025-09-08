@@ -70,6 +70,7 @@ g:LspOptionsSet({
     keepFocusInDiags: true,
     keepFocusInReferences: true,
     completionTextEdit: true,
+	outlineOnWinSize: 100,
     popupBorder: true,
     popupBorderHighlight: 'Title',
     popupBorderHighlightPeek: 'Title',
@@ -79,7 +80,7 @@ g:LspOptionsSet({
     showDiagInBalloon: true,
     showDiagInPopup: true,
     showDiagWithSign: true,
-    showInlayHints: true,
+    showInlayHints: false,
     showSignature: false,
     useQuickfixForLocations: true,
     usePopupInCodeAction: true,
@@ -143,7 +144,6 @@ var lsp_servers = [
 		name: 'golang',
 		filetype: ['go', 'gomod', 'gohtmltmpl', 'gotexttmpl'],
 		path: 'gopls',
-		syncInit: true,
 		workspaceConfig: {
 			go: {
 				codelenses: {
