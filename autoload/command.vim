@@ -111,20 +111,73 @@ export enum Addr
 	var Value: string
 endenum
 
+export enum Complete
+	Arglist('arglist'),
+	Augroup('augroup'),
+	Behave('behave'),
+	Breakpoint('breakpoint'),
+	Buffer('buffer'),
+	Color('color'),
+	Command('command'),
+	Compiler('compiler'),
+	Cscope('cscope'),
+	DiffBuffer('diff_buffer'),
+	Dir('dir'),
+	DirInPath('dir_in_path'),
+	Environment('environment'),
+	Event('event'),
+	Expression('expression'),
+	File('file'),
+	FileInPath('file_in_path'),
+	Filetype('filetype'),
+	Function('function'),
+	Help('help'),
+	Highlight('highlight'),
+	History('history'),
+	Keymap('keymap'),
+	Locale('locale'),
+	Mapclear('mapclear'),
+	Mapping('mapping'),
+	Menu('menu'),
+	Messages('messages'),
+	Option('option'),
+	Packadd('packadd'),
+	Retab('retab'),
+	Runtime('runtime'),
+	Scriptnames('scriptnames'),
+	Shellcmd('shellcmd'),
+	Shellcmdline('shellcmdline'),
+	Sign('sign'),
+	Syntax('syntax'),
+	Syntime('syntime'),
+	Tag('tag'),
+	TagListfiles('tag_listfiles'),
+	User('user'),
+	Var('var'),
+	Custom('custom'),
+	CustomList('customlist')
+
+	var Value: string
+endenum
+
 export class Command
 	var _attr: list<string> = []
 	var _mods: bool
 	var _overlay: bool
 	var _name: string
 	var _F: func(Attr)
-	static var _CommandInternalFunctions = {}
-	var _CompleteFunctions: func()
+	static var _CommandInternalFunctions: dict<func(Attr)> = {}
+	static var _CompleteFunctions: dict<func(string, string, number): list<string>> = {}
 
 	def new(this._name)
 	enddef
 
 	static def InternalFunction(cmdName: string): func(Attr)
 		return _CommandInternalFunctions[cmdName]
+	enddef
+
+	static def InternalComplete(cmdName: string): func(string, string, number): list<string>
+		return _CompleteFunctions[cmdName]
 	enddef
 
 	def Bang(): Command
@@ -178,7 +231,15 @@ export class Command
 		return this
 	enddef
 
-	def Complete()
+	def Complete(cmp: Complete, F: func(string, string, number): any): Command
+		var str = $'-complete={cmp.Value}'
+		if cmp.Value =~# '^custom'
+			_CompleteFunctions[this._name] = F
+			str ..= $',Command.InternalComplete("{this._name}")'
+		endif
+
+		add(this._attr, str)
+		return this
 	enddef
 
 	def Command(cmd: string)
@@ -230,7 +291,7 @@ export class Command
 					mods == "verbose",
 				)
 			)
-			timer_start(0, (_) => call(Command.InternalFunction("%s"), [attr]))
+			call(Command.InternalFunction("%s"), [attr])
 		}
 		END
 

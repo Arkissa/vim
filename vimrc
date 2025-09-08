@@ -58,15 +58,19 @@ var stateDir = path.OsStateDir()
 &tabstop = 4
 &laststatus = 2
 &updatetime = 300
+&wildoptions = 'pum'
 &completeslash = 'slash'
 &showbreak = '↪ '
 &fillchars = 'eob: '
 &signcolumn = 'yes'
-&autocomplete = true
 &display = 'lastline'
+&sessionoptions = vim.Option([
+	'buffers', 'curdir', 'tabpages', 'winsize',
+	'winpos', 'resize', 'terminal', 'folds', 'help',
+	'localoptions'
+])
 &completeopt = vim.Option(['menuone', 'noinsert', 'noselect', 'fuzzy', 'popup', 'preview'])
 &completeitemalign = vim.Option(['kind', 'abbr', 'menu'])
-&complete = vim.Option(['o', 't', 'F', '.', 'w', 'u'])
 &suffixes = vim.Option(['.bak', '~', '.o', '.h', '.info', '.swp', '.obj', '.pyc', '.pyo', '.egg-info', '.class'])
 &wildignore = vim.Option([
 	'*.o', '*.obj', '*~', '*.exe', '*.a', '*.pdb', '*.lib',
@@ -101,3 +105,7 @@ g:Grep = cgrep.Cgrep.new({
 	pruneDirs: ["proto"],
 	kind: ["Language"]
 })
+
+g:SimpleSession = {
+	saveOnExit: true
+}
