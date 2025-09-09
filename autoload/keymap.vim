@@ -82,7 +82,7 @@ export class Bind
 	enddef
 
 	def By(F: func(): bool): Bind
-		this._MapBy = F
+		this._MapBy = funcref(F)
 		return this
 	enddef
 
@@ -91,7 +91,7 @@ export class Bind
 			throw "keymap bind the lens of lhs and rhs is not equal."
 		endif
 
-		if !this._MapBy()
+		if !call(this._MapBy, [])
 			return
 		endif
 
