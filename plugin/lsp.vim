@@ -24,6 +24,7 @@ autocmd User LspAttached {
 
 	if LspHas('implementation')
 		:nnoremap <silent> <buffer> [D <CMD>LspPeekImpl<CR>
+		:nnoremap <silent> <buffer> ]D <CMD>LspGotoImpl<CR>
 	endif
 
 	if LspHas('documentSymbol')

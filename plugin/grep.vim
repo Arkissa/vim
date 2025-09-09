@@ -10,8 +10,15 @@ import autoload 'command.vim'
 var typeCheck: command.Execute = g:Grep
 
 command.Command.new("Grep")
+	.Bar()
 	.Bang()
 	.NArgs(command.NArgs.Star)
 	.Callback((attr) => {
-		g:Grep.Attr(attr).Run()
+		var grep: command.Execute = g:Grep
+
+		if has_key(b:, "Grep")
+			grep = b:Grep
+		endif
+
+		grep.Attr(attr).Run()
 	})

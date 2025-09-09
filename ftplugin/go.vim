@@ -30,12 +30,12 @@ if exists("+clipboard")
 			return trim(substitute(pt, gopath, '', ''), '/')
 		endif
 
-		var goroot = $"^{trim(system('go env GOPATH'))}/pkg/mod"
+		var goroot = $"^{trim(system('go env GOROOT'))}"
 		if pt =~ goroot
 			return trim(substitute(pt, gopath, '', ''), '/')
 		endif
 
-		return pt
+		return fnamemodify(pt, ':.')
 	enddef
 
 	autocmd User LspAttached {

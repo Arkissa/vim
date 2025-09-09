@@ -54,4 +54,4 @@ def g:StatusLineDiags(): string
 	return str->join(' ')
 enddef
 
-&statusline = '%< [%{%StatusLineBufName()%}%m]%( %{%StatusLineDiags()%} %)%= %(%{substitute(FugitiveStatusline(), ''\[\|\]'', '''', ''g'')} 󰤃 %)%(%y 󰤃%) %{%StatusLineDir()%} ≡ %3P %3l:%-3c '
+&statusline = '%< [%{%StatusLineBufName()%}%m]%( %{%StatusLineDiags()%} %)%= %(%{%FugitiveStatusline()%} 󰤃 %)%(%y 󰤃%) %{%StatusLineDir()%} ≡ %3P %3l:%-3c '
