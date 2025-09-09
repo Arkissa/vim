@@ -1,41 +1,65 @@
 vim9script
 
 import autoload 'greps/cgrep.vim'
+import autoload 'keymap.vim'
 
-:nmap <silent> [l <CMD>lprevious<CR>
-:nmap <silent> ]l <CMD>lnext<CR>
-:nmap <silent> [q <CMD>cprevious<CR>
-:nmap <silent> ]q <CMD>cnext<CR>
+type Bind = keymap.Bind
+type Mods = keymap.Mods
 
-:vmap <silent> <nowait> <C-c> "+y
+Bind.new(Mods.n)
+	.Silent()
+	.LHS('[l').RHS('<CMD>lprevious<CR>')
+	.LHS(']l').RHS('<CMD>lnext<CR>')
+	.LHS('[q').RHS('<CMD>cprevious<CR>')
+	.LHS(']q').RHS('<CMD>cnext<CR>')
+	.LHS('<C-l>').RHS('<CMD>nohlsearch<CR>')
+	.Done()
 
-:imap <silent> <nowait> <C-v> <C-R>+
-:imap <silent> <nowait> <C-a> <HOME>
-:inoremap <C-f>  <Right>
-:inoremap <C-b>  <Left>
-:inoremap <M-b> <C-Left>
-:inoremap <M-f> <C-Right>
+Bind.new(Mods.n)
+	.NoWait()
+	.LHS('gp').RHS('<CMD>put "<CR>')
+	.LHS('gP').RHS('<CMD>-1put "<CR>')
+	.LHS('[P').RHS('i ')
+	.LHS(']P').RHS('a ')
+	.Done()
 
-:cnoremap <C-f> <Right>
-:cnoremap <C-b> <Left>
-:cnoremap <M-b> <C-Left>
-:cnoremap <M-f> <C-Right>
-:cnoremap <C-k> <ScriptCmd>(() => setcmdline(strpart(getcmdline(), 0, getcmdpos() - 1)))()<CR>
-:cnoremap <silent> <nowait> <C-a> <HOME>
+Bind.newMulti(Mods.i, Mods.v)
+	.Silent()
+	.NoWait()
+	.LHS('<C-c>').RHS('"+y')
+	.LHS('<C-v>').RHS('<C-r>+')
+	.Done()
 
-:tnoremap <ESC> <C-\><C-n>
+Bind.newMulti(Mods.i, Mods.c)
+	.NoWait()
+	.LHS('<C-a>').RHS('<HOME>')
+	.LHS('<C-f>').RHS('<Right>')
+	.LHS('<C-b>').RHS('<Left>')
+	.LHS('<M-b>').RHS('<C-Left>')
+	.LHS('<M-f>').RHS('<C-Right>')
+	.Done()
 
-:nnoremap <silent> \\ @@
-:nmap <nowait> gp <CMD>put "<CR>
-:nmap <nowait> gP <CMD>-1put "<CR>
-:nmap <nowait> [P i 
-:nmap <nowait> ]P a 
-:nmap <C-l> <CMD>nohlsearch<CR>
-:nnoremap <silent> <Leader>[ <ScriptCmd>appendbufline(bufnr(), line('.') - 1, "")<CR>
-:nnoremap <silent> <Leader>] <ScriptCmd>appendbufline(bufnr(), line('.'), "")<CR>
+Bind.newMulti(Mods.c)
+	.NoWait()
+	.LHS('<C-k>').RHS('<ScriptCmd>(() => setcmdline(strpart(getcmdline(), 0, getcmdpos() - 1)))()<CR>')
+	.Done()
 
-if instanceof(g:Grep, cgrep.Cgrep)
-	:nnoremap \w :Grep 
-	:nnoremap \s :Grep --string 
-	:nnoremap \r :Grep -G 
-endif
+Bind.new(Mods.t)
+	.LHS('').RHS('<C-\><C-n>')
+	.Done()
+
+Bind.new(Mods.n)
+	.NoRemap()
+	.Silent()
+	.LHS('\\').RHS('@@')
+	.LHS('<Leader>[').RHS('<ScriptCmd>appendbufline(bufnr(), line(''.'') - 1, '''')<CR>')
+	.LHS('<Leader>]').RHS('<ScriptCmd>appendbufline(bufnr(), line(''.''), '''')<CR>')
+	.Done()
+
+Bind.new(Mods.n)
+	.By(() => instanceof(g:Grep, cgrep.Cgrep))
+	.NoRemap()
+	.LHS('\w').RHS(':Grep ')
+	.LHS('\s').RHS(':Grep --string ')
+	.LHS('\r').RHS(':Grep -G ')
+	.Done()
