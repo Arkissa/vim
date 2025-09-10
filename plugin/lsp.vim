@@ -3,60 +3,68 @@ packadd vim9-lsp
 
 import autoload 'lsp/lsp.vim'
 import autoload 'lsp/buffer.vim'
+import autoload 'autocmd.vim'
+import autoload 'keymap.vim'
+
+type Autocmd = autocmd.Autocmd
+type Bind = keymap.Bind
+type Mods = keymap.Mods
 
 # https://github.com/saccarosium/yegappan-lsp-settings/blob/ca7f3dd4f4390938d9ea18033b7a7729f3e5b162/plugin/lsp_settings.vim#L5
 def LspHas(feature: string): bool
 	return !buffer.CurbufGetServer(feature)->empty()
 enddef
 
-autocmd User LspAttached {
-	if LspHas('documentFormatting')
-		:setlocal formatexpr=lsp.FormatExpr()
-	endif
+Autocmd.new('User')
+	.Pattern(['LspAttached'])
+	.Callback(() => {
+		if LspHas('documentFormatting')
+			:setlocal formatexpr=lsp.FormatExpr()
+		endif
 
-	if LspHas('hover')
-		:nnoremap <silent> <buffer> K <CMD>LspHover<CR>
-	endif
+		Bind.new(Mods.i)
+			.NoRemap()
+			.Silent()
+			.Buffer()
+			.Map('<C-s>', '<CMD>LspShowSignature<CR>')
 
-	if LspHas('rename')
-		:nnoremap <silent> <buffer> <Leader>r <CMD>LspRename<CR>
-	endif
+		Bind.new(Mods.n)
+			.NoRemap()
+			.Silent()
+			.Buffer()
+			.Map('<C-w>d', '<CMD>LspDiagCurrent<CR>')
+			.Map(']e', '<CMD>LspDiagNextWrap<CR>')
+			.Map('[e', '<CMD>LspDiagPrevWrap<CR>')
+			.Map('<C-w>e', '<CMD>LspDiagShow<CR>')
 
-	if LspHas('implementation')
-		:nnoremap <silent> <buffer> [D <CMD>LspPeekImpl<CR>
-		:nnoremap <silent> <buffer> ]D <CMD>LspGotoImpl<CR>
-	endif
+			.When(funcref(LspHas, ['rename']))
+			.Map('<Leader>r', '<CMD>LspRename<CR>')
 
-	if LspHas('documentSymbol')
-		:nnoremap <silent> <buffer> [I <CMD>LspDocumentSymbol<CR>
-		:nnoremap <silent> <buffer> ]I <CMD>LspOutline<CR>
-	endif
+			.When(funcref(LspHas, ['hover']))
+			.Map('K', '<CMD>LspHover<CR>')
 
-	if LspHas('definition')
-		:setlocal tagfunc=lsp.TagFunc
-		:nnoremap <silent> <buffer> gd <CMD>LspGotoDefinition<CR>
-		:nnoremap <silent> <buffer> [d <CMD>LspPeekDefinition<CR>
-	endif
+			.When(funcref(LspHas, ['implementation']))
+			.Map('[D', '<CMD>LspPeekImpl<CR>')
+			.Map(']D', '<CMD>LspGotoImpl<CR>')
 
-	if LspHas('typeDefinition')
-		:nnoremap <silent> <buffer> gD <CMD>LspGotoTypeDef<CR>
-		:nnoremap <silent> <buffer> ]d <CMD>LspPeekTypeDef<CR>
-	endif
+			.When(funcref(LspHas, ['documentSymbol']))
+			.Map('[I', '<CMD>LspDocumentSymbol<CR>')
+			.Map(']I', '<CMD>LspOutline<CR>')
 
-	if LspHas('codeAction')
-		:nnoremap <silent> <buffer> <Leader>a <CMD>LspCodeAction<CR>
-	endif
+			.When(funcref(LspHas, ['definition']))
+			.Map('gd', '<CMD>LspGotoDefinition<CR>')
+			.Map('[d', '<CMD>LspPeekDefinition<CR>')
 
-	if LspHas('references')
-		:nnoremap <silent> <buffer> * <CMD>LspShowReferences<CR>
-	endif
+			.When(funcref(LspHas, ['typeDefinition']))
+			.Map('gD', '<CMD>LspGotoTypeDef<CR>')
+			.Map(']d', '<CMD>LspPeekTypeDef<CR>')
 
-    :nnoremap <silent> <buffer> <C-w>d <CMD>LspDiagCurrent<CR>
-    :nnoremap <silent> <buffer> ]e <CMD>LspDiagNextWrap<CR>
-    :nnoremap <silent> <buffer> [e <CMD>LspDiagPrevWrap<CR>
-    :nnoremap <silent> <buffer> <C-w>e <CMD>LspDiagShow<CR>
-    :inoremap <silent> <buffer> <C-s> <CMD>LspShowSignature<CR>
-}
+			.When(funcref(LspHas, ['codeAction']))
+			.Map('<Leader>a', '<CMD>LspCodeAction<CR>')
+
+			.When(funcref(LspHas, ['codeAction']))
+			.Map('*', '<CMD>LspShowReferences<CR>')
+	})
 
 g:LspOptionsSet({
     autoComplete: false,
