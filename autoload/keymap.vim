@@ -17,11 +17,14 @@ export class Bind
 	var _mods: list<Mods> = []
 	var _cmd = 'map'
 	var _args: list<string> = []
-	var _lhies: list<string> = []
-	var _rhies: list<string> = []
-	var _tails: list<string> = []
+	var _arg: string
 	var _noremap: bool
-	var _MapBy: func(): bool
+	var _When: func(): bool
+	static var _mapFunction: dict<func()> = {}
+
+	static def InternalFunction(name: string): func()
+		return _mapFunction[name]
+	enddef
 
 	def new(m: Mods)
 		this._mods->add(m)
@@ -31,13 +34,54 @@ export class Bind
 		this._mods->extend(ms)
 	enddef
 
-	def LHS(lhs: string): Bind
-		this._lhies->add(lhs)
+	def ScriptCmd(lhs: string, Rhs: func()): Bind
+		if this._When != null_function && !call(this._When, [])
+			return this
+		endif
+
+		if this._arg == null_string
+			this._arg = this._args->join(' ')
+		endif
+
+		var cmd = this._noremap ? $'nore{this._cmd}' : this._cmd
+		var m: string
+		for mod in this._mods
+			if mod.name != 'ic'
+				m = $'{mod.name}{cmd}'
+			else
+				m = $'{cmd}!'
+			endif
+
+			var name = $'{m}_{rand()}'
+			_mapFunction[name] = Rhs
+
+			execute($'{m} {this._arg} {lhs} <ScriptCmd>call(Bind.InternalFunction("{name}"), [])<CR>')
+		endfor
+
 		return this
 	enddef
 
-	def RHS(rhs: string): Bind
-		this._rhies->add(rhs)
+	def Map(lhs: string, rhs: string): Bind
+		if this._When != null_function && !call(this._When, [])
+			return this
+		endif
+
+		if this._arg == null_string
+			this._arg = this._args->join(' ')
+		endif
+
+		var cmd = this._noremap ? $'nore{this._cmd}' : this._cmd
+		var m: string
+		for mod in this._mods
+			if mod.name != 'ic'
+				m = $'{mod.name}{cmd}'
+			else
+				m = $'{cmd}!'
+			endif
+
+			execute($'{m} {this._arg} {lhs} {rhs}')
+		endfor
+
 		return this
 	enddef
 
@@ -81,37 +125,8 @@ export class Bind
 		return this
 	enddef
 
-	def By(F: func(): bool): Bind
-		this._MapBy = funcref(F)
+	def When(F: func(): bool): Bind
+		this._When = funcref(F)
 		return this
-	enddef
-
-	def Done()
-		if len(this._lhies) != len(this._rhies)
-			throw "keymap bind the lens of lhs and rhs is not equal."
-		endif
-
-		if !call(this._MapBy, [])
-			return
-		endif
-
-		var args = join(this._args, ' ')
-		for i in range(len(this._lhies))
-			add(this._tails, $'{args} {this._lhies[i]} {this._rhies[i]}')
-		endfor
-
-		var cmd = this._noremap ? $'nore{this._cmd}' : this._cmd
-		var m: string
-		for mod in this._mods
-			if mod.name != 'ic'
-				m = $'{mod.name}{cmd}'
-			else
-				m = $'{cmd}!'
-			endif
-
-			for tail in this._tails
-				execute($'{m} {tail}')
-			endfor
-		endfor
 	enddef
 endclass
