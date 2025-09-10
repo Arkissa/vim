@@ -1,8 +1,12 @@
 vim9script
 
-import "./popup.vim"
-import "./buffer.vim"
-import "./log.vim"
+import './popup.vim'
+import './buffer.vim'
+import './log.vim'
+import './autocmd.vim'
+
+type Buffer = buffer.Buffer
+type Autocmd = autocmd.Autocmd
 
 export enum Action
 	A('a'),
@@ -37,7 +41,7 @@ export enum Type
 endenum
 
 export class QuickfixItem
-	var buffer: buffer.Buffer
+	var buffer: Buffer
 	var lnum: number
 	var col: number
 	var end_lnum: number
@@ -52,7 +56,7 @@ export class QuickfixItem
 	const user_data: dict<any>
 
 	def new(item: dict<any>)
-		this.buffer = buffer.Buffer.newByBufnr(item.bufnr)
+		this.buffer = Buffer.newByBufnr(item.bufnr)
 		this.lnum = item.lnum
 		this.col = item.col
 		this.end_lnum = item.end_lnum
@@ -161,7 +165,7 @@ export class Quickfix implements Quickfixer
 			return null_object
 		endif
 
-		var b = buffer.Buffer.new()
+		var b = Buffer.new()
 		var item = this.GetList({idx: b.GetLinePosition(), items: 1}).items[0]
 		if !item.valid || item.buffer.IsDirectory() || !item.buffer.Readable()
 			return null_object
@@ -251,7 +255,7 @@ export class Location implements Quickfixer
 			return null_object
 		endif
 
-		var b = buffer.Buffer.new()
+		var b = Buffer.new()
 		var item = this.GetList({idx: b.GetLinePosition(), items: 1}).items[0]
 		if !item.valid || item.buffer.IsDirectory() || !item.buffer.Readable()
 			return null_object
@@ -466,34 +470,27 @@ export class Previewer
 		_window.OnSetBufAfter(_DetectFiletype, _WinOption, _AddHightlightText)
 		_window.OnClose(_DeleteHightlightName)
 		_CreateAutocmd(_window, winbufnr(winId))
-		SetCursorUnderBuff()
+		_SetCursorUnderBuff()
 	enddef
 
 	static def _CreateAutocmd(win: popup.Window, bufnr: number)
 		var group = "Quickfix.Previewer"
-		var events = [
-			{
-				bufnr: bufnr,
-				group: group,
-				event: "CursorMoved",
-				cmd: "Previewer.SetCursorUnderBuff()",
-			},
-			{
-				bufnr: bufnr,
-				group: group,
-				event: ["WinLeave", "WinClosed", "WinLeave", "BufWipeout", "BufHidden"],
-				cmd: "Previewer.Close()",
-			}
-		]
+		Autocmd.new('CursorMoved')
+			.Group(group)
+			.Bufnr(bufnr)
+			.Callback(_SetCursorUnderBuff)
 
-		autocmd_add(events)
+		Autocmd.newMulti(["WinLeave", "WinClosed", "WinLeave", "BufWipeout", "BufHidden"])
+			.Group(group)
+			.Bufnr(bufnr)
+			.Callback(Close)
 
 		win.OnClose((_: popup.Window, _: any) => {
 			autocmd_delete([{group: group}])
 		})
 	enddef
 
-	static def SetCursorUnderBuff()
+	static def _SetCursorUnderBuff()
 		if _window == null_object || _qf == null_object || !_window.IsOpen()
 			log.Error("Unable to set the qfitem buffer under cursor line for preview window.")
 			return
