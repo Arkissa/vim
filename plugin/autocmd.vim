@@ -38,6 +38,11 @@ Autocmd.new('BufEnter')
 		:quitall
 	})
 
+Autocmd.new('InsertLeave')
+	.Group(group)
+	.When(() => executable('ibus') == 1)
+	.Command('system("ibus engine xkb:us::eng")')
+
 Autocmd.newMulti(['WinEnter', 'BufEnter'])
 	.Group(group)
 	.Command('setlocal cursorline')
@@ -45,8 +50,3 @@ Autocmd.newMulti(['WinEnter', 'BufEnter'])
 Autocmd.newMulti(['WinLeave', 'BufLeave'])
 	.Group(group)
 	.Command('setlocal nocursorline')
-
-Autocmd.newMulti(['InsertLeave'])
-	.Group(group)
-	.When(() => executable('ibus') == 1)
-	.Command('system("ibus engine xkb:us::eng")')

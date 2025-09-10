@@ -22,6 +22,8 @@ Autocmd.new('User')
 			:setlocal formatexpr=lsp.FormatExpr()
 		endif
 
+		:setlocal tagfunc=lsp.TagFunc
+
 		Bind.new(Mods.i)
 			.NoRemap()
 			.Silent()
