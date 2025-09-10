@@ -1,45 +1,52 @@
 vim9script
 
-var exclude_filetype = ["xxd", "gitrebase", "tutor", "help", "commint"]
-var exclude_buftype = ["quickfix", "terminal"]
+import autoload 'autocmd.vim'
 
-def JumpBack()
-    var lnum = line("'\"")
-    if lnum >= 1
-	&& lnum <= line("$")
-	&& index(exclude_filetype, &filetype) == -1
-		execute("normal! g`\"")
-    endif
-enddef
+type Autocmd = autocmd.Autocmd
 
-def HighlightTailSpace()
-    if index(exclude_filetype, &filetype) == -1
-	|| index(exclude_buftype, &buftype) == -1
-		match Search /\s\+$/
-    endif
-enddef
+const ExcludeFiletype = ["xxd", "gitrebase", "tutor", "help", "commint"]
+const ExcludeBuftype = ["quickfix", "terminal"]
+const group = 'MYVIMRC'
 
-def SmartQuitall()
-    var wininfos = getwininfo()
-    for wininfo in wininfos
-		if getbufvar(wininfo.bufnr, "&buftype") ==# ""
-			return
+Autocmd.new('BufReadPost')
+	.Group(group)
+	.Callback(() => {
+		var lnum = line("'\"")
+		if lnum >= 1
+		&& lnum <= line("$")
+		&& index(ExcludeFiletype, &filetype) == -1
+			execute("normal! g`\"")
 		endif
-    endfor
+	})
+	.Callback(() => {
+		if index(ExcludeFiletype, &filetype) == -1
+		|| index(ExcludeBuftype, &buftype) == -1
+			match Search /\s\+$/
+		endif
+	})
 
-    :quitall
-enddef
+Autocmd.new('BufEnter')
+	.Group(group)
+	.Callback(() => {
+		var wininfos = getwininfo()
+		for wininfo in wininfos
+			if getbufvar(wininfo.bufnr, "&buftype") ==# ""
+				return
+			endif
+		endfor
 
-augroup MYVIMRC
-	autocmd BufReadPost * {
-		JumpBack()
-		HighlightTailSpace()
-	}
-    autocmd BufEnter * SmartQuitall()
-    autocmd WinEnter,BufEnter * setlocal cursorline
-    autocmd WinLeave,BufLeave * setlocal nocursorline
+		:quitall
+	})
 
-    if executable("ibus")
-		autocmd InsertLeave * system("ibus engine xkb:us::eng")
-    endif
-augroup END
+Autocmd.newMulti(['WinEnter', 'BufEnter'])
+	.Group(group)
+	.Command('setlocal cursorline')
+
+Autocmd.newMulti(['WinLeave', 'BufLeave'])
+	.Group(group)
+	.Command('setlocal nocursorline')
+
+Autocmd.newMulti(['InsertLeave'])
+	.Group(group)
+	.When(() => executable('ibus') == 1)
+	.Command('system("ibus engine xkb:us::eng")')

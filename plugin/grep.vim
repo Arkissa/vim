@@ -7,9 +7,12 @@ endif
 
 import autoload 'command.vim'
 
+type Command = command.Command
+type NArgs = command.NArgs
+
 var typeCheck: command.Execute = g:Grep
 
-command.Command.new("Grep")
+Command.new("Grep")
 	.Bar()
 	.Bang()
 	.NArgs(command.NArgs.Star)

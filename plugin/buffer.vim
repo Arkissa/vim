@@ -4,7 +4,9 @@ import autoload 'buffer.vim'
 import autoload 'quickfix.vim'
 import autoload 'command.vim'
 
-command.Command.new("Buffers")
+type Command = command.Command
+
+Command.new("Buffers")
 	.Bang()
 	.Callback((attr) => {
 		var buffers = getbufinfo()

@@ -5,6 +5,10 @@ if !exists("g:Linters")
 endif
 
 import autoload 'command.vim'
+import autoload 'autocmd.vim'
+
+type Command = command.Command
+type Autocmd = autocmd.Autocmd
 
 # type check
 g:Linters->values()
@@ -12,56 +16,49 @@ g:Linters->values()
 	->foreach((_, k: command.Execute) => {
 	})
 
-def Register()
-	var conf = g:Linters[&filetype]
-	if conf->has_key('onSaveCmd')
-		autocmd_add([{
-			group: group,
-			event: 'BufWritePost',
-			bufnr: bufnr(),
-			replace: true,
-			cmd: conf.onSaveCmd
-		}])
-	endif
+const group = "Linter"
 
-	command.Command.new("Lint")
-		.Bar()
-		.Bang()
-		.Buffer()
-		.Overlay()
-		.NArgs(command.NArgs.Star)
-		.Callback((attr) => {
-			if attr.args =~ '^[a-zA-Z0-9]\+://'
-				return
-			endif
+const fts = g:Linters->keys()
 
-			conf.lint.Attr(attr).Run()
-		})
+Autocmd.new('FileType')
+	.Group(group)
+	.Pattern(fts)
+	.Replace()
+	.Callback(() => {
+		var conf = g:Linters[&filetype]
+		if conf->has_key('onSaveCmd')
+			Autocmd.new('BufWritePost')
+				.Group(group)
+				.Bufnr(bufnr())
+				.Replace()
+				.Command(conf.onSaveCmd)
+		endif
 
-	command.Command.new("LLint")
-		.Bar()
-		.Bang()
-		.Buffer()
-		.Overlay()
-		.NArgs(command.NArgs.Star)
-		.Callback((attr) => {
-			if attr.args =~ '^[a-zA-Z0-9]\+://'
-				return
-			endif
+		Command.new("Lint")
+			.Bar()
+			.Bang()
+			.Buffer()
+			.Overlay()
+			.NArgs(command.NArgs.Star)
+			.Callback((attr) => {
+				if attr.args =~ '^[a-zA-Z0-9]\+://'
+					return
+				endif
 
-			conf.lint.Attr(attr, true).Run()
-		})
-enddef
+				conf.lint.Attr(attr).Run()
+			})
 
-var group = "Linter"
+		Command.new("LLint")
+			.Bar()
+			.Bang()
+			.Buffer()
+			.Overlay()
+			.NArgs(command.NArgs.Star)
+			.Callback((attr) => {
+				if attr.args =~ '^[a-zA-Z0-9]\+://'
+					return
+				endif
 
-autocmd_add(g:Linters
-	->keys()
-	->map((_, t) => {
-		return {
-			group: group,
-			event: 'FileType',
-			pattern: t,
-			replace: true,
-			cmd: "Register()"}
-	}))
+				conf.lint.Attr(attr, true).Run()
+			})
+	})

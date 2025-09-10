@@ -1,9 +1,16 @@
 vim9script
 
-var clip = "/mnt/c/Windows/System32/clip.exe"
-if executable(clip)
-    augroup WSLYank
-        autocmd!
-        autocmd TextYankPost * if v:event.operator ==# 'y' | system(clip, @0) | endif
-    augroup END
-endif
+import autoload 'autocmd.vim'
+
+type Autocmd = autocmd.Autocmd
+
+const clip = "/mnt/c/Windows/System32/clip.exe"
+Autocmd.new('TextYankPost')
+	.When(() => executable(clip) == 1)
+	.Group('WSLYank')
+	.Replace()
+	.Callback(() => {
+		if v:event.operator ==# 'y'
+			system(clip, @0)
+		endif
+	})
