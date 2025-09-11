@@ -1,10 +1,20 @@
-import autoload "quickfix.vim"
+vim9script
+
+import autoload 'keymap.vim'
+import autoload 'quickfix.vim'
+
+type Bind = keymap.Bind
+type Mods = keymap.Mods
 
 :setlocal nolist
 :setlocal nowrap
 :setlocal nobuflisted
 :setlocal norelativenumber
 
-:nnoremap <buffer> <silent> u <CMD>colder<CR>
-:nnoremap <buffer> <silent> <C-r> <CMD>cnewer<CR>
-:nnoremap <buffer> K <CMD>call quickfix#Previewer.Toggle()<CR>
+Bind.new(Mods.n)
+	.NoRemap()
+	.Buffer()
+	.Silent()
+	.Map('u', '<CMD>colder<CR>')
+	.Map('<C-r>', '<CMD>cnewer<CR>')
+	.ScriptCmd('K', quickfix.Previewer.Toggle)

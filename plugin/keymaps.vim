@@ -43,6 +43,7 @@ Bind.new(Mods.n)
 	.Map('\w', ':Grep ')
 	.Map('\s', ':Grep --string ')
 	.Map('\r', ':Grep -G ')
+	.Map('\d', ':Grep --name <C-r><C-w>')
 
 Bind.new(Mods.c)
 	.NoWait()
