@@ -1,32 +1,32 @@
 vim9script
 
-export class Sign
-	var id: number
-	var lnum: number
-	var name: string
+export class Sign # {{{1
+	var id: number # {{{2
+	var lnum: number # {{{2
+	var name: string # {{{2
 
-	def new(this.id, this.lnum, this.name)
+	def new(this.id, this.lnum, this.name) # {{{2
 	enddef
 endclass
 
-export class BufferInfo
-	var bufnr: number
-	var name: string
-	var changed: bool
-	var changedtick: number
-	var command: bool
-	var hidden: bool
-	var lastused: number
-	var listed: bool
-	var lnum: number
-	var linecount: number
-	var loaded: bool
-	const variables: dict<any>
-	const windows: list<number>
-	const popups: list<number>
-	const signs: list<Sign>
+export class BufferInfo # {{{1
+	var bufnr: number # {{{2
+	var name: string # {{{2
+	var changed: bool # {{{2
+	var changedtick: number # {{{2
+	var command: bool # {{{2
+	var hidden: bool # {{{2
+	var lastused: number # {{{2
+	var listed: bool # {{{2
+	var lnum: number # {{{2
+	var linecount: number # {{{2
+	var loaded: bool # {{{2
+	const variables: dict<any> # {{{2
+	const windows: list<number> # {{{2
+	const popups: list<number> # {{{2
+	const signs: list<Sign> # {{{2
 
-	def new(
+	def new( # {{{2
 			this.bufnr,
 			this.name,
 			this.changed,
@@ -48,24 +48,23 @@ export class BufferInfo
 	enddef
 endclass
 
-export class Buffer
-	var bufnr: number
-	var name: string
-
-	def new()
+export class Buffer # {{{1
+	var bufnr: number # {{{2
+	var name: string # {{{2
+	def new() # {{{2
 		this.bufnr = bufnr()
 		this.name = bufname(this.bufnr)
 	enddef
 
-	def newByBufnr(this.bufnr)
+	def newByBufnr(this.bufnr) # {{{2
 		this.name = bufname(this.bufnr)
 	enddef
 
-	def newByName(this.name)
+	def newByName(this.name) # {{{2
 		this.bufnr = bufadd(this.name)
 	enddef
 
-	def LastCursorPosition(): tuple<number, number>
+	def LastCursorPosition(): tuple<number, number> # {{{2
 		var marks = getmarklist(this.bufnr)->filter((_, m) => m.mark == "'\"")
 		if marks is null_list
 			return (1, 1)
@@ -76,27 +75,27 @@ export class Buffer
 		return (pos[1] > lastLine ? lastLine : pos[1], pos[2])
 	enddef
 
-	def GetVar(name: string): any
+	def GetVar(name: string): any # {{{2
 		return getbufvar(this.bufnr, name)
 	enddef
 
-	def GetOneLine(lnum: number): string
+	def GetOneLine(lnum: number): string # {{{2
 		return getbufoneline(this.bufnr, lnum)
 	enddef
 
-	def GetLines(lnum: number, end: number): list<string>
+	def GetLines(lnum: number, end: number): list<string> # {{{2
 		return getbufline(lnum, end != -1 ? end : '$')
 	enddef
 
-	def SetVar(name: string, value: any)
+	def SetVar(name: string, value: any) # {{{2
 		return setbufvar(this.bufnr, name, value)
 	enddef
 
-	def SetLine(lnum: number, text: string)
+	def SetLine(lnum: number, text: string) # {{{2
 		return setbufline(this.bufnr, lnum, text)
 	enddef
 
-	def GetLinePosition(): number
+	def GetLinePosition(): number # {{{2
 		var info = this.GetInfo()
 		if info is null_object
 			return 0
@@ -105,7 +104,7 @@ export class Buffer
 		return info.lnum
 	enddef
 
-	def LineCount(): number
+	def LineCount(): number # {{{2
 		var info = this.GetInfo()
 		if info is null_object
 			return 0
@@ -114,43 +113,43 @@ export class Buffer
 		return info.linecount
 	enddef
 
-	def IsDirectory(): bool
+	def IsDirectory(): bool # {{{2
 		return isdirectory(this.name)
 	enddef
 
-	def IsLoaded(): bool
+	def IsLoaded(): bool # {{{2
 		return bufloaded(this.bufnr) == 1
 	enddef
 
-	def IsExists(): bool
+	def IsExists(): bool # {{{2
 		return bufexists(this.bufnr) == 1
 	enddef
 
-	def Load(): number
+	def Load(): number # {{{2
 		return bufload(this.bufnr)
 	enddef
 
-	def WinID(): number
+	def WinID(): number # {{{2
 		return bufwinid(this.bufnr)
 	enddef
 
-	def Winnr(): number
+	def Winnr(): number # {{{2
 		return bufwinnr(this.bufnr)
 	enddef
 
-	def InPopupWindow(): bool
+	def InPopupWindow(): bool # {{{2
 		return this.GetInfo() isnot null_object && info.popups != null_list
 	enddef
 
-	def InWindow(): bool
+	def InWindow(): bool # {{{2
 		return this.GetInfo() isnot null_object && info.windows != null_list
 	enddef
 
-	def Listed(): bool
+	def Listed(): bool # {{{2
 		return buflisted(this.bufnr)
 	enddef
 
-	def GetInfo(): BufferInfo
+	def GetInfo(): BufferInfo # {{{2
 		if !this.IsExists()
 			return null_object
 		endif
@@ -174,7 +173,15 @@ export class Buffer
 		)
 	enddef
 
-	def Readable(): bool
+	def Readable(): bool # {{{2
 		return filereadable(this.name) == 1
 	enddef
+
+	def Unload() # {{{2
+		execute($'bdelete! {this.bufnr}')
+	enddef
+
+	def Delete() # {{{2
+		execute($'bwipeout! {this.bufnr}')
+	enddef # }}}
 endclass

@@ -64,7 +64,6 @@ Autocmd.new('User')
 			.When(funcref(LspHas, ['codeAction']))
 			.Map('<Leader>a', '<CMD>LspCodeAction<CR>')
 
-			.When(funcref(LspHas, ['codeAction']))
 			.Map('*', '<CMD>LspShowReferences<CR>')
 	})
 
@@ -157,6 +156,16 @@ var lsp_servers = [
 		path: 'gopls',
 		workspaceConfig: {
 			gopls: {
+				directoryFilters: [
+					'-**/node_modules',
+					'-3rd/',
+					'-**/bin',
+					'-**/logs',
+					'-app/deploy',
+					'-proto/',
+					'-docs/',
+					'-tools/',
+				],
 				codelenses: {
 					tests: true,
 					tidy: true,
@@ -179,6 +188,7 @@ var lsp_servers = [
 					parameterNames: true,
 					functionTypeParameters: true
 				},
+				symbolScope: 'workspace',
 				semanticTokens: false,
 			}
 		}

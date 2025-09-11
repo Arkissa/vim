@@ -2,7 +2,7 @@ vim9script
 
 import autoload 'lsp/buffer.vim'
 
-export def OsStateDir(): string
+export def OsStateDir(): string # {{{1
     var stateDir = has('win32') || has('win64')
 	? $LOCALAPPDATA .. '/vim'
 	: ($XDG_STATE_HOME !=# ''
@@ -16,7 +16,7 @@ export def OsStateDir(): string
     return stateDir
 enddef
 
-export def UnderPath(RealPath: func(string): string): string
+export def UnderPath(RealPath: func(string): string): string # {{{1
 	var server = buffer.CurbufGetServer()
 	if server == null_dict
 		return ""

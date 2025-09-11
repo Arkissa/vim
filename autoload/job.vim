@@ -3,15 +3,16 @@ vim9script
 import './quickfix.vim'
 import './vim.vim'
 
-export abstract class Job # maybe more extensions for channel-mode?
-	var _job: job
-	var _cmd: string
-	var _location: bool
-	abstract def Callback(qf: quickfix.Quickfixer, chan: channel, msg: string)
-	abstract def CloseCb(qf: quickfix.Quickfixer, chan: channel)
-	abstract def ExitCb(qf: quickfix.Quickfixer, job: job, code: number)
+# maybe more extensions for channel-mode?
+export abstract class Job # {{{1
+	var _job: job # {{{2
+	var _cmd: string # {{{2
+	var _location: bool # {{{2
+	abstract def Callback(qf: quickfix.Quickfixer, chan: channel, msg: string) # {{{2
+	abstract def CloseCb(qf: quickfix.Quickfixer, chan: channel) # {{{2
+	abstract def ExitCb(qf: quickfix.Quickfixer, job: job, code: number) # {{{2
 
-	def Status(): string
+	def Status(): string # {{{2
 		if this._job == null_job
 			return "dead"
 		endif
@@ -19,13 +20,13 @@ export abstract class Job # maybe more extensions for channel-mode?
 		return job_status(this._job)
 	enddef
 
-	def Stop()
+	def Stop() # {{{2
 		if this._job != null_job
 			job_stop(this._job)
 		endif
 	enddef
 
-	def Info(): dict<any>
+	def Info(): dict<any> # {{{2
 		if this._job != null_job
 			return job_info(this._job)
 		endif
@@ -33,7 +34,7 @@ export abstract class Job # maybe more extensions for channel-mode?
 		return null_dict
 	enddef
 
-	def Run()
+	def Run() # {{{2
 		if this.Status() == "run"
 			this.Stop()
 		endif

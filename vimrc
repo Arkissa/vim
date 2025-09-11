@@ -103,10 +103,14 @@ g:Linters = {
 
 g:Grep = cgrep.Cgrep.new({
 	types: ["Go"],
-	pruneDirs: ["proto"],
+	pruneDirs: ["proto", "3rd", "bin", "node_modules", "dist-newstyle", ".git"],
 	kind: ["Language"]
 })
 
 g:SimpleSession = {
 	saveOnVimLeave: true
+}
+
+g:helptoc = {
+	shell_prompt: '^\$\s'
 }

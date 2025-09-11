@@ -1,40 +1,40 @@
 vim9script
 
-export def Cmd(s: list<string>): string
+export def Cmd(s: list<string>): string # {{{1
 	return s->join(' ')
 enddef
 
-export def Option(s: list<string>): string
+export def Option(s: list<string>): string # {{{1
 	return s->join(',')
 enddef
 
-export abstract class Void
-	def string(): string
+export abstract class Void # {{{1
+	def string(): string # {{{2
 		return 'void'
 	enddef
 endclass
 
-class SingleVoid extends Void
+class SingleVoid extends Void # {{{1
 endclass
 
-export const void = SingleVoid.new()
+export const void = SingleVoid.new() # {{{1
 
-export class Exception
-	var _exception: string
-	def new(this._exception)
+export class Exception # {{{1
+	var _exception: string # {{{2
+	def new(this._exception) # {{{2
 	enddef
 
-	def string(): string
+	def string(): string # {{{2
 		return this._exception
 	enddef
 endclass
 
-export class Promise
-	var _F: func
-	var _once: bool
-	var _return = {}
+export class Promise # {{{1
+	var _F: func # {{{2
+	var _once: bool # {{{2
+	var _return = {} # {{{2
 
-	def new(this._F, ...args: list<any>)
+	def new(this._F, ...args: list<any>) # {{{2
 		timer_start(0, (_) => {
 				try
 					var val = call(this._F, args)
@@ -47,7 +47,7 @@ export class Promise
 			})
 	enddef
 
-	def Await<T>(): T
+	def Await<T>(): T # {{{2
 		if !this._once
 			this._once = true
 		else

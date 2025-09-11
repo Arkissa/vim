@@ -1,40 +1,40 @@
 vim9script
 
-export enum Mods
-	n,
-	v,
-	i,
-	x,
-	s,
-	o,
-	ic,
-	l,
-	c,
-	t
+export enum Mods # {{{1
+	n, # {{{2
+	v, # {{{2
+	i, # {{{2
+	x, # {{{2
+	s, # {{{2
+	o, # {{{2
+	ic, # {{{2
+	l, # {{{2
+	c, # {{{2
+	t # {{{2
 endenum
 
-export class Bind
+export class Bind # {{{1
 	var _mods: list<Mods> = []
 	var _cmd = 'map'
 	var _args: list<string> = []
 	var _arg: string
 	var _noremap: bool
 	var _When: func(): bool
-	static var _mapFunction: dict<func()> = {}
+	static var _mapFunction: dict<func()> = {} # {{{2
 
-	static def InternalFunction(name: string): func()
+	static def InternalFunction(name: string): func() # {{{2
 		return _mapFunction[name]
 	enddef
 
-	def new(m: Mods)
+	def new(m: Mods) # {{{2
 		this._mods->add(m)
 	enddef
 
-	def newMulti(...ms: list<Mods>)
+	def newMulti(...ms: list<Mods>) # {{{2
 		this._mods->extend(ms)
 	enddef
 
-	def ScriptCmd(lhs: string, Rhs: func()): Bind
+	def ScriptCmd(lhs: string, Rhs: func()): Bind # {{{2
 		if this._When != null_function && !call(this._When, [])
 			return this
 		endif
@@ -61,7 +61,7 @@ export class Bind
 		return this
 	enddef
 
-	def Map(lhs: string, rhs: string): Bind
+	def Map(lhs: string, rhs: string): Bind # {{{2
 		if this._When != null_function && !call(this._When, [])
 			return this
 		endif
@@ -85,47 +85,47 @@ export class Bind
 		return this
 	enddef
 
-	def Buffer(): Bind
+	def Buffer(): Bind # {{{2
 		this._args->add('<buffer>')
 		return this
 	enddef
 
-	def NoWait(): Bind
+	def NoWait(): Bind # {{{2
 		this._args->add('<nowait>')
 		return this
 	enddef
 
-	def Silent(): Bind
+	def Silent(): Bind # {{{2
 		this._args->add('<silent>')
 		return this
 	enddef
 
-	def Special(): Bind
+	def Special(): Bind # {{{2
 		this._args->add('<special>')
 		return this
 	enddef
 
-	def Script(): Bind
+	def Script(): Bind # {{{2
 		this._args->add('<script>')
 		return this
 	enddef
 
-	def Expr(): Bind
+	def Expr(): Bind # {{{2
 		this._args->add('<expr>')
 		return this
 	enddef
 
-	def Unique(): Bind
+	def Unique(): Bind # {{{2
 		this._args->add('<unique>')
 		return this
 	enddef
 
-	def NoRemap(): Bind
+	def NoRemap(): Bind # {{{2
 		this._noremap = true
 		return this
 	enddef
 
-	def When(F: func(): bool): Bind
+	def When(F: func(): bool): Bind # {{{2
 		this._When = funcref(F)
 		return this
 	enddef
