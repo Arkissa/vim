@@ -3,75 +3,127 @@ vim9script
 import './buffer.vim'
 import './window.vim'
 import './quickfix.vim'
+import './autocmd.vim'
 
 type Buffer = buffer.Buffer # {{{1
+type Autocmd = autocmd.Autocmd # {{{1
 
 class Term extends Buffer # {{{1
-	static var _count: number = 1 # {{{2
 
-	def new(cmd: string = '', opt: dict<any>) # {{{2
-		_count += 1
-		this.name = $"terminal-{_count}"
-		this.bufnr = term_start(cmd ?? $SHELL, opt)
+	def new(cmd: string, opt: dict<any>) # {{{2
+		this.bufnr = term_start(cmd, opt)
+		this.name = cmd
 		this.SetVar("&buflisted", false)
 		this.SetVar("&relativenumber", false)
 		this.SetVar("&number", false)
 	enddef
 
 	def Close() # {{{2
-		term_setkill(this.bufnr)
+		term_setkill(this.bufnr, 'kill')
 		this.Delete()
-	enddef
+	enddef # }}}
 endclass
 
-export class Manager # {{{1
-	static var _terms: list<Term> = [] # {{{2
-	static var _i: number = -1 # {{{2
-	static var _window: window.Window # {{{2
+var terms: list<Term> = [] # {{{2
+var current: Term # {{{2
+var win: window.Window # {{{2
+const group = "TermManager"
 
-	static def ToggleWindow() # {{{2
-		if _window.IsOpen()
-			this.Close()
+export class Manager # {{{1
+	static def ToggleWindow(pos: string = '') # {{{2
+		if win != null_object && win.IsOpen()
+			_CloseWindow()
 		else
-			this.Open()
+			_OpenWindow(pos)
 		endif
-	enddef
+	enddef # }}}
 
 	static def ListTerms(): list<Term> # {{{2
-		return copy(_terms)
-	enddef
+		return copy(terms)
+	enddef # }}}
 
-	static def Toc() # {{{2
+	static def NewTerm(cmd: string = ''): Term # {{{2
+		var term = Term.new(cmd ?? $SHELL, {
+			hidden: true,
+			term_kill: 'kill',
+			term_finish: 'close',
+			exit_cb: (_, _) => {
+				var old = current
+				Manager.Slide(1)
+				terms->filter((_, term) => term.bufnr != old.bufnr)
+
+				if empty(terms)
+					current = null_object
+				endif
+			}
+		})
+
+		if win != null_object && win.IsOpen()
+			win.SetBuf(term.bufnr)
+		endif
+		terms->add(term)
+
+		return term
+	enddef # }}}
+
+	static def TermsToc() # {{{2
 		var qf = quickfix.Quickfix.new()
+		var items = terms->mapnew((_, term) => quickfix.QuickfixItem.newByBuffer(term))
 
-		var items = mapnew(_terms, (_, term) => quickfix.QuickfixItem.newByBuffer(Buffer))
 		qf.SetList(items, quickfix.Action.R)
-	enddef
+	enddef # }}}
 
-	static def OpenWindow(cmd: string) # {{{2
-		var term = get(_terms, _i, null_object)
-		if term != null_object
-			term_setkill(term.bufnr)
-			term = Term.new(cmd)
-			_terms[_id] = term
-		else
-			term = Term.new(cmd)
-			_terms->add(term)
+	static def _OpenWindow(pos: string = '') # {{{2
+		if current == null_object
+			current = NewTerm()
 		endif
 
-		if !_window.IsOpen()
-			_window = window.Window.newBufnr(term.bufnr)
-		else
-			_window.SetBuf(term.Bufnr)
-		endif
+		win = window.Window.newByBufnr(current.bufnr, pos)
+		Autocmd.new('WinClosed')
+			.Group(group)
+			.Pattern([win.winnr->string()])
+			.Replace()
+			.Callback(() => {
+				win = null_object
+			})
+
+	enddef # }}}
+
+	static def Slide(offset: number)
+		for [i, term] in terms->items()
+			if term.bufnr == current.bufnr
+				current = terms[(i + offset) % len(terms)]
+
+				if win != null_object && win.IsOpen()
+					win.SetBuf(current.bufnr)
+				endif
+
+				return
+			endif
+		endfor
+
+		current = null_object
 	enddef
 
-	static def KillTerm() # {{{2
-	enddef
-
-	static def CloseWindow() # {{{2
-		if !_window.IsOpen()
-			_window.Close()
+	static def KillCurrentTerm() # {{{2
+		if current != null_object
+			current.Close()
 		endif
-	enddef
+	enddef # }}}
+
+	static def KillAllTerms() # {{{2
+		terms->foreach((_, term) => {
+			term.Close()
+		})
+
+		terms = []
+		current = null_object
+		_CloseWindow()
+	enddef # }}}
+
+	static def _CloseWindow() # {{{2
+		if win != null_object && win.IsOpen()
+			win.Close()
+		endif
+	enddef # }}}
 endclass

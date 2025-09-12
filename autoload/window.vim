@@ -6,26 +6,30 @@ export class Window # {{{1
 	var _on_set_buf_after: list<func> # {{{2
 	var _on_close: list<func> # {{{2
 
-	def new(height: number = 0) # {{{2
-		this._New(height)
+	def new(pos: string = '', height: number = 0) # {{{2
+		this._New(height, pos)
 	enddef
 
-	def newBufnr(bufnr: number, height: number = 0) # {{{2
-		this._New(height)
+	def newByBufnr(bufnr: number, pos: string = '', height: number = 0) # {{{2
+		this._New(pos, height)
 
-		var bufnr = winbufnr()
-		this.Execute($'buffer {bufnr}')
-		execute($'bwipeout {bufnr()}')
+		var nr = this.GetBufnr()
+		this.SetBuf(bufnr)
+		this.Execute($'bwipeout! {nr}')
 	enddef
 
-	def _New(height: number = 0) # {{{2
+	def _New(pos: string = '', height: number = 0) # {{{2
 		var cmd = 'new'
 		if height > 0
 			cmd = $'{height}new'
 		endif
 
+		if pos != ''
+			cmd = $'{pos} {cmd}'
+		endif
+
 		execute(cmd)
-		this.winnr = winnr()
+		this.winnr = win_getid()
 	enddef
 
 	def SetCursor(lnum: number, col: number) # {{{2
@@ -61,7 +65,7 @@ export class Window # {{{1
 			F(this)
 		endfor
 
-		this.Execute($'buffer {bufnr}')
+		this.Execute($'buffer! {bufnr}')
 
 		for F in this._on_set_buf_after
 			F(this)
