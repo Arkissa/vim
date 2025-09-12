@@ -91,6 +91,7 @@ endif
 
 g:mapleader = ' '
 g:netrw_dirhistmax = 0
+g:dispatch_no_maps = 1
 
 g:Linters = {
 	go: {
