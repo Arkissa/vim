@@ -15,12 +15,6 @@ export enum NArgs # {{{1
 	var Value: string # {{{2
 endenum
 
-export enum Count # {{{1
-	Zero('0'), # {{{2
-	N('N') # {{{2
-
-	var Value: string # {{{2
-endenum
 
 export enum Range # {{{1
 	Empty(''), # {{{2
@@ -215,8 +209,8 @@ export class Command # {{{1
 		return this
 	enddef
 
-	def Count(n: Count = Count.N): Command # {{{2
-		add(this._attr, $'-count=${n.Value}')
+	def Count(n: number = -1): Command # {{{2
+		add(this._attr, $'-count{n > -1 ? '=' .. n->string() : ''}')
 		return this
 	enddef
 

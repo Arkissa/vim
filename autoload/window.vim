@@ -7,7 +7,7 @@ export class Window # {{{1
 	var _on_close: list<func> # {{{2
 
 	def new(pos: string = '', height: number = 0) # {{{2
-		this._New(height, pos)
+		this._New(pos, height)
 	enddef
 
 	def newByBufnr(bufnr: number, pos: string = '', height: number = 0) # {{{2
@@ -15,21 +15,12 @@ export class Window # {{{1
 
 		var nr = this.GetBufnr()
 		this.SetBuf(bufnr)
-		this.Execute($'bwipeout! {nr}')
 	enddef
 
 	def _New(pos: string = '', height: number = 0) # {{{2
-		var cmd = 'new'
-		if height > 0
-			cmd = $'{height}new'
-		endif
-
-		if pos != ''
-			cmd = $'{pos} {cmd}'
-		endif
-
-		execute(cmd)
+		execute($'silent! {pos} :{height ?? ''}new')
 		this.winnr = win_getid()
+		setbufvar(this.GetBufnr(), '&bufhidden', 'wipe')
 	enddef
 
 	def SetCursor(lnum: number, col: number) # {{{2
@@ -46,6 +37,10 @@ export class Window # {{{1
 
 	def GetVar(name: string): any # {{{2
 		return getwinvar(this.winnr, name)
+	enddef
+
+	def Resize(height: number)
+		this.Execute($'silent resize {height}')
 	enddef
 
 	def OnSetBufPre(...f: list<func>) # {{{2
@@ -65,7 +60,7 @@ export class Window # {{{1
 			F(this)
 		endfor
 
-		this.Execute($'buffer! {bufnr}')
+		this.Execute($'silent! buffer! {bufnr}')
 
 		for F in this._on_set_buf_after
 			F(this)
@@ -96,5 +91,5 @@ export class Window # {{{1
 
 	def FeedKeys(exe: string, mod: string = 'm') # {{{2
 		this.Execute($'feedkeys(''{exe}'', ''{mod}'')')
-	enddef
+	enddef # }}}
 endclass
