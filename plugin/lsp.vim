@@ -3,8 +3,8 @@ packadd vim9-lsp
 
 import autoload 'lsp/lsp.vim'
 import autoload 'lsp/buffer.vim'
-import autoload 'autocmd.vim'
-import autoload 'keymap.vim'
+import '../autoload/autocmd.vim'
+import '../autoload/keymap.vim'
 
 type Autocmd = autocmd.Autocmd
 type Bind = keymap.Bind
@@ -68,7 +68,7 @@ Autocmd.new('User')
 	})
 
 g:LspOptionsSet({
-    autoComplete: false,
+    autoComplete: true,
     autoHighlight: true,
     autoHighlightDiags: true,
     completionMatcher: 'fuzzy',
@@ -80,7 +80,8 @@ g:LspOptionsSet({
     keepFocusInDiags: true,
     keepFocusInReferences: true,
     completionTextEdit: true,
-	outlineOnWinSize: 100,
+	outlineOnRight: true,
+	outlineWinSize: 50,
     popupBorder: true,
     popupBorderHighlight: 'Title',
     popupBorderHighlightPeek: 'Title',
@@ -148,51 +149,11 @@ var lsp_servers = [
 				}
 			}
 		},
-		syncInit: true,
     },
-    {
-		name: 'golang',
-		filetype: ['go', 'gomod', 'gohtmltmpl', 'gotexttmpl'],
-		path: 'gopls',
-		workspaceConfig: {
-			gopls: {
-				directoryFilters: [
-					'-**/node_modules',
-					'-3rd/',
-					'-**/bin',
-					'-**/logs',
-					'-app/deploy',
-					'-proto/',
-					'-docs/',
-					'-tools/',
-				],
-				codelenses: {
-					tests: true,
-					tidy: true,
-					upgrade_dependency: true,
-					vendor: true,
-				},
-				usePlaceholders: true,
-				gofumpt: true,
-				analyses: {
-					shadow: false,
-					unusedparams: false,
-					SA5008: false,
-				},
-				staticcheck: true,
-				hints: {
-					assignVariableTypes: true,
-					compositeLiteralFields: true,
-					constantValues: true,
-					rangeVariableTypes: true,
-					parameterNames: true,
-					functionTypeParameters: true
-				},
-				symbolScope: 'workspace',
-				semanticTokens: false,
-			}
-		}
-	}
+
 ]
 
-g:LspAddServer(lsp_servers->filter((_, server) => executable(server.path) == 1))
+Autocmd.new('User')
+	.Group('Lsp')
+	.Pattern(['LspSetup'])
+	.Callback(funcref(g:LspAddServer, [lsp_servers->filter((_, server) => executable(server.path) == 1)]))

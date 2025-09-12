@@ -3,33 +3,22 @@ vim9script
 import autoload 'vim.vim'
 import autoload 'greps/cgrep.vim'
 import autoload 'command.vim'
-import autoload 'autocmd.vim'
+import autoload 'autocmd.vim' as au
+import autoload 'path.vim'
+import autoload 'keymap.vim'
 
-type Autocmd = autocmd.Autocmd
+type Bind = keymap.Bind
+type Mods = keymap.Mods
+type Autocmd = au.Autocmd
 type Command = command.Command
 type NArgs = command.NArgs
-
-const group = "Go"
 
 :setlocal nolist
 :setlocal nowrap
 
-g:go_highlight_types = 1
-g:go_highlight_fields = 1
-g:go_highlight_functions = 1
-g:go_highlight_function_calls = 1
-g:go_highlight_operators = 1
-g:go_highlight_extra_types = 1
-g:go_highlight_build_constraints = 1
-g:go_highlight_generate_tags = 1
+const group = "Go"
 
-Command.new("Go")
-	.Bang()
-	.Overlay()
-	.NArgs(NArgs.Star)
-	.Command('Dispatch<bang> go <args>')
-
-var au = Autocmd.new('User')
+var autocmd = Autocmd.new('User')
 	.Group(group)
 	.Pattern(['LspAttached'])
 	.Bufnr(bufnr())
@@ -41,14 +30,8 @@ var au = Autocmd.new('User')
 			.Command('LspFormat')
 	})
 
-if exists("+clipboard")
-	import autoload 'path.vim'
-	import autoload 'keymap.vim'
-
-	type Bind = keymap.Bind
-	type Mods = keymap.Mods
-
-	def RealPath(pt: string): string
+def RealPath(pt: string): string
+	if exists_compiled("+clipboard")
 		var gopath = $"^{trim(system('go env GOPATH'))}/pkg/mod"
 		if pt =~ gopath
 			return trim(substitute(pt, gopath, '', ''), '/')
@@ -60,16 +43,27 @@ if exists("+clipboard")
 		endif
 
 		return fnamemodify(pt, ':.')
-	enddef
+	else
+		echoerr 'clipboard feature not exists.'
+		return ""
+	endif
+enddef
 
-	au.Callback(() => {
-		Bind.new(Mods.n)
-			.NoRemap()
-			.ScriptCmd('yil', () => {
-				setreg('+', $"{path.UnderPath(function(RealPath))}:{line('.')}")
-			})
-			.ScriptCmd('yal', () => {
-				setreg('+', $"{expand("%:p")}:{line('.')}")
-			})
-	})
-endif
+autocmd.Callback(() => {
+	Bind.new(Mods.n)
+		.NoRemap()
+		.Buffer()
+		.ScriptCmd('yil', () => {
+			setreg('+', $"{path.UnderPath(function(RealPath))}:{line('.')}")
+		})
+		.ScriptCmd('yal', () => {
+			setreg('+', $"{expand("%:p")}:{line('.')}")
+		})
+})
+
+Command.new("Go")
+	.Bang()
+	.Overlay()
+	.NArgs(NArgs.Star)
+	.Buffer()
+	.Command('Dispatch<bang> go <args>')
