@@ -18,8 +18,7 @@ const modeMap = {
 }
 
 def g:StatusLineMode(): string
-	var mod = get(modeMap, mode(), '')
-	return mod
+	return get(modeMap, mode(), '')
 enddef
 
 def g:StatusLineDir(): string
@@ -29,6 +28,14 @@ def g:StatusLineDir(): string
 	endif
 
 	return fnamemodify(str, ':~:.')
+enddef
+
+def g:StatusLineGit(): string
+	if exists_compiled('*g:FugitiveStatusline')
+		return g:FugitiveStatusline()
+	else
+		return ""
+	endif
 enddef
 
 def g:StatusLineDiags(): string

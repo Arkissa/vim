@@ -1,7 +1,15 @@
 vim9script
 
-if exists(":Git") == 2
-	:nnoremap <silent> gb <CMD>Git blame --date=short<CR>
-	:nnoremap <silent> <Leader>g <CMD>:vertical Git<CR>
-	:nnoremap <silent> <Leader>d <CMD>:Gvdiffsplit!<CR>
-endif
+import autoload 'keymap.vim'
+
+type Bind = keymap.Bind
+type Mods = keymap.Mods
+
+Bind.new(Mods.n)
+	.Silent()
+	.NoRemap()
+	.When(() => exists('*g:FugitiveStatusline'))
+	.Map('gb', '<CMD>Git blame --date=short<CR>')
+	.Map('<Leader>g', '<CMD>:vertical Git<CR>')
+	.Map('<Leader>d', '<CMD>:Gvdiffsplit!<CR>')
+	.Map('<Leader>o', '<CMD>only<CR>')
