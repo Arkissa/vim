@@ -88,7 +88,7 @@ export class Buffer # {{{1
 	enddef
 
 	def SetVar(name: string, value: any) # {{{2
-		return setbufvar(this.bufnr, name, value)
+		setbufvar(this.bufnr, name, value)
 	enddef
 
 	def SetLine(lnum: number, text: string) # {{{2
