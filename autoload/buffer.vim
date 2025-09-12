@@ -178,10 +178,10 @@ export class Buffer # {{{1
 	enddef
 
 	def Unload() # {{{2
-		execute($'bdelete! {this.bufnr}')
+		execute($'silent bdelete! {this.bufnr}')
 	enddef
 
 	def Delete() # {{{2
-		execute($'bwipeout! {this.bufnr}')
+		execute($'silent bwipeout! {this.bufnr}')
 	enddef # }}}
 endclass
