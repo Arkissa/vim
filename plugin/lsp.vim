@@ -150,7 +150,6 @@ var lsp_servers = [
 			}
 		},
     },
-
 ]
 
 Autocmd.new('User')

@@ -4,8 +4,8 @@ if !exists("g:Linters")
 	finish
 endif
 
-import autoload 'command.vim'
-import autoload 'autocmd.vim'
+import '../autoload/command.vim'
+import '../autoload/autocmd.vim'
 
 type Command = command.Command
 type Autocmd = autocmd.Autocmd

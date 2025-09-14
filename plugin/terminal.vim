@@ -1,13 +1,13 @@
 vim9script
 
-import '../autoload/term.vim'
 import '../autoload/command.vim'
 import '../autoload/keymap.vim'
+import '../autoload/plugin/terminal.vim'
 
-type Command = command.Command
-type NArgs = command.NArgs
 type Bind = keymap.Bind
 type Mods = keymap.Mods
+type NArgs = command.NArgs
+type Command = command.Command
 
 Command.new('Term')
 	.NArgs(NArgs.Star)
@@ -20,7 +20,7 @@ Command.new('Term')
 			pos = 'horizontal ' .. pos
 		endif
 
-		term.Manager.NewTerm(attr.args, pos, attr.count)
+		terminal.Manager.NewTerminal(attr.args, pos, attr.count)
 	})
 
 Command.new('TermToggle')
@@ -34,36 +34,45 @@ Command.new('TermToggle')
 			pos = 'horizontal ' .. pos
 		endif
 
-		term.Manager.ToggleWindow('', pos, attr.count)
+		terminal.Manager.ToggleWindow('', pos, attr.count)
 	})
 
 Command.new('TermNext')
 	.NArgs(NArgs.Zero)
 	.Callback((attr) => {
-		term.Manager.Slide(1)
+		terminal.Manager.Slide(1)
 	})
 
 Command.new('TermPrev')
 	.NArgs(NArgs.Zero)
 	.Callback((attr) => {
-		term.Manager.Slide(-1)
+		terminal.Manager.Slide(-1)
 	})
 
 Command.new('TermKill')
 	.NArgs(NArgs.Zero)
 	.Callback((attr) => {
-		term.Manager.KillCurrentTerm()
+		terminal.Manager.KillCurrentTerminal()
 	})
 
 Command.new('TermKillAll')
 	.NArgs(NArgs.Zero)
 	.Callback((attr) => {
-		term.Manager.KillAllTerms()
+		terminal.Manager.KillAllTerminals()
 	})
 
-Bind.newMulti(Mods.n)
+Bind.new(Mods.n)
 	.Silent()
-	.Map('''<CR>', '<CMD>botright Term<CR>')
-	.Map('<Leader>t', '<CMD>botright TermToggle<CR>')
+	.Map('\t', '<CMD>botright Term<CR>')
+	.Map('<Leader>tt', '<CMD>botright TermToggle<CR>')
+	.Map('<Leader>tk', '<CMD>TermKill<CR>')
+	.Map('<Leader>ta', '<CMD>TermKillAll<CR>')
 	.Map('[t', '<CMD>TermPrev<CR>')
 	.Map(']t', '<CMD>TermNext<CR>')
+
+Bind.new(Mods.t)
+	.Silent()
+	.Map('<C-\>[', '<CMD>TermPrev<CR>')
+	.Map('<C-\>]', '<CMD>TermNext<CR>')
+	.Map('<C-\>k', '<CMD>TermKill<CR>')
+	.Map('<C-\>a', '<CMD>TermKillAll<CR>')

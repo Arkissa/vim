@@ -4,7 +4,7 @@ import autoload 'buffer.vim'
 import autoload 'lsp/diag.vim'
 
 def g:StatusLineBufName(): string
-	var buf = buffer.Buffer.new()
+	var buf = buffer.Buffer.newCurrent()
 	if empty(buf.name)
 		return "(No Name)"
 	endif
@@ -39,7 +39,7 @@ def g:StatusLineGit(): string
 enddef
 
 def g:StatusLineDiags(): string
-	var errCount = diag.DiagsGetErrorCount(bufnr())
+	var errCount = diag.DiagsGetErrorCount(buffer.Buffer.newCurrent().bufnr)
 	var str = []
 
 	if errCount.Hint > 0

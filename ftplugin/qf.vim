@@ -1,7 +1,7 @@
 vim9script
 
-import autoload 'keymap.vim'
-import autoload 'quickfix.vim'
+import '../autoload/keymap.vim'
+import '../autoload/quickfix.vim'
 
 type Bind = keymap.Bind
 type Mods = keymap.Mods

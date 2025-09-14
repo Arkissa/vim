@@ -1,8 +1,8 @@
 vim9script
 
-import autoload 'command.vim'
-import autoload 'autocmd.vim'
-import autoload 'session.vim'
+import '../autoload/command.vim'
+import '../autoload/autocmd.vim'
+import '../autoload/session.vim'
 
 type Command = command.Command
 type NArgs = command.NArgs

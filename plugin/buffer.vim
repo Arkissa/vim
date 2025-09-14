@@ -1,8 +1,8 @@
 vim9script
 
-import autoload 'buffer.vim'
-import autoload 'quickfix.vim'
-import autoload 'command.vim'
+import '../autoload/buffer.vim'
+import '../autoload/quickfix.vim'
+import '../autoload/command.vim'
 
 type Command = command.Command
 

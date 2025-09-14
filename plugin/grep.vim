@@ -1,11 +1,11 @@
 vim9script
 
 if !exists("g:Grep")
-	import autoload 'greps/grepprg.vim'
+	import '../autoload/plugin/greps/grepprg.vim'
 	g:Grep = grepprg.Grepprg.new()
 endif
 
-import autoload 'command.vim'
+import '../autoload/command.vim'
 
 type Command = command.Command
 type NArgs = command.NArgs

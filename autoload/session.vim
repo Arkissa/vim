@@ -13,17 +13,17 @@ export class Session # {{{1
 		else
 			return expand('~/.cache')
 		endif
-	enddef
+	enddef # }}}
 
 	static def _Join(...paths: list<string>): string # {{{2
 		return paths
 			->map((_, path) => trim(simplify(path), sep, 2))
 			->join(sep)
-	enddef
+	enddef # }}}
 
 	static def All(dir: string): list<string> # {{{2
 		return globpath(dir ?? _Join(_GetCacheDir(), 'vim-simple-session'), '**/Session.vim', false, true)
-	enddef
+	enddef # }}}
 
 	static def Save(dir: string, sessionName: string, silent: bool) # {{{2
 		var d = _Join(dir ?? _Join(_GetCacheDir(), 'vim-simple-session'), sessionName)
@@ -39,7 +39,7 @@ export class Session # {{{1
 			:redraw
 			:echo $'Session saved {session}'
 		endif
-	enddef
+	enddef # }}}
 
 	static def Load(dir: string, sessionName: string, silent: bool) # {{{2
 		var sname = sessionName ?? fnamemodify(getcwd(), ':t')
@@ -70,5 +70,5 @@ export class Session # {{{1
 
 		execute('silent! %bw')
 		execute($'silent! source {session}')
-	enddef
-endclass
+	enddef # }}}
+endclass # }}}

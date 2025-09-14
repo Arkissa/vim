@@ -13,8 +13,7 @@ export enum NArgs # {{{1
 	Plus('+') # {{{2
 
 	var Value: string # {{{2
-endenum
-
+endenum # }}}
 
 export enum Range # {{{1
 	Empty(''), # {{{2
@@ -22,7 +21,7 @@ export enum Range # {{{1
 	N('N') # {{{2
 
 	var Value: string # {{{2
-endenum
+endenum # }}}
 
 export class Mods # {{{1
 	var silent: bool # {{{2
@@ -62,8 +61,8 @@ export class Mods # {{{1
 		this.tab,
 		this.verbose,
 	)
-	enddef
-endclass
+	enddef # }}}
+endclass # }}}
 
 export class Attr # {{{1
 	var name: string # {{{2
@@ -89,8 +88,8 @@ export class Attr # {{{1
 		this.reg,
 		this.mods,
 	)
-	enddef
-endclass
+	enddef # }}}
+endclass # }}}
 
 export enum Addr # {{{1
 	Lines('lines'), # {{{2
@@ -164,66 +163,66 @@ export class Command # {{{1
 	static var _CompleteFunctions: dict<func(string, string, number): list<string>> = {} # {{{2
 
 	def new(this._name) # {{{2
-	enddef
+	enddef # }}}
 
 	static def InternalFunction(cmdName: string): func(Attr) # {{{2
 		return _CommandInternalFunctions[cmdName]
-	enddef
+	enddef # }}}
 
 	static def InternalComplete(cmdName: string): func(string, string, number): list<string> # {{{2
 		return _CompleteFunctions[cmdName]
-	enddef
+	enddef # }}}
 
 	def Bang(): Command # {{{2
 		add(this._attr, '-bang')
 		return this
-	enddef
+	enddef # }}}
 
 	def Overlay(): Command # {{{2
 		this._overlay = true
 		return this
-	enddef
+	enddef # }}}
 
 	def Register(): Command # {{{2
 		add(this._attr, '-register')
 		return this
-	enddef
+	enddef # }}}
 
 	def Bar(): Command # {{{2
 		add(this._attr, '-bar')
 		return this
-	enddef
+	enddef # }}}
 
 	def Buffer(): Command # {{{2
 		add(this._attr, '-buffer')
 		return this
-	enddef
+	enddef # }}}
 
 	def KeepScript(): Command # {{{2
 		add(this._attr, '-keepscript')
 		return this
-	enddef
+	enddef # }}}
 
 	def NArgs(n: NArgs = NArgs.Zero): Command # {{{2
 		add(this._attr, $'-nargs={n.Value}')
 		return this
-	enddef
+	enddef # }}}
 
 	def Count(n: number = -1): Command # {{{2
 		add(this._attr, $'-count{n > -1 ? '=' .. n->string() : ''}')
 		return this
-	enddef
+	enddef # }}}
 
 	def Range(n: Range = Range.N): Command # {{{2
 		var range = n != Range.Empty ? $'-range={n.Value}' : '-range'
 		add(this._attr, range)
 		return this
-	enddef
+	enddef # }}}
 
 	def Addr(a: Addr): Command # {{{2
 		add(this._attr, $'-addr={a.Value}')
 		return this
-	enddef
+	enddef # }}}
 
 	def Complete(cmp: Complete, F: func(string, string, number): any): Command # {{{2
 		var str = $'-complete={cmp.Value}'
@@ -234,11 +233,11 @@ export class Command # {{{1
 
 		add(this._attr, str)
 		return this
-	enddef
+	enddef # }}}
 
 	def Command(cmd: string) # {{{2
 		execute($'command{this._overlay ? '!' : ''} {join(this._attr, ' ')} {this._name} {cmd}')
-	enddef
+	enddef # }}}
 
 	def Callback(F: func(Attr)) # {{{2
 		if _CommandInternalFunctions->has_key(this._name) && !this._overlay
@@ -290,24 +289,25 @@ export class Command # {{{1
 		END
 
 		execute(printf(s->join("\n"), c, join(this._attr, " "), this._name, this._name, this._name))
-	enddef
-endclass
+	enddef # }}}
+endclass # }}}
 
-export abstract class Execute extends jb.Job # {{{1
+export abstract class Execute extends jb.Quickfixer # {{{1
 	var _attr: Attr # {{{2
 	var _attrD: dict<any> # {{{2
 
 	abstract def Cmd(): string # {{{2
 	abstract def Callback(qf: quickfix.Quickfixer, chan: channel, msg: string) # {{{2
+
 	def CloseCb(qf: quickfix.Quickfixer, chan: channel) # {{{2
 		qf.Close() # Prevent quickfix typographical errors
-	enddef
+	enddef # }}}
 
 	def Attr(attr: Attr, location: bool = false): Execute # {{{2
 		this._attr = attr
 		this._location = location
 		return this
-	enddef
+	enddef # }}}
 
 	def ExitCb(qf: quickfix.Quickfixer, job: job, code: number) # {{{2
 		if this.Status() == 'fail'
@@ -326,7 +326,7 @@ export abstract class Execute extends jb.Job # {{{1
 			:redraw
 			:echo $'Job ({this.Info().process}) Exit Code: {code}'
 		endif
-	enddef
+	enddef # }}}
 
 	def Run() # {{{2
 		var param = expandcmd(this._attr.args)
@@ -343,8 +343,8 @@ export abstract class Execute extends jb.Job # {{{1
 		this._cmd = expandedCmd
 
 		super.Run()
-	enddef
-endclass
+	enddef # }}}
+endclass # }}}
 
 export abstract class ErrorFormat extends Execute # {{{1
 	abstract def Cmd(): string # {{{2
@@ -363,5 +363,5 @@ export abstract class ErrorFormat extends Execute # {{{1
 			lines: [msg],
 			title: info == null_dict ? info.cmd : this.Cmd()
 		})
-	enddef
-endclass
+	enddef # }}}
+endclass # }}}

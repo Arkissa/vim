@@ -1,7 +1,7 @@
 vim9script
 
-import autoload 'greps/cgrep.vim'
-import autoload 'keymap.vim'
+import '../autoload/keymap.vim'
+import '../autoload/plugin/greps/cgrep.vim'
 
 type Bind = keymap.Bind
 type Mods = keymap.Mods

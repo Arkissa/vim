@@ -14,8 +14,8 @@ export enum Mods # {{{1
 endenum
 
 export class Bind # {{{1
+	const _cmd = 'map'
 	var _mods: list<Mods> = []
-	var _cmd = 'map'
 	var _args: list<string> = []
 	var _arg: string
 	var _noremap: bool
@@ -126,7 +126,7 @@ export class Bind # {{{1
 	enddef
 
 	def When(F: func(): bool): Bind # {{{2
-		this._When = funcref(F)
+		this._When = F
 		return this
 	enddef
 endclass

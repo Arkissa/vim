@@ -2,32 +2,32 @@ vim9script
 
 export def Cmd(s: list<string>): string # {{{1
 	return s->join(' ')
-enddef
+enddef # }}}
 
 export def Option(s: list<string>): string # {{{1
 	return s->join(',')
-enddef
+enddef # }}}
 
 export abstract class Void # {{{1
 	def string(): string # {{{2
 		return 'void'
-	enddef
-endclass
+	enddef # }}}
+endclass # }}}
 
 class SingleVoid extends Void # {{{1
-endclass
+endclass # }}}
 
 export const void = SingleVoid.new() # {{{1
 
 export class Exception # {{{1
 	var _exception: string # {{{2
 	def new(this._exception) # {{{2
-	enddef
+	enddef # }}}
 
 	def string(): string # {{{2
 		return this._exception
-	enddef
-endclass
+	enddef # }}}
+endclass # }}}
 
 export class Promise # {{{1
 	var _F: func # {{{2
@@ -45,7 +45,7 @@ export class Promise # {{{1
 					this._return['val'] = Exception.new(v:exception)
 				endtry
 			})
-	enddef
+	enddef # }}}
 
 	def Await<T>(): T # {{{2
 		if !this._once
@@ -65,5 +65,5 @@ export class Promise # {{{1
 		endif
 
 		return val
-	enddef
-endclass
+	enddef # }}}
+endclass # }}}

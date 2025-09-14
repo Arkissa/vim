@@ -1,9 +1,9 @@
 vim9script
 
-import autoload 'greps/cgrep.vim'
-import autoload 'linters/golangci.vim'
-import autoload 'vim.vim'
-import autoload 'path.vim'
+import './autoload/vim.vim'
+import './autoload/path.vim'
+import './autoload/plugin/greps/cgrep.vim'
+import './autoload/plugin/linters/golangci.vim'
 
 if has('gui_running')
     :set guicursor=n-v-c:block,i-ci:ver25,r-cr:hor20,o:hor50

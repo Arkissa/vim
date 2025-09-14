@@ -1,16 +1,18 @@
 vim9script
 
-import './quickfix.vim'
 import './vim.vim'
+import './quickfix.vim'
+import './buffer.vim'
+import './window.vim'
 
 # maybe more extensions for channel-mode?
-export abstract class Job # {{{1
+export class Job # {{{1
 	var _job: job # {{{2
 	var _cmd: string # {{{2
-	var _location: bool # {{{2
-	abstract def Callback(qf: quickfix.Quickfixer, chan: channel, msg: string) # {{{2
-	abstract def CloseCb(qf: quickfix.Quickfixer, chan: channel) # {{{2
-	abstract def ExitCb(qf: quickfix.Quickfixer, job: job, code: number) # {{{2
+
+	def new(this._cmd) # {{{2
+		this._job = job_start(this._cmd)
+	enddef # }}}
 
 	def Status(): string # {{{2
 		if this._job == null_job
@@ -18,13 +20,17 @@ export abstract class Job # {{{1
 		endif
 
 		return job_status(this._job)
-	enddef
+	enddef # }}}
+
+	def GetChannel(): channel # {{{2
+		return job_getchannel(this._job)
+	enddef # }}}
 
 	def Stop() # {{{2
 		if this._job != null_job
 			job_stop(this._job)
 		endif
-	enddef
+	enddef # }}}
 
 	def Info(): dict<any> # {{{2
 		if this._job != null_job
@@ -32,7 +38,15 @@ export abstract class Job # {{{1
 		endif
 
 		return null_dict
-	enddef
+	enddef # }}}
+endclass # }}}
+
+export abstract class Quickfixer extends Job # {{{1
+	var _location: bool # {{{2
+
+	abstract def Callback(qf: quickfix.Quickfixer, chan: channel, msg: string) # {{{2
+	abstract def CloseCb(qf: quickfix.Quickfixer, chan: channel) # {{{2
+	abstract def ExitCb(qf: quickfix.Quickfixer, job: job, code: number) # {{{2
 
 	def Run() # {{{2
 		if this.Status() == "run"
@@ -47,5 +61,47 @@ export abstract class Job # {{{1
 			exit_cb: function(this.ExitCb, [qf]),
 			in_io: 'null'
 		})
-	enddef
-endclass
+	enddef # }}}
+endclass # }}}
+
+export abstract class Prompt extends Job # {{{1
+	var _promptBufferName: string # {{{2
+	var _tmpfilename: string # {{{2
+
+	abstract def Callback(pt: buffer.Prompt, chan: channel, msg: string) # {{{2
+	abstract def ExitCb(pt: buffer.Prompt, job: job, code: number) # {{{2
+	abstract def Prompt(): string # {{{2
+
+	def EnterCb(_: buffer.Prompt, msg: string) # {{{2
+		var chan = this.GetChannel()
+		if chan != null_channel
+			ch_sendraw(chan, $"{msg}\n")
+		endif
+	enddef # }}}
+
+	def InterruptCb(buf: buffer.Prompt) # {{{2
+		this.Stop()
+		buf.Delete()
+	enddef # }}}
+
+	def Run() # {{{2
+		if this.Status() == 'run'
+			this.Stop()
+		endif
+
+		var pt = buffer.Prompt.new(this._promptBufferName)
+
+		pt.SetPrompt(this.Prompt())
+		pt.SetCallback(this.EnterCb)
+		pt.SetInterrupt(this.InterruptCb)
+
+		window.Window.newByBuffer(pt)
+
+		this._job = job_start(this._cmd, {
+			pty: true,
+			cwd: getcwd(),
+			exit_cb: function(this.ExitCb, [pt]),
+			callback: function(this.Callback, [pt]),
+		})
+	enddef # }}}
+endclass # }}}

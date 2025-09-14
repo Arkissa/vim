@@ -1,11 +1,11 @@
 vim9script
 
-import autoload 'vim.vim'
-import autoload 'greps/cgrep.vim'
-import autoload 'command.vim'
-import autoload 'autocmd.vim' as au
-import autoload 'path.vim'
-import autoload 'keymap.vim'
+import '../autoload/vim.vim'
+import '../autoload/path.vim'
+import '../autoload/keymap.vim'
+import '../autoload/command.vim'
+import '../autoload/autocmd.vim' as au
+import '../autoload/plugin/greps/cgrep.vim'
 
 type Bind = keymap.Bind
 type Mods = keymap.Mods
