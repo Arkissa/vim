@@ -1,28 +1,25 @@
 vim9script
 
+import autoload 'vim.vim'
 import autoload 'window.vim'
 import autoload 'buffer.vim'
 import autoload 'autocmd.vim'
 
 type Autocmd = autocmd.Autocmd # {{{1
+type Terminal = buffer.Terminal # {{{1
+type Ring = vim.Ring
 
 export class Manager # {{{1
-	static var _current: buffer.Terminal
-	static var _terms: list<buffer.Terminal> = [] # {{{2
+	static var _terms: Ring
 	static var _win: window.Window # {{{2
-	static var _autocmd = Autocmd.new('WinClosed').Group("TerminalManager").Replace().Once() # {{{2
-	static const _NameLimit = 15
 
 	static const _statuslineterms = 'StatusLineTerminals' # {{{2
+	static const _NameLimit = 15 # {{{2
 
 	static def _OnClose(_) # {{{2
-			var old = _current
-			Manager.Slide(1)
-			_terms->filter((_, term) => term.bufnr != old.bufnr)
-
-			if empty(_terms)
-				_current = null_object
-			endif
+		if !_terms->empty()
+			_terms.Remove<Terminal>()
+		endif
 	enddef # }}}
 
 	static def _IsOpen(): bool # {{{2
@@ -37,88 +34,87 @@ export class Manager # {{{1
 		endif
 	enddef # }}}
 
-	static def ListTerminals(): list<buffer.Terminal> # {{{2
-		return copy(_terms)
+	static def ListTerminals(): list<Terminal> # {{{2
+		return _terms->ToList<Terminal>()
 	enddef # }}}
 
-	static def Current(): buffer.Terminal # {{{2
-		return _current
+	static def Current(): Terminal # {{{2
+		return _terms.Current<Terminal>()
 	enddef # }}}
 
-	static def _TerminalName(name: string): string
+	static def _TerminalName(name: string): string # {{{2
 		return name->strchars() > _NameLimit ? $'{name->strcharpart(0, _NameLimit)}…' : name
-	enddef
+	enddef # }}}
 
 	static def StatusLineTerminals(): string # {{{2
 		var str = []
-		for term in _terms
-			str->add(term.bufnr == _current.bufnr ? $'[{_TerminalName(term.name)}]' : _TermName(term.name))
+
+		for term in _terms.ToList<Terminal>()
+			str->add(term.bufnr != _terms.Current<Terminal>().bufnr
+				? _TerminalName(term.name)
+				: $'[{_TerminalName(term.name)}]'
+			)
 		endfor
 
 		return str->join(' ')
 	enddef # }}}
 
-	static def NewTerminal(cmd: string = '', pos: string = '', count: number = 0) # {{{2
-		if _current == null_object || _IsOpen()
-			_current = buffer.Terminal.new(cmd ?? $SHELL, {
+	static def _NewTerm(cmd: string): Terminal
+		return Terminal.new(cmd ?? $SHELL, {
 				hidden: true,
 				term_kill: 'term',
 				term_finish: 'close',
 				close_cb: _OnClose,
-			})
-			_terms->add(_current)
+		})
+	enddef
+
+	static def NewTerminal(cmd: string = '', pos: string = '', count: number = 0) # {{{2
+		if _terms->empty()
+			_terms = Ring.new(_NewTerm(cmd))
 		endif
 
-		if !_IsOpen()
-		 _win = window.Window.new(pos, count)
-		 _win.OnSetBufPost((w) => {
-				w.SetVar('&statusline', '%{%term#Manager.StatusLineTerminals()%}')
-				w.SetVar('&number', false)
-				w.SetVar('&signcolumn', 'no')
-				w.SetVar('&winfixheight', true)
-				w.SetVar('&relativenumber', false)
-				w.SetVar('&hidden', false)
-		 })
+		if _IsOpen()
+			_terms.Add<Terminal>(_NewTerm(cmd))
+		else
+			 _win = window.Window.new(pos, count)
+			 _win.OnSetBufPost((w) => {
+					w.SetVar('&statusline', '%{%plugin#terminal#Manager.StatusLineTerminals()%}')
+					w.SetVar('&number', false)
+					w.SetVar('&signcolumn', 'no')
+					w.SetVar('&winfixheight', true)
+					w.SetVar('&relativenumber', false)
+					w.SetVar('&hidden', false)
+			 })
 		endif
 
-		_win.SetBuf(_current.bufnr)
+		_win.SetBuf(_terms.Current<Terminal>().bufnr)
 	enddef # }}}
 
-	static def Slide(offset: number) # {{{2
-		for [i, term] in _terms->items()
-			if term.bufnr == _current.bufnr
-				var index = (i + offset) % len(_terms)
-				_current = _terms[index]
+	static def SlideRight() # {{{2
+		_terms.SlideRight()
+	enddef # }}}
 
-				if _win != null_object
-					_win.SetBuf(_current.bufnr)
-				endif
-
-				return
-			endif
-		endfor
-
-		_current = null_object
+	static def SlideLeft() # {{{2
+	  	_terms.SlideLeft()
 	enddef # }}}
 
 	static def KillCurrentTerminal() # {{{2
-		if _current != null_object
-			if len(_terms) != 1
-				_current.Stop()
-			else
-				_current.Delete()
-			endif
+		if _terms->len() != 1
+			_terms.Current<Terminal>().Stop()
+		else
+			_terms.Current<Terminal>().Delete()
+			_CloseWindow()
 		endif
 	enddef # }}}
 
 	static def KillAllTerminals() # {{{2
-		_terms->foreach((_, term) => {
-			term.Delete()
-		})
+		if !_terms->empty()
+			_terms.ForEach((term) => {
+				term.Delete()
+			})
 
-		_terms = []
-		_current = null_object
-		_CloseWindow()
+			_CloseWindow()
+		endif
 	enddef # }}}
 
 	static def _CloseWindow() # {{{2

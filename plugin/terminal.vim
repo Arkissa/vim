@@ -11,7 +11,8 @@ type Command = command.Command
 
 Command.new('Term')
 	.NArgs(NArgs.Star)
-	.Count(20)
+	.Count()
+	.Complete(command.Complete.ShellCmd)
 	.Callback((attr) => {
 		var pos = attr.mods.split
 		if attr.mods.vertical
@@ -25,7 +26,7 @@ Command.new('Term')
 
 Command.new('TermToggle')
 	.NArgs(NArgs.Zero)
-	.Count(20)
+	.Count()
 	.Callback((attr) => {
 		var pos = attr.mods.split
 		if attr.mods.vertical
@@ -40,13 +41,13 @@ Command.new('TermToggle')
 Command.new('TermNext')
 	.NArgs(NArgs.Zero)
 	.Callback((attr) => {
-		terminal.Manager.Slide(1)
+		terminal.Manager.SlideRight()
 	})
 
 Command.new('TermPrev')
 	.NArgs(NArgs.Zero)
 	.Callback((attr) => {
-		terminal.Manager.Slide(-1)
+		terminal.Manager.SlideLeft()
 	})
 
 Command.new('TermKill')
@@ -63,8 +64,8 @@ Command.new('TermKillAll')
 
 Bind.new(Mods.n)
 	.Silent()
-	.Map('\t', '<CMD>botright Term<CR>')
-	.Map('<Leader>tt', '<CMD>botright TermToggle<CR>')
+	.Map('\t', '<CMD>botright 10Term<CR>')
+	.Map('<Leader>tt', '<CMD>botright 10TermToggle<CR>')
 	.Map('<Leader>tk', '<CMD>TermKill<CR>')
 	.Map('<Leader>ta', '<CMD>TermKillAll<CR>')
 	.Map('[t', '<CMD>TermPrev<CR>')

@@ -67,21 +67,30 @@ endclass # }}}
 export abstract class Prompt extends Job # {{{1
 	var _promptBufferName: string # {{{2
 	var _tmpfilename: string # {{{2
+	var prompt: buffer.Prompt # {{{2
 
-	abstract def Callback(pt: buffer.Prompt, chan: channel, msg: string) # {{{2
-	abstract def ExitCb(pt: buffer.Prompt, job: job, code: number) # {{{2
+	abstract def Callback(chan: channel, msg: string) # {{{2
 	abstract def Prompt(): string # {{{2
 
-	def EnterCb(_: buffer.Prompt, msg: string) # {{{2
+	def ExitCb(job: job, code: number) # {{{2
+		this.Close()
+		this.prompt.Delete()
+	enddef
+
+	def Send(msg: string)
 		var chan = this.GetChannel()
 		if chan != null_channel
 			ch_sendraw(chan, $"{msg}\n")
 		endif
+	enddef
+
+	def EnterCb(_: buffer.Prompt, msg: string) # {{{2
+		this.Send(msg)
 	enddef # }}}
 
-	def InterruptCb(buf: buffer.Prompt) # {{{2
+	def InterruptCb(pt: buffer.Prompt) # {{{2
 		this.Stop()
-		buf.Delete()
+		pt.Delete()
 	enddef # }}}
 
 	def Run() # {{{2
@@ -89,19 +98,16 @@ export abstract class Prompt extends Job # {{{1
 			this.Stop()
 		endif
 
-		var pt = buffer.Prompt.new(this._promptBufferName)
-
-		pt.SetPrompt(this.Prompt())
-		pt.SetCallback(this.EnterCb)
-		pt.SetInterrupt(this.InterruptCb)
-
-		window.Window.newByBuffer(pt)
+		this.prompt	= buffer.Prompt.new(this._promptBufferName)
+		this.prompt.SetPrompt(this.Prompt())
+		this.prompt.SetCallback(this.EnterCb)
+		this.prompt.SetInterrupt(this.InterruptCb)
 
 		this._job = job_start(this._cmd, {
 			pty: true,
 			cwd: getcwd(),
-			exit_cb: function(this.ExitCb, [pt]),
-			callback: function(this.Callback, [pt]),
+			exit_cb: this.ExitCb,
+			callback: this.Callback,
 		})
 	enddef # }}}
 endclass # }}}

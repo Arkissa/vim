@@ -67,3 +67,8 @@ Command.new("Go")
 	.NArgs(NArgs.Star)
 	.Buffer()
 	.Command('Dispatch<bang> go <args>')
+
+Bind.new(Mods.n)
+	.Silent()
+	.Buffer()
+	.Map('\g', '<CMD>vertical leftabove 100Term gemini<CR>')

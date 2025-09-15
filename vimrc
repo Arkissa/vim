@@ -60,6 +60,7 @@ var stateDir = path.OsStateDir()
 &laststatus = 2
 &updatetime = 300
 &wildoptions = 'pum'
+&wildmode = 'noselect:lastused,full'
 &completeslash = 'slash'
 &showbreak = '↪ '
 &fillchars = 'eob: '

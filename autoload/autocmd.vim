@@ -1,62 +1,62 @@
 vim9script
 
-export class Autocmd
+export class Autocmd # {{{1
 	var _group: string # {{{2
 
 	var _when: func(): bool # {{{2
 
 	var _autocmd: dict<any> = { # {{{2
 		pattern: '*'
-	}
+	} # }}}
 
 	static var _enviroment: dict<func()> = {} # {{{2
 
 	def new(event: string) # {{{2
 		this._autocmd.event = event
-	enddef
+	enddef # }}}
 
 	def newMulti(events: list<string>) # {{{2
 		this._autocmd.event = events
-	enddef
+	enddef # }}}
 
 	static def InternalFunction(id: number): func() # {{{2
 		return _enviroment[id]
-	enddef
+	enddef # }}}
 
 	def When(F: func(): bool): Autocmd # {{{2
 		this._when = F
 		return this
-	enddef
+	enddef # }}}
 
 	def Group(group: string): Autocmd # {{{2
 		this._autocmd.group = group
 		return this
-	enddef
+	enddef # }}}
 
 	def Pattern(patterns: list<string>): Autocmd # {{{2
 		this._autocmd.pattern = patterns
 		return this
-	enddef
+	enddef # }}}
 
 	def Nested(): Autocmd # {{{2
 		this._autocmd.nested = true
 		return this
-	enddef
+	enddef # }}}
 
 	def Once(): Autocmd # {{{2
 		this._autocmd.once = true
 		return this
-	enddef
+	enddef # }}}
 
 	def Bufnr(bufnr: number): Autocmd # {{{2
 		this._autocmd.bufnr = bufnr
 		return this
-	enddef
+	enddef # }}}
 
 	def Replace(): Autocmd # {{{2
 		this._autocmd.replace = true
 		return this
-	enddef
+	enddef # }}}
 
 	def Command(cmd: string): Autocmd # {{{2
 		if this._when != null_function && !call(this._when, [])
@@ -66,7 +66,7 @@ export class Autocmd
 		this._autocmd.cmd = cmd
 		autocmd_add([this._autocmd])
 		return this
-	enddef
+	enddef # }}}
 
 	def Callback(F: func()): Autocmd # {{{2
 		if this._when != null_function && !call(this._when, [])
@@ -80,4 +80,4 @@ export class Autocmd
 		autocmd_add([this._autocmd])
 		return this
 	enddef # }}}
-endclass
+endclass # }}}

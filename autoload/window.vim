@@ -53,7 +53,7 @@ export class Window # {{{1
 	enddef # }}}
 
 	def _New(pos: string = '', height: number = 0, name: string = '') # {{{2
-		execute($'silent! {pos} :{height ?? ''}new {name}')
+		execute(var cmd = $'silent! {pos} :{height ?? ''}new {name}')
 		this.winnr = win_getid()
 		if name == ''
 			setbufvar(this.GetBufnr(), '&bufhidden', 'wipe')
@@ -102,11 +102,25 @@ export class Window # {{{1
 		endfor
 
 		this.Execute($'silent! buffer! {bufnr}')
+		this._buf = buffer.Buffer.newByBufnr(bufnr)
 
 		for F in this._on_set_buf_after
 			F(this)
 		endfor
 	enddef # }}}
+
+	def SetBuffer(buf: buffer.Buffer)
+		for F in this._on_set_buf_pre
+			F(this)
+		endfor
+
+		this.Execute($'silent! buffer! {buf.bufnr}')
+		this._buf = buf
+
+		for F in this._on_set_buf_after
+			F(this)
+		endfor
+	enddef
 
 	def Close(result: any = null) # {{{2
 		var r = result

@@ -20,7 +20,7 @@ export enum Range # {{{1
 	Persent('%'), # {{{2
 	N('N') # {{{2
 
-	var Value: string # {{{2
+	var Value: string
 endenum # }}}
 
 export class Mods # {{{1
@@ -101,8 +101,8 @@ export enum Addr # {{{1
 	Quickfix('quickfix'), # {{{2
 	Other('other') # {{{2
 
-	var Value: string # {{{2
-endenum
+	var Value: string
+endenum # }}}
 
 export enum Complete # {{{1
 	Arglist('arglist'), # {{{2
@@ -138,8 +138,8 @@ export enum Complete # {{{1
 	Retab('retab'), # {{{2
 	Runtime('runtime'), # {{{2
 	Scriptnames('scriptnames'), # {{{2
-	Shellcmd('shellcmd'), # {{{2
-	Shellcmdline('shellcmdline'), # {{{2
+	ShellCmd('shellcmd'), # {{{2
+	ShellCmdLine('shellcmdline'), # {{{2
 	Sign('sign'), # {{{2
 	Syntax('syntax'), # {{{2
 	Syntime('syntime'), # {{{2
@@ -150,8 +150,8 @@ export enum Complete # {{{1
 	Custom('custom'), # {{{2
 	CustomList('customlist') # {{{2
 
-	var Value: string # {{{2
-endenum
+	var Value: string
+endenum # }}}
 
 export class Command # {{{1
 	var _attr: list<string> = [] # {{{2
@@ -224,7 +224,7 @@ export class Command # {{{1
 		return this
 	enddef # }}}
 
-	def Complete(cmp: Complete, F: func(string, string, number): any): Command # {{{2
+	def Complete(cmp: Complete, F: func(string, string, number): any = null_function): Command # {{{2
 		var str = $'-complete={cmp.Value}'
 		if cmp.Value =~# '^custom'
 			_CompleteFunctions[this._name] = F
@@ -254,6 +254,10 @@ export class Command # {{{1
 		var s =<< trim END
 		%s %s %s {
 			var mods = <q-mods>
+			var spt = ''
+			if indexof(["aboveleft", "belowright", "botright", "leftabove"], (_, m) => mods =~# m) != -1
+				spt = mods->split(' ')[0]
+			endif
 			var attr = Attr.new(
 				"%s",
 				<q-args>,
@@ -273,13 +277,13 @@ export class Command # {{{1
 					mods == "hide",
 					mods == "noautocmd",
 					mods == "noswapfile",
-					mods == "horizontal",
-					mods == "vertical",
+					mods =~ "horizontal",
+					mods =~ "vertical",
 					mods == "keepalt",
 					mods == "keepjumps",
 					mods == "keepmarks",
 					mods == "keeppatterns",
-					index(["aboveleft", "belowright", "botright", "leftabove"], mods) != -1 ? mods : "",
+					spt,
 					mods == "tab",
 					mods == "verbose",
 				)

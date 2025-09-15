@@ -24,7 +24,8 @@ Bind.new(Mods.t)
 
 Bind.new(Mods.n)
 	.NoRemap()
-	.Map('<Leader>f', ':find **/')
+	.NoWait()
+	.Map('<Leader>f', ':find ./')
 
 	.Silent()
 	.Map('\\', '@@')

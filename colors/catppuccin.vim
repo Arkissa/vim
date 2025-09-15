@@ -76,6 +76,8 @@ hlset([
     {name: "NonText", guisp: "NONE", guifg: overlay0, guibg: "NONE", gui: {}, cterm: {}},
     {name: "Pmenu", guisp: "NONE", guifg: "NONE", guibg: "NONE", ctermfg: "NONE", ctermbg: "NONE", gui: {}, cterm: {}},
     {name: "PmenuSel", guisp: "NONE", guifg: text, guibg: surface1, gui: {bold: true}, cterm: {bold: true}},
+    {name: "PmenuMatch", guisp: "NONE", guifg: lavender, guibg: "NONE", ctermfg: "NONE", ctermbg: "NONE", gui: {}, cterm: {bold: true}},
+    {name: "PmenuMatchSel", guisp: "NONE", guifg: lavender, guibg: surface1, ctermfg: "NONE", ctermbg: "NONE", gui: {}, cterm: {bold: true}},
     {name: "PmenuSbar", guisp: "NONE", guifg: "NONE", guibg: surface1, gui: {}, cterm: {}},
     {name: "PmenuThumb", guisp: "NONE", guifg: "NONE", guibg: overlay0, gui: {}, cterm: {}},
     {name: "Question", guisp: "NONE", guifg: blue, guibg: "NONE", gui: {}, cterm: {}},

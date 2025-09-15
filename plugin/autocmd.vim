@@ -35,13 +35,18 @@ Autocmd.new('BufEnter')
 			endif
 		endfor
 
-		:quitall
+		execute('quitall!')
 	})
 
 Autocmd.new('InsertLeave')
 	.Group(group)
 	.When(() => executable('ibus') == 1)
 	.Command('system("ibus engine xkb:us::eng")')
+
+Autocmd.new('CmdlineChanged')
+	.Group(group)
+	.Pattern(['[:/\?]'])
+	.Callback(function('wildtrigger', []))
 
 Autocmd.newMulti(['WinEnter', 'BufEnter'])
 	.Group(group)

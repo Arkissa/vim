@@ -67,3 +67,68 @@ export class Promise # {{{1
 		return val
 	enddef # }}}
 endclass # }}}
+
+export class Ring
+	var _list: list<any>
+	var _i: number
+
+	def new(a: any)
+		this._list = [a]
+	enddef
+
+	def len(): number
+		if this == null_object
+			return 0
+		endif
+
+		return len(this._list)
+	enddef
+
+	def empty(): bool
+		return this->len() == 0
+	enddef
+
+	def Current<T>(): T
+		return this._list[this._i]
+	enddef
+
+	def Remove<T>(): T
+		if this->empty()
+			return null_object
+		endif
+
+		var c = remove(this._list, this._i)
+		if this->empty()
+			return c
+		endif
+
+		this._i %= this->len()
+
+		return c
+	enddef
+
+	def Add<T>(t: T)
+		insert(this._list, t, this._i + 1)
+		this._i = (this._i + 1) % this->len()
+	enddef
+
+	def SlideLeft(): Ring
+		this._i = (this._i - 1) % this->len()
+		return this
+	enddef
+
+	def SlideRight(): Ring
+		this._i = (this._i + 1) % this->len()
+		return this
+	enddef
+
+	def ToList<T>(): list<T>
+		return copy(this._list)
+	enddef
+
+	def ForEach(F: func(any))
+		for item in this._list
+			F(item)
+		endfor
+	enddef
+endclass
