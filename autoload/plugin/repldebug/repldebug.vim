@@ -16,32 +16,96 @@ export class Variable
 	enddef
 endclass
 
-class DebugVariable
+class DebugVariables
 	var _win: window.Window
-	var _global: dict<Variable>
-	var _local: dict<Variable>
+	var _variables: dict<dict<Variable>> = {
+		Watch: {},
+		Global: {},
+		Local: {},
+	}
 
-	def SetGlobal(global: dict<Variable>)
-		this._global = global
+	def new()
+		this._win = window.Window.new('REPLDebug-Variables')
 	enddef
 
-	def SetLocal(local: dict<Variable>)
-		this._local = local
+	def SetWatch(tag: string, d: dict<Variable>)
+		this._variables[tag] = d
 	enddef
 
-	def UpdateGlobal(global: dict<Variable>)
-		for [k, v] in global.items()
-			this._global[k] = v
+	def Update(tag: string, d: dict<Variable>)
+		var vars = this._variables[tag]
+		for [k, v] in d->items()
+			vars[k] = v
 		endfor
 	enddef
 
-	def UpdateLocal(local: dict<Variable>)
-		for [k, v] in local.items()
-			this._local[k] = v
+	static def _MaxLength(d: dict<Variable>): tuple<number, number, number>
+		var tnv = [0, 0, 0]
+		for v in values(d)
+			var tl = v.Type->strdisplaywidth()
+			if tl > thn[0]
+				thn[0] = tl
+			endif
+
+			var nl = v.Name->strdisplaywidth()
+			if nl > thn[1]
+				thn[1] = nl
+			endif
+
+			var vl = v.Value->strdisplaywidth()
+			if vl > thn[2]
+				thn[2] vl
+			endif
 		endfor
+
+		return tnl->list2tuple()
+	enddef
+
+	static def _Banner(d: dict<Variable>): list<string>
+		var [tl, nl, vl] = _MaxLength(d)
+
+		var format = $'%-{tl}s %-{nl}s %-{vl}s'
+		var lines = [printf(format, 'Type', 'Name', 'Value')]
+		for v in values(d)
+			lines->add(printf(format, v.Type, v.Name, v.Value))
+		endfor
+
+		return lines
 	enddef
 
 	def Draw()
+		var lines = []
+
+		for [tag, vars] in items(this._variables)
+			lines->add($'{tag} Variables:')
+			lines->extend(_Banner(vars))
+		endfor
+
+		var buf = this._win.GetBuffer()
+		buf.Clear()
+		buf.SetLine(lines)
+	enddef
+endclass
+
+class CodeWindow
+	var _win: window.Window
+
+	def new()
+		this._win = window.Window.newCurrent()
+		var original = this._win.GetBuffer()
+		this._win.OnClose(() => {
+			this._win.SetBuffer(original)
+		})
+	enddef
+
+	def Goto(fname: string, address: tuple<number, number>)
+		var buf = this._win.GetBuffer()
+		if buf.name != fname
+			buf = buffer.Buffer.new(fname)
+		endif
+
+		this._win.SetBuffer(buf)
+		this._win.SetCursor(address[0], address[1])
 	enddef
 endclass
 
@@ -49,9 +113,9 @@ export abstract class REPLDebug extends jb.Prompt
 	static var _Session: Ring
 	static var _Breakpints: dict<list<string>>
 	static var _OrginBuffer: buffer.Buffer
+	static var _Variables: DebugVariables
 	static var _CodeWindow: window.Window
 	static var _PromptWindow: window.Window
-	static var _Stack: window.Window
 	static var _Pty: window.Window
 	static var _Signs: list<string>
 
@@ -61,14 +125,8 @@ export abstract class REPLDebug extends jb.Prompt
 	def GotoLine()
 	enddef
 
-	def OpenStackWindow(): buffer.Buffer
-		_Stack = _Stack ?? window.Window.new('REPLDebug-Stack')
-		return _Stack.GetBuffer()
-	enddef
-
-	def OpenVariablesWindow(): buffer.Buffer
-		_Variables = _Variables ?? window.Window.new('REPLDebug-Variables')
-		return _Variable.GetBuffer()
+	def OpenVariablesWindow(): DebugVariables
+		return	_Variables ?? DebugVariables.new()
 	enddef
 
 	def Run()
