@@ -95,6 +95,13 @@ export class Buffer # {{{1
 	def SetLine(text: string, lnum: number) # {{{2
 		setbufline(this.bufnr, lnum, text)
 	enddef # }}}
+	def SetLines(lines: list<string>)
+		setbufline(this.bufnr, lines)
+	enddef
+
+	def Clear()
+		setbufline(this.bufnr, [])
+	enddef
 
 	def AppendLine(text: string, lnum: number = this.LineCount() - 1) # {{{2
 		appendbufline(this.bufnr, lnum, text)
