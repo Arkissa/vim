@@ -53,7 +53,7 @@ export class Window # {{{1
 	enddef # }}}
 
 	def _New(pos: string = '', height: number = 0, name: string = '') # {{{2
-		execute(var cmd = $'silent! {pos} :{height ?? ''}new {name}')
+		execute($'silent! {pos} :{height ?? ''}new {name}')
 		this.winnr = win_getid()
 		if name == ''
 			setbufvar(this.GetBufnr(), '&bufhidden', 'wipe')

@@ -37,6 +37,7 @@ export class BufferInfo # {{{1
 			this.listed,
 			this.lnum,
 			this.linecount,
+			this.loaded,
 			this.variables,
 			this.windows,
 			this.popups
@@ -71,9 +72,8 @@ export class Buffer # {{{1
 			return (1, 1)
 		endif
 
-		var pos = marks[0].pos
-		var lastLine = this.LineCount()
-		return (pos[1] > lastLine ? lastLine : pos[1], pos[2])
+		var [_, lnum, col, _] = marks[0].pos
+		return (lnum, col)
 	enddef # }}}
 
 	def GetVar(name: string): any # {{{2
@@ -95,13 +95,14 @@ export class Buffer # {{{1
 	def SetLine(text: string, lnum: number) # {{{2
 		setbufline(this.bufnr, lnum, text)
 	enddef # }}}
-	def SetLines(lines: list<string>)
-		setbufline(this.bufnr, lines)
-	enddef
 
-	def Clear()
+	def SetLines(lines: list<string>) # {{{2
+		setbufline(this.bufnr, lines)
+	enddef # }}}
+
+	def Clear() # {{{2
 		setbufline(this.bufnr, [])
-	enddef
+	enddef # }}}
 
 	def AppendLine(text: string, lnum: number = this.LineCount() - 1) # {{{2
 		appendbufline(this.bufnr, lnum, text)
@@ -178,6 +179,7 @@ export class Buffer # {{{1
 			info.listed,
 			info.lnum,
 			info.linecount,
+			info.loaded,
 			info.variables,
 			info.windows,
 			info.popups,
@@ -190,7 +192,7 @@ export class Buffer # {{{1
 	enddef # }}}
 
 	def Unload() # {{{2
-		execute($'silent bdelete! {this.bufnr}')
+		execute($'silent bunload! {this.bufnr}')
 	enddef # }}}
 
 	def Delete() # {{{2

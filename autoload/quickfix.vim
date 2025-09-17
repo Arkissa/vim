@@ -104,7 +104,7 @@ export class QuickfixItem # {{{1
 			user_data: this.user_data
 		}
 	enddef
-endclass
+endclass # }}}
 
 export interface Quickfixer
 	def SetList(entry: list<QuickfixItem>, action: Action, what: dict<any>): bool # {{{2
