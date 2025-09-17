@@ -26,6 +26,7 @@ Bind.new(Mods.n)
 	.NoRemap()
 	.NoWait()
 	.Map('<Leader>f', ':find ./')
+	.Map('<Leader>b', ':buffer ')
 
 	.Silent()
 	.Map('\\', '@@')
