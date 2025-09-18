@@ -15,6 +15,8 @@ type NArgs = command.NArgs
 
 :setlocal nolist
 :setlocal nowrap
+:setlocal formatprg=golangci-lint\ fmt\ --stdin
+:setlocal iskeyword+=.
 
 const group = "Go"
 
@@ -22,6 +24,9 @@ var autocmd = Autocmd.new('User')
 	.Group(group)
 	.Pattern(['LspAttached'])
 	.Bufnr(bufnr())
+	.When(() => executable('golangci-lint') == 1)
+	.Command('setlocal formatexpr=')
+	.When(() => executable('golangci-lint') != 1)
 	.Callback(() => {
 		Autocmd.new('BufWritePre')
 			.Group(group)
