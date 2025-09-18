@@ -6,6 +6,8 @@ import autoload 'window.vim'
 import autoload 'terminal.vim'
 
 type Ring = vim.Ring
+type Coroutine = vim.Coroutine
+type AsyncIO = vim.AsyncIO
 
 export class Variable
 	var Type: string
@@ -15,6 +17,12 @@ export class Variable
 	def new(this.Type, this.Name, this.Value)
 	enddef
 endclass
+
+export enum VariableTag
+	Watch,
+	Global,
+	Local
+endenum
 
 class DebugVariables
 	var _win: window.Window
@@ -26,14 +34,21 @@ class DebugVariables
 
 	def new()
 		this._win = window.Window.new('REPLDebug-Variables')
+		this._win.OnSetBufPost((_) => {
+			AsyncIO.Run(Coroutine.new(this.Draw))
+		})
 	enddef
 
-	def SetWatch(tag: string, d: dict<Variable>)
-		this._variables[tag] = d
+	def SetBuffer(buf: buffer.Buffer)
+		this._win.SetBuffer(buf)
 	enddef
 
-	def Update(tag: string, d: dict<Variable>)
-		var vars = this._variables[tag]
+	def Fill(tag: VariableTag, d: dict<Variable>)
+		this._variables[tag.name] = d
+	enddef
+
+	def Update(tag: VariableTag, d: dict<Variable>)
+		var vars = this._variables[tag.name]
 		for [k, v] in d->items()
 			vars[k] = v
 		endfor
@@ -54,7 +69,7 @@ class DebugVariables
 
 			var vl = v.Value->strdisplaywidth()
 			if vl > thn[2]
-				thn[2] vl
+				thn[2] = vl
 			endif
 		endfor
 
@@ -64,7 +79,7 @@ class DebugVariables
 	static def _Banner(d: dict<Variable>): list<string>
 		var [tl, nl, vl] = _MaxLength(d)
 
-		var format = $'%-{tl}s %-{nl}s %-{vl}s'
+		var format = $'%{tl}s %{nl}s %{vl}s'
 		var lines = [printf(format, 'Type', 'Name', 'Value')]
 		for v in values(d)
 			lines->add(printf(format, v.Type, v.Name, v.Value))
@@ -81,61 +96,155 @@ class DebugVariables
 			lines->extend(_Banner(vars))
 		endfor
 
-		var buf = this._win.GetBuffer()
 		buf.Clear()
 		buf.SetLine(lines)
 	enddef
 endclass
 
-class CodeWindow
+export class Address
+	var FileName: string
+	var Lnum: string
+	var Col: string
+endclass
+
+class DebugCodeWindow
+	const signGroup = 'REPLDebug'
 	var _win: window.Window
+	var _breakpoints: dict<dict<Address>>
 
 	def new()
-		this._win = window.Window.newCurrent()
-		var original = this._win.GetBuffer()
-		this._win.OnClose(() => {
-			this._win.SetBuffer(original)
-		})
+		this._win.SetBuffer(original)
 	enddef
 
-	def Goto(fname: string, address: tuple<number, number>)
+	def SetBuffer(buf: buffer.Buffer)
+		this._win.SetBuffer(buf)
+	enddef
+
+	def SetBreakpoint(sessionId: number, breakId: number, addr: Address)
+		var signName = $'{sessionId}-{breakId}'
+		sign_define(signName, {
+			text: '*',
+			texthl: 'red',
+		})
+
+		this._breakpoints[sessionId][breakId] = addr
+		sign_place(breakId, $'{signGroup}-{sessionId}', signName, this._win.GetBufnr(), {lnum: addr.lnum, priority: 110})
+	enddef
+
+	def DeleteBreakpoint(sessionId: number, breakId: number, addr: Address)
+		sign_unplace(signGroup, {buffer: this._win.GetBufnr(), id: breakId})
+		remove(this._breakpoints[sessionId], breakId)
+	enddef
+
+	def BreakpointToggle(sessionId: number, breakId: number, addr: Address)
+		if !has_key(this._breakpoints, sessionId) || !has_key(this._breakpoints[sessionId], breakId)
+			this.SetBreakpoint(sessionId: number, breakId: number, addr: Address)
+		else
+			this.DeleteBreakpoint(sessionId: number, breakId: number, addr: Address)
+		endif
+	enddef
+
+	def Goto(addr: Address)
 		var buf = this._win.GetBuffer()
 		if buf.name != fname
-			buf = buffer.Buffer.new(fname)
+			buf = buffer.Buffer.new(addr.FileName)
 		endif
 
 		this._win.SetBuffer(buf)
-		this._win.SetCursor(address[0], address[1])
+		this._win.SetCursor(addr.Lnum, addr.Col)
+	enddef
+
+	def DeleteSession(sessionId: number, addr: Address)
+		if has_key(this._breakpoints, sessionId)
+			var d = remove(this._breakpoints, sessionId)
+			d->keys()->foreach((_, breakId) => {
+				sign_undefine($'{sessionId}-{breakId}')
+			})
+			sign_unplace($'{signGroup}-{sessionId}')
+		endif
 	enddef
 endclass
 
-export abstract class REPLDebug extends jb.Prompt
-	static var _Session: Ring
-	static var _Breakpints: dict<list<string>>
-	static var _OrginBuffer: buffer.Buffer
-	static var _Variables: DebugVariables
-	static var _CodeWindow: window.Window
-	static var _PromptWindow: window.Window
-	static var _Pty: window.Window
-	static var _Signs: list<string>
+class DebugStackWindow
+	var _win: window.Window
 
-	abstract def Callback(chan: channel, msg: string) # {{{2
-	abstract def Prompt(): string # {{{2
+	def new()
+		this._win = window.Window.new('REPLDebug-Stack')
+	enddef
 
-	def GotoLine()
+	def Draw()
+	enddef
+endclass
+
+class DebugDisassembler
+	var _win: window.Window
+
+	def Draw()
+	enddef
+endclass
+
+export class REPLDebugUI
+	var _code: DebugCodeWindow
+	var _stack: DebugCodeWindow
+	var _prompt: DebugStackWindow
+	var _variables: DebugVariablesWindow
+	var _disassembler: DebugDisassembler
+
+	def SetBreakpoint()
+	enddef
+endclass
+
+export class REPLDebugManager
+	var _Session: Ring
+	var _UI: REPLDebugUI
+
+	def new()
 	enddef
 
 	def OpenVariablesWindow(): DebugVariables
-		return	_Variables ?? DebugVariables.new()
+		return _Variables ?? DebugVariables.new()
 	enddef
 
+	def NextSession()
+		this._Session.SlideRight()
+	enddef
+
+	def PrevSession()
+		this._Session.SlideLeft()
+	enddef
+
+	def BreakpointToggle()
+		var cur = _Session.Current()
+		cur.BreakpointToggle()
+	enddef
+
+	def Set(repl: REPLDebug)
+		if _VariablesWindow != null_object
+			_VariablesWindow.SetBuffer(repl.VariablesBuffer)
+		endif
+
+		if _StackWindow != null_object
+			_StackWindow.SetBuffer(repl.StackBuffer)
+		endif
+
+		_PromptWindow.SetBuffer(repl.prompt)
+		_CodeWindow.SetBuffer(repl.CodeBuffer)
+		_Pty.SetBuffer(repl.Pty)
+	enddef
+endclass
+
+export abstract class REPLDebugBackend extends jb.Prompt
+	var UI: REPLDebugUI
+
+	abstract def Callback(channel, string) # {{{2
+	abstract def Prompt(): string # {{{2
+	abstract def BreakpointToggle(Breakpoint) # {{{2
+
 	def Run()
-		_CodeWindow = window.Window.newCurrent()
-		_PromptWindow = window.Window.new()
+		this.CodeBuffer = buffer.Buffer.newCurrent()
 		super.Run()
-		_PromptWindow.SetBuffer(this.prompt)
-		_Pty = window.Window.newByBufer(terminal.Terminal.new('NONE', {
+		this.Pty = terminal.Terminal.new('NONE', {
 			pty: true,
-		}))
+		})
 	enddef
 endclass

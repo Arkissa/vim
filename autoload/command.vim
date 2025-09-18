@@ -5,6 +5,9 @@ import './log.vim'
 import './job.vim' as jb
 import './vim.vim'
 
+type Coroutine = vim.Coroutine
+type AsyncIO = vim.AsyncIO
+
 export enum NArgs # {{{1
 	Zero('0'), # {{{2
 	One('1'), # {{{2
@@ -319,12 +322,12 @@ export abstract class Execute extends jb.Quickfixer # {{{1
 			return
 		endif
 
-		vim.Promise.new(() => {
+		AsyncIO.Run(Coroutine.new(() => {
 			qf.Window()
 			if this._attr.bang
 				qf.JumpFirst()
 			endif
-		})
+		}))
 
 		if !this._attr.mods.silent
 			:redraw

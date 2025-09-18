@@ -29,46 +29,13 @@ export class Exception # {{{1
 	enddef # }}}
 endclass # }}}
 
-export class Promise # {{{1
-	var _F: func # {{{2
-	var _once: bool # {{{2
-	var _return = {} # {{{2
+export class TimeoutException extends Exception
+	def new(s: string)
+		this._exception = $'Timeout: ${s}'
+	enddef
+endclass
 
-	def new(this._F, ...args: list<any>) # {{{2
-		timer_start(0, (_) => {
-				try
-					var val = call(this._F, args)
-					this._return['val'] = val
-				catch /E1186\|E1031/
-					this._return['val'] = void
-				catch
-					this._return['val'] = Exception.new(v:exception)
-				endtry
-			})
-	enddef # }}}
-
-	def Await<T>(): T # {{{2
-		if !this._once
-			this._once = true
-		else
-			throw "Await can only be called once."
-		endif
-
-		while !has_key(this._return, 'val')
-			:sleep 50m
-		endwhile
-
-		var val = this._return.val
-
-		if type(val) == type(null_object) && instanceof(val, Exception)
-			throw this._return.val->string()
-		endif
-
-		return val
-	enddef # }}}
-endclass # }}}
-
-export class Ring
+export class Ring # {{{1
 	var _list: list<any>
 	var _i: number
 
@@ -130,5 +97,75 @@ export class Ring
 		for item in this._list
 			F(item)
 		endfor
+	enddef
+endclass # }}}
+
+export class Coroutine
+	var id: number
+	var Func: func
+	var args: list<any>
+
+	def new(this.Func, ...args: list<any>)
+		this.id = rand()
+
+		this.args = args
+	enddef
+endclass
+
+export class AsyncIO
+	static var _returns = {}
+
+	static def Gather(...asyncs: list<Coroutine>): Coroutine
+		for a in as.items():
+			Coroutine.Run(a)
+		endfor
+
+		return Coroutine.new((as: list<Coroutine>): list<any> => {
+			var results = []
+
+			for a in as:
+				results->add(AsyncIO.Await<any>(a))
+			endfor
+
+			return results
+		}, asyncs)
+	enddef
+
+	static def Await<T>(co: Coroutine, time: number = 0): T
+		var timer = -1
+		var returns = _returns
+
+		if time > 0
+			timer = timer_start(time, (_) => {
+				returns[co.id] = TimeoutException.new($'wait for {co.id} coroutine return values timeout.')
+			})
+		endif
+
+		while !has_key(returns, co.id)
+			:sleep 50m
+		endwhile
+		timer_stop(timer)
+
+		var val = returns[aysnc.id]
+		if type(val) == type(null_object) && instanceof(val, Exception)
+			throw val->string()
+		endif
+
+		return val
+	enddef
+
+	static def Run(co: Coroutine, time: number = 0)
+		var returns = _returns
+
+		timer_start(time, (_) => {
+			try
+				var val = call(co.Func, co.args)
+				returns[co.id] = val
+			catch /E1186\|E1031/
+				returns[co.id] = void
+			catch
+				returns[co.id] = Exception.new(v:exception)
+			endtry
+		})
 	enddef
 endclass
