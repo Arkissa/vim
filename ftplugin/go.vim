@@ -16,7 +16,6 @@ type NArgs = command.NArgs
 :setlocal nolist
 :setlocal nowrap
 :setlocal formatprg=golangci-lint\ fmt\ --stdin
-:setlocal iskeyword+=.
 
 const group = "Go"
 
