@@ -7,7 +7,6 @@ import autoload 'terminal.vim'
 
 type Ring = vim.Ring
 type Coroutine = vim.Coroutine
-type AsyncIO = vim.AsyncIO
 
 export class Variable
 	var Type: string
@@ -35,7 +34,7 @@ class DebugVariables
 	def new()
 		this._win = window.Window.new('REPLDebug-Variables')
 		this._win.OnSetBufPost((_) => {
-			AsyncIO.Run(Coroutine.new(this.Draw))
+			g:asyncio.Run(Coroutine.new(this.Draw))
 		})
 	enddef
 

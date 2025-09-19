@@ -19,47 +19,31 @@ endclass # }}}
 
 export const void = SingleVoid.new() # {{{1
 
-export class Exception # {{{1
-	var _exception: string # {{{2
-	def new(this._exception) # {{{2
-	enddef # }}}
-
-	def string(): string # {{{2
-		return this._exception
-	enddef # }}}
-endclass # }}}
-
-export class TimeoutException extends Exception
-	def new(s: string)
-		this._exception = $'Timeout: ${s}'
-	enddef
-endclass
-
 export class Ring # {{{1
 	var _list: list<any>
 	var _i: number
 
-	def new(a: any)
+	def new(a: any) # {{{2
 		this._list = [a]
-	enddef
+	enddef # }}}
 
-	def len(): number
+	def len(): number # {{{2
 		if this == null_object
 			return 0
 		endif
 
 		return len(this._list)
-	enddef
+	enddef # }}}
 
-	def empty(): bool
+	def empty(): bool # {{{2
 		return this->len() == 0
-	enddef
+	enddef # }}}
 
-	def Current<T>(): T
+	def Current<T>(): T # {{{2
 		return this._list[this._i]
-	enddef
+	enddef # }}}
 
-	def Remove<T>(): T
+	def Remove<T>(): T # {{{2
 		if this->empty()
 			return null_object
 		endif
@@ -72,100 +56,144 @@ export class Ring # {{{1
 		this._i %= this->len()
 
 		return c
-	enddef
+	enddef # }}}
 
-	def Add<T>(t: T)
+	def Add<T>(t: T) # {{{2
 		insert(this._list, t, this._i + 1)
 		this._i = (this._i + 1) % this->len()
-	enddef
+	enddef # }}}
 
-	def SlideLeft(): Ring
+	def SlideLeft(): Ring # {{{2
 		this._i = (this._i - 1) % this->len()
 		return this
-	enddef
+	enddef # }}}
 
-	def SlideRight(): Ring
+	def SlideRight(): Ring # {{{2
 		this._i = (this._i + 1) % this->len()
 		return this
-	enddef
+	enddef # }}}
 
-	def ToList<T>(): list<T>
+	def ToList<T>(): list<T> # {{{2
 		return copy(this._list)
-	enddef
+	enddef # }}}
 
-	def ForEach(F: func(any))
+	def ForEach(F: func(any)) # {{{2
 		for item in this._list
 			F(item)
 		endfor
-	enddef
+	enddef # }}}
 endclass # }}}
 
-export class Coroutine
+export class Exception # {{{1
+	var _exception: string # {{{2
+
+	def new(this._exception) # {{{2
+	enddef # }}}
+
+	def string(): string # {{{2
+		return this._exception
+	enddef # }}}
+endclass # }}}
+
+export class TimeoutException extends Exception # {{{1
+	def new(s: string) # {{{2
+		this._exception = $'Timeout: ${s}'
+	enddef # }}}
+endclass # }}}
+
+export class CoroutineDeadException extends Exception # {{{1
+	def new(id: number) # {{{2
+		this._exception = $'Dead: can''t waiting for already dead with {id} coroutine .'
+	enddef # }}}
+endclass # }}}
+
+export enum CoroutineStatus # {{{1
+	Running,
+	Suspended,
+	Dead
+endenum # }}}
+
+export class Coroutine # {{{1
+	static var _idcount = 0
+
+	var delay = 0
 	var id: number
 	var Func: func
-	var args: list<any>
+	var status = CoroutineStatus.Suspended
 
-	def new(this.Func, ...args: list<any>)
-		this.id = rand()
+	def new(F: func, ...args: list<any>) # {{{2
+		_idcount += 1
+		this.id = _idcount
+		this.Func = (): any => {
+			this.status = CoroutineStatus.Running
+			var result = void
 
-		this.args = args
-	enddef
-endclass
+			try
+				if typename(F) =~# '^func(.\{-\}):'
+					result = call(F, args)
+				else
+					call(F, args)
+				endif
+			finally
+				this.status = CoroutineStatus.Dead
+			endtry
 
-export class AsyncIO
-	static var _returns = {}
+			return result
+		}
+	enddef # }}}
 
-	static def Gather(...asyncs: list<Coroutine>): Coroutine
-		for a in as.items():
-			Coroutine.Run(a)
+	def SetDelay(time: number) # {{{2
+		this.delay = time
+	enddef # }}}
+endclass # }}}
+
+export class AsyncIO # {{{1
+	var _returns = {}
+
+	def Gather(...cos: list<Coroutine>): Coroutine # {{{2
+		for co in cos:
+			this.Run(co)
 		endfor
 
-		return Coroutine.new((as: list<Coroutine>): list<any> => {
-			var results = []
+		return Coroutine.new((cs: list<Coroutine>): list<any> => {
+			return cs->mapnew((_, co) => this.Await<any>(co))->filter((_, v) => instanceof(v, Void))
+		}, cos)
+	enddef # }}}
 
-			for a in as:
-				results->add(AsyncIO.Await<any>(a))
-			endfor
-
-			return results
-		}, asyncs)
-	enddef
-
-	static def Await<T>(co: Coroutine, time: number = 0): T
-		var timer = -1
-		var returns = _returns
-
-		if time > 0
-			timer = timer_start(time, (_) => {
-				returns[co.id] = TimeoutException.new($'wait for {co.id} coroutine return values timeout.')
-			})
+	def Await<T>(co: Coroutine, timeout: number = 0): T # {{{2
+		if co == CoroutineStatus.Dead && !has_key(this._returns, co.id)
+			throw CoroutineDeadException.new(co.id)->string()
 		endif
 
-		while !has_key(returns, co.id)
+		var timer = timeout > 0
+			? timer_start(time, (_) => {
+				if co.status == CoroutineStatus.Running
+					this._returns[co.id] = TimeoutException.new($'wait for {co.id} coroutine return values timeout.')
+				endif
+			})
+			: -1
+
+		while !has_key(this._returns, co.id)
 			:sleep 50m
 		endwhile
+
 		timer_stop(timer)
 
-		var val = returns[aysnc.id]
+		var val = remove(this._returns, co.id)
 		if type(val) == type(null_object) && instanceof(val, Exception)
 			throw val->string()
 		endif
 
 		return val
-	enddef
+	enddef # }}}
 
-	static def Run(co: Coroutine, time: number = 0)
-		var returns = _returns
-
-		timer_start(time, (_) => {
+	def Run(co: Coroutine) # {{{2
+		timer_start(co.delay, (_) => {
 			try
-				var val = call(co.Func, co.args)
-				returns[co.id] = val
-			catch /E1186\|E1031/
-				returns[co.id] = void
+				this._returns[co.id] = co.Func()
 			catch
-				returns[co.id] = Exception.new(v:exception)
+				this._returns[co.id] = Exception.new(v:exception)
 			endtry
 		})
-	enddef
-endclass
+	enddef # }}}
+endclass # }}}
