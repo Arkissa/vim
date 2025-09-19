@@ -34,7 +34,7 @@ class DebugVariables
 	def new()
 		this._win = window.Window.new('REPLDebug-Variables')
 		this._win.OnSetBufPost((_) => {
-			g:asyncio.Run(Coroutine.new(this.Draw))
+			g:asyncio.Run(this.Draw())
 		})
 	enddef
 
@@ -44,6 +44,8 @@ class DebugVariables
 
 	def Fill(tag: VariableTag, d: dict<Variable>)
 		this._variables[tag.name] = d
+
+		g:asyncio.Run(this.Draw())
 	enddef
 
 	def Update(tag: VariableTag, d: dict<Variable>)
@@ -51,6 +53,8 @@ class DebugVariables
 		for [k, v] in d->items()
 			vars[k] = v
 		endfor
+
+		g:asyncio.Run(this.Draw())
 	enddef
 
 	static def _MaxLength(d: dict<Variable>): tuple<number, number, number>
@@ -87,16 +91,18 @@ class DebugVariables
 		return lines
 	enddef
 
-	def Draw()
-		var lines = []
+	def Draw(): Coroutine
+		return Coroutine.new(() => {
+			var lines = []
 
-		for [tag, vars] in items(this._variables)
-			lines->add($'{tag} Variables:')
-			lines->extend(_Banner(vars))
-		endfor
+			for [tag, vars] in items(this._variables)
+				lines->add($'{tag} Variables:')
+				lines->extend(_Banner(vars))
+			endfor
 
-		buf.Clear()
-		buf.SetLine(lines)
+			buf.Clear()
+			buf.SetLine(lines)
+		})
 	enddef
 endclass
 
@@ -104,6 +110,12 @@ export class Address
 	var FileName: string
 	var Lnum: string
 	var Col: string
+
+	def new(this.FileName, this.Lnum)
+	enddef
+
+	def newAll(this.FileName, this.Lnum, this.Col)
+	enddef
 endclass
 
 class DebugCodeWindow
@@ -175,21 +187,15 @@ class DebugStackWindow
 	enddef
 endclass
 
-class DebugDisassembler
-	var _win: window.Window
-
-	def Draw()
-	enddef
-endclass
-
 export class REPLDebugUI
-	var _code: DebugCodeWindow
-	var _stack: DebugCodeWindow
-	var _prompt: DebugStackWindow
-	var _variables: DebugVariablesWindow
-	var _disassembler: DebugDisassembler
+	var prompt: window.Window
+	var code: DebugCodeWindow
+	var variables: DebugVariablesWindow
+	# var stack: DebugCodeWindow
 
-	def SetBreakpoint()
+	def new()
+		this.code = DebugCodeWindow.new()
+		this.prompt = window.Window.new()
 	enddef
 endclass
 
@@ -197,7 +203,8 @@ export class REPLDebugManager
 	var _Session: Ring
 	var _UI: REPLDebugUI
 
-	def new()
+	def Open()
+		this._UI = this.REPLDebugUI
 	enddef
 
 	def OpenVariablesWindow(): DebugVariables
@@ -216,34 +223,66 @@ export class REPLDebugManager
 		var cur = _Session.Current()
 		cur.BreakpointToggle()
 	enddef
-
-	def Set(repl: REPLDebug)
-		if _VariablesWindow != null_object
-			_VariablesWindow.SetBuffer(repl.VariablesBuffer)
-		endif
-
-		if _StackWindow != null_object
-			_StackWindow.SetBuffer(repl.StackBuffer)
-		endif
-
-		_PromptWindow.SetBuffer(repl.prompt)
-		_CodeWindow.SetBuffer(repl.CodeBuffer)
-		_Pty.SetBuffer(repl.Pty)
-	enddef
 endclass
 
+final debug = vim.IncID.new()
+
 export abstract class REPLDebugBackend extends jb.Prompt
+	var id = debug.ID()
 	var UI: REPLDebugUI
+	var _code: buffer.Buffer
+	var _variable: buffer.Buffer
+	var _callStack: buffer.Buffer
 
 	abstract def Callback(channel, string) # {{{2
 	abstract def Prompt(): string # {{{2
-	abstract def BreakpointToggle(Breakpoint) # {{{2
+
+	def VariablesBuffer(): buffer.Buffer
+		this._variable = this._variable ?? buffer.Buffer.new($'REPLDebug-Variables-{this.id}')
+		this._variable.SetVar('&buftype', 'nofile')
+		this._variable.SetVar('&filetype', 'REPLDebugVariable')
+		return this._variable
+	enddef
+
+	def CallStackBuffer(): buffer.Buffer
+		this._callStack = this._callStack ?? buffer.Buffer.new($'REPLDebug-CallStack-{this.id}')
+		this._variable.SetVar('&buftype', 'nofile')
+		this._variable.SetVar('&filetype', 'REPLDebugCallStack')
+		return this._callStack
+	enddef
+
+	def SetUI(ui: REPLDebugUI)
+		this.UI = ui
+		this.UI.code.SetBuffer(this._code)
+		this.UI.prompt.SetBuffer(this.prompt)
+
+		if this.UI.variables != null_object
+			this.UI.variables.SetBuffer(this.VariablesBuffer())
+		endif
+
+		if this.UI.callStack != null_object
+			this.UI.callStack.SetBuffer(this.CallStackBuffer())
+		endif
+	enddef
+
+	def Goto(addr: Address)
+		this.UI.code.Goto(addr)
+	enddef
+
+	def SetVariable(brakID: number, addr: Address)
+		this.UI.code.SetVariable(this.id, breakID, addr: Address)
+	enddef
+
+	def DeleteVariable(brakID: number, addr: Address)
+		this.UI.code.DeleteVariable(this.id, breakID, addr)
+	enddef
+
+	def ToggleVariable(brakID: number, addr: Address)
+		this.UI.code.ToggleVariable(this.id, breakID, addr)
+	enddef
 
 	def Run()
 		this.CodeBuffer = buffer.Buffer.newCurrent()
 		super.Run()
-		this.Pty = terminal.Terminal.new('NONE', {
-			pty: true,
-		})
 	enddef
 endclass
