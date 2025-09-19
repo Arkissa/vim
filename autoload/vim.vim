@@ -84,6 +84,15 @@ export class Ring # {{{1
 	enddef # }}}
 endclass # }}}
 
+export class IncID # {{{1
+	var _id: number
+
+	def ID(): number # {{{2
+		this._id += 1
+		return this._id
+	enddef # }}}
+endclass # }}}
+
 export class Exception # {{{1
 	var _exception: string # {{{2
 
@@ -97,7 +106,7 @@ endclass # }}}
 
 export class TimeoutException extends Exception # {{{1
 	def new(s: string) # {{{2
-		this._exception = $'Timeout: ${s}'
+		this._exception = $'Timeout: {s}'
 	enddef # }}}
 endclass # }}}
 
@@ -113,20 +122,18 @@ export enum CoroutineStatus # {{{1
 	Dead
 endenum # }}}
 
-export class Coroutine # {{{1
-	static var _idcount = 0
+final coroutine = IncID.new()
 
+export class Coroutine # {{{1
+	var id = coroutine.ID()
 	var delay = 0
-	var id: number
 	var Func: func
 	var status = CoroutineStatus.Suspended
 
 	def new(F: func, ...args: list<any>) # {{{2
-		_idcount += 1
-		this.id = _idcount
 		this.Func = (): any => {
 			this.status = CoroutineStatus.Running
-			var result = void
+			var result: any = void
 
 			try
 				if typename(F) =~# '^func(.\{-\}):'
@@ -142,8 +149,9 @@ export class Coroutine # {{{1
 		}
 	enddef # }}}
 
-	def SetDelay(time: number) # {{{2
+	def SetDelay(time: number): Coroutine # {{{2
 		this.delay = time
+		return this
 	enddef # }}}
 endclass # }}}
 
@@ -156,19 +164,23 @@ export class AsyncIO # {{{1
 		endfor
 
 		return Coroutine.new((cs: list<Coroutine>): list<any> => {
-			return cs->mapnew((_, co) => this.Await<any>(co))->filter((_, v) => instanceof(v, Void))
+			return cs->mapnew((_, co) => this.Await<any>(co))->filter((_, v) => !instanceof(v, Void))
 		}, cos)
 	enddef # }}}
 
-	def Await<T>(co: Coroutine, timeout: number = 0): T # {{{2
-		if co == CoroutineStatus.Dead && !has_key(this._returns, co.id)
+	def Await<T>(co: Coroutine, timeout: tuple<number, T> = null_tuple): T # {{{2
+		if co.status == CoroutineStatus.Dead && !has_key(this._returns, co.id)
 			throw CoroutineDeadException.new(co.id)->string()
 		endif
 
-		var timer = timeout > 0
-			? timer_start(time, (_) => {
-				if co.status == CoroutineStatus.Running
-					this._returns[co.id] = TimeoutException.new($'wait for {co.id} coroutine return values timeout.')
+		if co.status != CoroutineStatus.Running
+			this.Run(co)
+		endif
+
+		var timer = timeout != null_tuple
+			? timer_start(timeout[0], (_) => {
+				if [CoroutineStatus.Running, CoroutineStatus.Suspended]->index(co.status) != -1
+					this._returns[co.id] = timeout[1]
 				endif
 			})
 			: -1
@@ -192,7 +204,7 @@ export class AsyncIO # {{{1
 			try
 				this._returns[co.id] = co.Func()
 			catch
-				this._returns[co.id] = Exception.new(v:exception)
+				this._returns[co.id] = Exception.new(substitute(v:exception, '^Vim:', '', ''))
 			endtry
 		})
 	enddef # }}}
