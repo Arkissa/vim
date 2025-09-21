@@ -129,23 +129,24 @@ export class Coroutine # {{{1
 	var delay = 0
 	var Func: func
 	var status = CoroutineStatus.Suspended
+	var _ret: dict<any> = {}
 
 	def new(F: func, ...args: list<any>) # {{{2
-		this.Func = (): any => {
+		this.Func = () => {
 			this.status = CoroutineStatus.Running
-			var result: any = void
+			this._ret[this.id] = void
 
 			try
 				if typename(F) =~# '^func(.\{-\}):'
-					result = call(F, args)
+					this._ret[this.id] = call(F, args)
 				else
 					call(F, args)
 				endif
+			catch
+				this._ret[this.id] = Exception.new(substitute(v:exception, '^Vim:', '', ''))
 			finally
 				this.status = CoroutineStatus.Dead
 			endtry
-
-			return result
 		}
 	enddef # }}}
 
@@ -153,10 +154,49 @@ export class Coroutine # {{{1
 		this.delay = time
 		return this
 	enddef # }}}
+
+	# if you is not Await, don't use it.
+	def UnsafeHookReturn(d: dict<any>) # {{{2
+		this._ret = d
+	enddef # }}}
 endclass # }}}
 
-export class AsyncIO # {{{1
-	var _returns = {}
+export class AsyncIO # {{{1 var _returns = {}
+	def Run(co: Coroutine) # {{{2
+		timer_start(co.delay, (_) => {
+			co.Func()
+		})
+	enddef # }}}
+
+	def Await<T>(co: Coroutine, timeout: tuple<number, T> = null_tuple): T # {{{2
+		var ret = {}
+		co.UnsafeHookReturn(ret)
+
+		if co.status != CoroutineStatus.Suspended
+			this.Run(co)
+		endif
+
+		var timer = timeout != null_tuple
+			? timer_start(timeout[0], (_) => {
+				if co.status == CoroutineStatus.Running
+					ret[co.id] = timeout[1]
+				endif
+			})
+			: -1
+
+		while !has_key(ret, co.id)
+			:sleep 50m
+		endwhile
+
+		timer_stop(timer)
+
+		var val = ret[co.id]
+		if type(val) == type(null_object) && instanceof(val, Exception)
+			throw val->string()
+		endif
+
+		return val
+	enddef # }}}
 
 	def Gather(...cos: list<Coroutine>): Coroutine # {{{2
 		for co in cos:
@@ -166,46 +206,5 @@ export class AsyncIO # {{{1
 		return Coroutine.new((cs: list<Coroutine>): list<any> => {
 			return cs->mapnew((_, co) => this.Await<any>(co))->filter((_, v) => !instanceof(v, Void))
 		}, cos)
-	enddef # }}}
-
-	def Await<T>(co: Coroutine, timeout: tuple<number, T> = null_tuple): T # {{{2
-		if co.status == CoroutineStatus.Dead && !has_key(this._returns, co.id)
-			throw CoroutineDeadException.new(co.id)->string()
-		endif
-
-		if co.status != CoroutineStatus.Running
-			this.Run(co)
-		endif
-
-		var timer = timeout != null_tuple
-			? timer_start(timeout[0], (_) => {
-				if [CoroutineStatus.Running, CoroutineStatus.Suspended]->index(co.status) != -1
-					this._returns[co.id] = timeout[1]
-				endif
-			})
-			: -1
-
-		while !has_key(this._returns, co.id)
-			:sleep 50m
-		endwhile
-
-		timer_stop(timer)
-
-		var val = remove(this._returns, co.id)
-		if type(val) == type(null_object) && instanceof(val, Exception)
-			throw val->string()
-		endif
-
-		return val
-	enddef # }}}
-
-	def Run(co: Coroutine) # {{{2
-		timer_start(co.delay, (_) => {
-			try
-				this._returns[co.id] = co.Func()
-			catch
-				this._returns[co.id] = Exception.new(substitute(v:exception, '^Vim:', '', ''))
-			endtry
-		})
 	enddef # }}}
 endclass # }}}
