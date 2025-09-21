@@ -19,24 +19,10 @@ type NArgs = command.NArgs
 
 const group = "Go"
 
-var autocmd = Autocmd.new('User')
-	.Group(group)
-	.Pattern(['LspAttached'])
-	.Bufnr(bufnr())
-	.When(() => executable('golangci-lint') == 1)
-	.Command('setlocal formatexpr=')
-	.When(() => executable('golangci-lint') != 1)
-	.Callback(() => {
-		Autocmd.new('BufWritePre')
-			.Group(group)
-			.Bufnr(bufnr())
-			.Pattern(['*.go'])
-			.Command('LspFormat')
-	})
-
 def RealPath(pt: string): string
 	if exists_compiled("+clipboard")
 		var gopath = $"^{trim(system('go env GOPATH'))}/pkg/mod"
+		echom gopath
 		if pt =~ gopath
 			return trim(substitute(pt, gopath, '', ''), '/')
 		endif
@@ -53,17 +39,31 @@ def RealPath(pt: string): string
 	endif
 enddef
 
-autocmd.Callback(() => {
-	Bind.new(Mods.n)
-		.NoRemap()
-		.Buffer()
-		.ScriptCmd('yil', () => {
-			setreg('+', $"{path.UnderPath(function(RealPath))}:{line('.')}")
-		})
-		.ScriptCmd('yal', () => {
-			setreg('+', $"{expand("%:p")}:{line('.')}")
-		})
-})
+Autocmd.new('User')
+	.Group(group)
+	.Pattern(['LspAttached'])
+	.Bufnr(bufnr())
+	.Callback(() => {
+		Bind.new(Mods.n)
+			.NoRemap()
+			.Buffer()
+			.ScriptCmd('yil', () => {
+				setreg('+', $"{path.UnderPath(function(RealPath))}:{line('.')}")
+			})
+			.ScriptCmd('yal', () => {
+				setreg('+', $"{expand("%:p")}:{line('.')}")
+			})
+	})
+	.When(() => executable('golangci-lint') == 1)
+	.Command('setlocal formatexpr=')
+	.When(() => executable('golangci-lint') != 1)
+	.Callback(() => {
+		Autocmd.new('BufWritePre')
+			.Group(group)
+			.Bufnr(bufnr())
+			.Pattern(['*.go'])
+			.Command('LspFormat')
+	})
 
 Command.new("Go")
 	.Bang()
