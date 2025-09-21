@@ -4,3 +4,4 @@ vim9script
 :setlocal nowrap
 :setlocal nobuflisted
 :setlocal norelativenumber
+:setlocal bufhidden=wipe
