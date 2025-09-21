@@ -134,13 +134,13 @@ export class Coroutine # {{{1
 	def new(F: func, ...args: list<any>) # {{{2
 		this.Func = () => {
 			this.status = CoroutineStatus.Running
-			this._ret[this.id] = void
 
 			try
 				if typename(F) =~# '^func(.\{-\}):'
 					this._ret[this.id] = call(F, args)
 				else
 					call(F, args)
+					this._ret[this.id] = void
 				endif
 			catch
 				this._ret[this.id] = Exception.new(substitute(v:exception, '^Vim:', '', ''))
@@ -172,7 +172,7 @@ export class AsyncIO # {{{1 var _returns = {}
 		var ret = {}
 		co.UnsafeHookReturn(ret)
 
-		if co.status != CoroutineStatus.Suspended
+		if co.status == CoroutineStatus.Suspended
 			this.Run(co)
 		endif
 
