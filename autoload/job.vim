@@ -65,32 +65,29 @@ export abstract class Quickfixer extends Job # {{{1
 endclass # }}}
 
 export abstract class Prompt extends Job # {{{1
-	var _promptBufferName: string # {{{2
-	var _tmpfilename: string # {{{2
 	var prompt: buffer.Prompt # {{{2
 
-	abstract def Callback(chan: channel, msg: string) # {{{2
 	abstract def Prompt(): string # {{{2
+	abstract def Bufname(): string
+	abstract def Callback(chan: channel, msg: string) # {{{2
 
 	def ExitCb(job: job, code: number) # {{{2
-		this.Close()
 		this.prompt.Delete()
 	enddef
 
-	def Send(msg: string)
+	def Send(msg: string) # {{{2
 		var chan = this.GetChannel()
 		if chan != null_channel
 			ch_sendraw(chan, $"{msg}\n")
 		endif
-	enddef
+	enddef # }}}
 
 	def EnterCb(_: buffer.Prompt, msg: string) # {{{2
 		this.Send(msg)
 	enddef # }}}
 
-	def InterruptCb(pt: buffer.Prompt) # {{{2
+	def InterruptCb() # {{{2
 		this.Stop()
-		pt.Delete()
 	enddef # }}}
 
 	def Run() # {{{2
@@ -98,7 +95,7 @@ export abstract class Prompt extends Job # {{{1
 			this.Stop()
 		endif
 
-		this.prompt	= buffer.Prompt.new(this._promptBufferName)
+		this.prompt	= buffer.Prompt.new(this.Bufname())
 		this.prompt.SetPrompt(this.Prompt())
 		this.prompt.SetCallback(this.EnterCb)
 		this.prompt.SetInterrupt(this.InterruptCb)

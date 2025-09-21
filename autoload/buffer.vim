@@ -217,6 +217,7 @@ export class Prompt extends Buffer # {{{1
 		this.name = name
 
 		this.SetVar('&buftype', 'prompt')
+		this.SetVar('&bufhidden', 'wipe')
 		execute('startinsert')
 	enddef # }}}
 
@@ -225,6 +226,7 @@ export class Prompt extends Buffer # {{{1
 		this.name = _Name(bufname(bufnr))
 
 		this.SetVar('&buftype', 'prompt')
+		this.SetVar('&bufhidden', 'wipe')
 		execute('startinsert')
 	enddef # }}}
 

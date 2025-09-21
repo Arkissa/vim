@@ -136,6 +136,11 @@ export class Window # {{{1
 		this.winnr = -1
 	enddef # }}}
 
+	def GetCursorPos(): tuple<number, number>
+		var [_, lnum, col, _, _] = getcurpos(this.winnr)
+		return (lnum, col)
+	enddef
+
 	def IsOpen(): bool # {{{2
 		return this.winnr != -1
 	enddef # }}}

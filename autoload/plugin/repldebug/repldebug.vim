@@ -23,8 +23,7 @@ export enum VariableTag
 	Local
 endenum
 
-class DebugVariables
-	var _win: window.Window
+class DebugVariablesWindow extends window.Window
 	var _variables: dict<dict<Variable>> = {
 		Watch: {},
 		Global: {},
@@ -32,26 +31,15 @@ class DebugVariables
 	}
 
 	def new()
-		this._win = window.Window.new('REPLDebug-Variables')
-		this._win.OnSetBufPost((_) => {
+		this.OnSetBufPost((_) => {
 			g:asyncio.Run(this.Draw())
 		})
 	enddef
 
-	def SetBuffer(buf: buffer.Buffer)
-		this._win.SetBuffer(buf)
-	enddef
-
-	def Fill(tag: VariableTag, d: dict<Variable>)
-		this._variables[tag.name] = d
-
-		g:asyncio.Run(this.Draw())
-	enddef
-
-	def Update(tag: VariableTag, d: dict<Variable>)
+	def Update(tag: VariableTag, vs: dict<Variable>)
 		var vars = this._variables[tag.name]
-		for [k, v] in d->items()
-			vars[k] = v
+		for [k, v] in vs.items()
+			vars[v.Name] = v
 		endfor
 
 		g:asyncio.Run(this.Draw())
@@ -116,42 +104,42 @@ export class Address
 
 	def newAll(this.FileName, this.Lnum, this.Col)
 	enddef
+
+	def string(): string
+		return this.Col == null_string ? $'{this.FileName}:{this.Lnum}' : $'{this.FileName}:{this.Lnum}:{this.Col}'
+	enddef
 endclass
 
-class DebugCodeWindow
+class DebugCodeWindow extends window.Window
 	const signGroup = 'REPLDebug'
 	var _win: window.Window
 	var _breakpoints: dict<dict<Address>>
 
-	def new()
-		this._win.SetBuffer(original)
+	def GetBreakpoints(sessionID: number): dict<Address>
+		return this._breakpoints[sessionID]
 	enddef
 
-	def SetBuffer(buf: buffer.Buffer)
-		this._win.SetBuffer(buf)
-	enddef
-
-	def SetBreakpoint(sessionId: number, breakId: number, addr: Address)
-		var signName = $'{sessionId}-{breakId}'
+	def SetBreakpoint(sessionID: number, breakID: number, addr: Address)
+		var signName = $'{sessionId}-{breakID}'
 		sign_define(signName, {
 			text: '*',
 			texthl: 'red',
 		})
 
-		this._breakpoints[sessionId][breakId] = addr
-		sign_place(breakId, $'{signGroup}-{sessionId}', signName, this._win.GetBufnr(), {lnum: addr.lnum, priority: 110})
+		this._breakpoints[sessionID][breakID] = addr
+		sign_place(breakId, $'{signGroup}-{sessionID}', signName, this._win.GetBufnr(), {lnum: addr.lnum, priority: 110})
 	enddef
 
-	def DeleteBreakpoint(sessionId: number, breakId: number, addr: Address)
-		sign_unplace(signGroup, {buffer: this._win.GetBufnr(), id: breakId})
-		remove(this._breakpoints[sessionId], breakId)
+	def DeleteBreakpoint(sessionID: number, breakID: number, addr: Address)
+		sign_unplace(signGroup, {buffer: this._win.GetBufnr(), id: breakID})
+		remove(this._breakpoints[sessionID], breakID)
 	enddef
 
-	def BreakpointToggle(sessionId: number, breakId: number, addr: Address)
-		if !has_key(this._breakpoints, sessionId) || !has_key(this._breakpoints[sessionId], breakId)
-			this.SetBreakpoint(sessionId: number, breakId: number, addr: Address)
+	def BreakpointToggle(sessionID: number, breakID: number, addr: Address)
+		if !has_key(this._breakpoints, sessionID) || !has_key(this._breakpoints[sessionID], breakID)
+			this.SetBreakpoint(sessionID: number, breakID: number, addr: Address)
 		else
-			this.DeleteBreakpoint(sessionId: number, breakId: number, addr: Address)
+			this.DeleteBreakpoint(sessionID: number, breakID: number, addr: Address)
 		endif
 	enddef
 
@@ -165,7 +153,7 @@ class DebugCodeWindow
 		this._win.SetCursor(addr.Lnum, addr.Col)
 	enddef
 
-	def DeleteSession(sessionId: number, addr: Address)
+	def DeleteSession(sessionId: number)
 		if has_key(this._breakpoints, sessionId)
 			var d = remove(this._breakpoints, sessionId)
 			d->keys()->foreach((_, breakId) => {
@@ -176,39 +164,52 @@ class DebugCodeWindow
 	enddef
 endclass
 
-class DebugStackWindow
-	var _win: window.Window
-
-	def new()
-		this._win = window.Window.new('REPLDebug-Stack')
-	enddef
-
-	def Draw()
-	enddef
-endclass
-
 export class REPLDebugUI
 	var prompt: window.Window
 	var code: DebugCodeWindow
-	var variables: DebugVariablesWindow
-	# var stack: DebugCodeWindow
+	final _extends: dict<window.Window>
 
-	def new()
-		this.code = DebugCodeWindow.new()
-		this.prompt = window.Window.new()
+	def new(prompt: buffer.Buffer)
+		this.code = DebugCodeWindow.newCurrent()
+		this.prompt = window.Window.newByBuffer(prompt)
+	enddef
+
+	def ExtendsWindow(name: string, win: window.Window)
+		this._extends[name] = win
+	enddef
+
+	def GetExtendsWindow(name: string): window.Window
+		return has_key(this._extends, name) ? this._extends[name] : null_object
+	enddef
+
+	def Close()
+		this.prompt.Close()
+		for win in values(this._extends)
+			win.Close()
+		endfor
+		this.code = null_object
 	enddef
 endclass
 
 export class REPLDebugManager
-	var _Session: Ring
 	var _UI: REPLDebugUI
+	var _Session: Ring
 
-	def Open()
-		this._UI = this.REPLDebugUI
+	def Open(repl: REPLDebugBackend)
+		this._UI = this._UI ?? REPLDebugUI.new(repl.prompt)
+		repl.OnInterruptCb(this._OnInterruptCb)
+		repl.SetUI(this._UI)
+
+		if this._Session == null_object
+			this._Session = Ring.new(repl)
+		else
+			this._Session.Add(repl)
+		endif
 	enddef
 
-	def OpenVariablesWindow(): DebugVariables
-		return _Variables ?? DebugVariables.new()
+	def _OnInterruptCb()
+		this._UI.code.DeleteSession(this._Session.Current().id)
+		this.NextSession()
 	enddef
 
 	def NextSession()
@@ -219,9 +220,20 @@ export class REPLDebugManager
 		this._Session.SlideLeft()
 	enddef
 
-	def BreakpointToggle()
-		var cur = _Session.Current()
-		cur.BreakpointToggle()
+	def ToggleBreakpoint()
+		var cur = this._Session.Current()
+		var buf = this._UI.code.GetBuffer()
+		var [lnum, col] = this._UI.code.GetCursorPos()
+		var cmd = cur.HandleToggleBreakpointCmd($'{buf.name}:{lnum}:{col}')
+		if cmd != ""
+			cur.Send(cmd)
+		endif
+	enddef
+
+	def Close()
+		this._Session.ForEach((repl: REPLDebugBackend) => {
+			repl.Delete()
+		})
 	enddef
 endclass
 
@@ -229,60 +241,41 @@ final debug = vim.IncID.new()
 
 export abstract class REPLDebugBackend extends jb.Prompt
 	var id = debug.ID()
-	var UI: REPLDebugUI
-	var _code: buffer.Buffer
-	var _variable: buffer.Buffer
-	var _callStack: buffer.Buffer
+	var _UI: REPLDebugUI
+	var _OnInterruptCb: func()
 
-	abstract def Callback(channel, string) # {{{2
+	abstract def Bufname(): string # {{{2
 	abstract def Prompt(): string # {{{2
+	abstract def HandleToggleBreakpointCmd(text: string): string # {{{2
+	abstract def HandleGotoCmd(text: string): Address
 
-	def VariablesBuffer(): buffer.Buffer
-		this._variable = this._variable ?? buffer.Buffer.new($'REPLDebug-Variables-{this.id}')
-		this._variable.SetVar('&buftype', 'nofile')
-		this._variable.SetVar('&filetype', 'REPLDebugVariable')
-		return this._variable
-	enddef
-
-	def CallStackBuffer(): buffer.Buffer
-		this._callStack = this._callStack ?? buffer.Buffer.new($'REPLDebug-CallStack-{this.id}')
-		this._variable.SetVar('&buftype', 'nofile')
-		this._variable.SetVar('&filetype', 'REPLDebugCallStack')
-		return this._callStack
-	enddef
-
-	def SetUI(ui: REPLDebugUI)
-		this.UI = ui
-		this.UI.code.SetBuffer(this._code)
-		this.UI.prompt.SetBuffer(this.prompt)
-
-		if this.UI.variables != null_object
-			this.UI.variables.SetBuffer(this.VariablesBuffer())
+	def Callback(_: channel, line: string) # {{{2
+		var cmd = this.HandleToggleBreakpointCmd(line)
+		if cmd != ""
+			this.Send(cmd)
+			return
 		endif
 
-		if this.UI.callStack != null_object
-			this.UI.callStack.SetBuffer(this.CallStackBuffer())
+		var addr = this.HandleGotoCmd(line)
+		if addr != null_object
+			this._UI.code.Goto(addr)
+			return
 		endif
-	enddef
 
-	def Goto(addr: Address)
-		this.UI.code.Goto(addr)
-	enddef
+		this.prompt.AppendLine(line)
+	enddef # }}}
 
-	def SetVariable(brakID: number, addr: Address)
-		this.UI.code.SetVariable(this.id, breakID, addr: Address)
-	enddef
+	def OnInterrupt(F: func()) # {{{2
+		this._OnInterruptCb = F
+	enddef # }}}
 
-	def DeleteVariable(brakID: number, addr: Address)
-		this.UI.code.DeleteVariable(this.id, breakID, addr)
-	enddef
+	def InterruptCb() # {{{2
+		this._OnInterruptCb()
+		super.InterruptCb()
+	enddef # }}}
 
-	def ToggleVariable(brakID: number, addr: Address)
-		this.UI.code.ToggleVariable(this.id, breakID, addr)
-	enddef
-
-	def Run()
-		this.CodeBuffer = buffer.Buffer.newCurrent()
-		super.Run()
-	enddef
+	def SetUI(ui: REPLDebugUI) # {{{2
+		this._UI = ui
+		this._UI.prompt.SetBuffer(this.prompt)
+	enddef # }}}
 endclass
