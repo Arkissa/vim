@@ -161,13 +161,13 @@ export class Command # {{{1
 	var _overlay: bool # {{{2
 	var _name: string # {{{2
 	var _F: func(Attr) # {{{2
-	static var _CommandInternalFunctions: dict<func(Attr)> = {} # {{{2
+	static var _CommandInternalFunctions: dict<func> = {} # {{{2
 	static var _CompleteFunctions: dict<func(string, string, number): list<string>> = {} # {{{2
 
 	def new(this._name) # {{{2
 	enddef # }}}
 
-	static def InternalFunction(cmdName: string): func(Attr) # {{{2
+	static def InternalFunction(cmdName: string): func # {{{2
 		return _CommandInternalFunctions[cmdName]
 	enddef # }}}
 
@@ -241,7 +241,12 @@ export class Command # {{{1
 		execute($'command{this._overlay ? '!' : ''} {join(this._attr, ' ')} {this._name} {cmd}')
 	enddef # }}}
 
-	def Callback(F: func(Attr)) # {{{2
+	def Callback(F: func) # {{{2
+		var f = typename(F)
+		if ['func(Attr)', 'func(any)', 'func()']->index(f) == -1
+			throw $'Command Callback: only register func() or func(Attr) type function but got {f}.'
+		endif
+
 		if _CommandInternalFunctions->has_key(this._name) && !this._overlay
 			throw $'E174: Command already exists: use .Overlay() to replace it: {this._name}'
 		endif
@@ -253,48 +258,53 @@ export class Command # {{{1
 
 		_CommandInternalFunctions[this._name] = F
 
-		var s =<< trim END
-		%s %s %s {
-			var mods = <q-mods>
-			var spt = ''
-			if indexof(["aboveleft", "belowright", "botright", "leftabove"], (_, m) => mods =~# m) != -1
-				spt = mods->split(' ')[0]
-			endif
-			var attr = Attr.new(
-				"%s",
-				<q-args>,
-				[<f-args>],
-				!empty(<q-bang>),
-				<line1>,
-				<line2>,
-				<count>,
-				<range>,
-				"<reg>",
-				Mods.new(
-					mods == "silent",
-					mods == "unsilent",
-					mods == "sandbox",
-					mods == "browse",
-					mods == "confirm",
-					mods == "hide",
-					mods == "noautocmd",
-					mods == "noswapfile",
-					mods =~ "horizontal",
-					mods =~ "vertical",
-					mods == "keepalt",
-					mods == "keepjumps",
-					mods == "keepmarks",
-					mods == "keeppatterns",
-					spt,
-					mods == "tab",
-					mods == "verbose",
+		if f == 'func()'
+			execute($'{c} {join(this._attr, " ")} {this._name} call(Command.InternalFunction("{this._name}"), [])')
+			return
+		endif
+
+		var cmd	=<< trim END
+			%s %s %s {
+				var mods = <q-mods>
+				var spt = ''
+				if indexof(["aboveleft", "belowright", "botright", "leftabove"], (_, m) => mods =~# m) != -1
+					spt = mods->split(' ')[0]
+				endif
+				var attr = Attr.new(
+					"%s",
+					<q-args>,
+					[<f-args>],
+					!empty(<q-bang>),
+					<line1>,
+					<line2>,
+					<count>,
+					<range>,
+					"<reg>",
+					Mods.new(
+						mods == "silent",
+						mods == "unsilent",
+						mods == "sandbox",
+						mods == "browse",
+						mods == "confirm",
+						mods == "hide",
+						mods == "noautocmd",
+						mods == "noswapfile",
+						mods =~ "horizontal",
+						mods =~ "vertical",
+						mods == "keepalt",
+						mods == "keepjumps",
+						mods == "keepmarks",
+						mods == "keeppatterns",
+						spt,
+						mods == "tab",
+						mods == "verbose",
+					)
 				)
-			)
-			call(Command.InternalFunction("%s"), [attr])
-		}
+				call(Command.InternalFunction("%s"), [attr])
+			}
 		END
 
-		execute(printf(s->join("\n"), c, join(this._attr, " "), this._name, this._name, this._name))
+		execute(printf(cmd->join("\n"), c, join(this._attr, " "), this._name, this._name, this._name))
 	enddef # }}}
 endclass # }}}
 
