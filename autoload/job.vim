@@ -72,6 +72,10 @@ export abstract class Prompt extends Job # {{{1
 	abstract def Callback(chan: channel, msg: string) # {{{2
 
 	def ExitCb(job: job, code: number) # {{{2
+		if code != 0
+			echo $'Exit Code {code} {v:shell_error}'
+		endif
+
 		this.prompt.Delete()
 	enddef
 
@@ -80,10 +84,6 @@ export abstract class Prompt extends Job # {{{1
 		if chan != null_channel
 			ch_sendraw(chan, $"{msg}\n")
 		endif
-	enddef # }}}
-
-	def EnterCb(_: buffer.Prompt, msg: string) # {{{2
-		this.Send(msg)
 	enddef # }}}
 
 	def InterruptCb() # {{{2
@@ -97,7 +97,7 @@ export abstract class Prompt extends Job # {{{1
 
 		this.prompt	= buffer.Prompt.new(this.Bufname())
 		this.prompt.SetPrompt(this.Prompt())
-		this.prompt.SetCallback(this.EnterCb)
+		this.prompt.SetCallback(this.Send)
 		this.prompt.SetInterrupt(this.InterruptCb)
 
 		this._job = job_start(this._cmd, {

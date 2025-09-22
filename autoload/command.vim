@@ -321,7 +321,7 @@ export abstract class Execute extends jb.Quickfixer # {{{1
 			return
 		endif
 
-		g:asyncio.Run(Coroutine.new(() => {
+		vim.AsyncIO.Run(Coroutine.new(() => {
 			qf.Window()
 			if this._attr.bang
 				qf.JumpFirst()

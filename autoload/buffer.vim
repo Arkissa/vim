@@ -218,7 +218,6 @@ export class Prompt extends Buffer # {{{1
 
 		this.SetVar('&buftype', 'prompt')
 		this.SetVar('&bufhidden', 'wipe')
-		execute('startinsert')
 	enddef # }}}
 
 	def newByBufnr(bufnr: number) # {{{2
@@ -227,7 +226,6 @@ export class Prompt extends Buffer # {{{1
 
 		this.SetVar('&buftype', 'prompt')
 		this.SetVar('&bufhidden', 'wipe')
-		execute('startinsert')
 	enddef # }}}
 
 	def GetPrompt(): string # {{{2
@@ -238,12 +236,12 @@ export class Prompt extends Buffer # {{{1
 		prompt_setprompt(this.bufnr, prompt)
 	enddef # }}}
 
-	def SetCallback(F: func(Prompt, string)) # {{{2
-		prompt_setcallback(this.bufnr, function(F, [this]))
+	def SetCallback(F: func(string)) # {{{2
+		prompt_setcallback(this.bufnr, F)
 	enddef # }}}
 
-	def SetInterrupt(F: func(Prompt)) # {{{2
-		prompt_setinterrupt(this.bufnr, function(F, [this]))
+	def SetInterrupt(F: func()) # {{{2
+		prompt_setinterrupt(this.bufnr, F)
 	enddef # }}}
 endclass # }}}
 

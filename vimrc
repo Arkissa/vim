@@ -116,5 +116,3 @@ g:SimpleSession = {
 g:helptoc = {
 	shell_prompt: '^\$\s'
 }
-
-g:asyncio = vim.AsyncIO.new()

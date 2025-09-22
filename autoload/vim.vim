@@ -161,19 +161,13 @@ export class Coroutine # {{{1
 	enddef # }}}
 endclass # }}}
 
-export class AsyncIO # {{{1 var _returns = {}
-	def Run(co: Coroutine) # {{{2
-		timer_start(co.delay, (_) => {
-			co.Func()
-		})
-	enddef # }}}
-
+export abstract class Async # {{{1
 	def Await<T>(co: Coroutine, timeout: tuple<number, T> = null_tuple): T # {{{2
 		var ret = {}
 		co.UnsafeHookReturn(ret)
 
 		if co.status == CoroutineStatus.Suspended
-			this.Run(co)
+			AsyncIO.Run(co)
 		endif
 
 		var timer = timeout != null_tuple
@@ -197,14 +191,22 @@ export class AsyncIO # {{{1 var _returns = {}
 
 		return val
 	enddef # }}}
+endclass # }}}
 
-	def Gather(...cos: list<Coroutine>): Coroutine # {{{2
+export class AsyncIO extends Async # {{{1
+	static def Run(co: Coroutine) # {{{2
+		timer_start(co.delay, (_) => {
+			co.Func()
+		})
+	enddef # }}}
+
+	static def Gather(...cos: list<Coroutine>): Coroutine # {{{2
 		for co in cos:
-			this.Run(co)
+				AsyncIO.Run(co)
 		endfor
 
 		return Coroutine.new((cs: list<Coroutine>): list<any> => {
 			return cs->mapnew((_, co) => this.Await<any>(co))->filter((_, v) => !instanceof(v, Void))
 		}, cos)
-	enddef # }}}
+	enddef
 endclass # }}}
