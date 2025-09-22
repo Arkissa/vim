@@ -10,7 +10,6 @@ export class Window # {{{1
 	var _on_set_buf_pre: list<func> # {{{2
 	var _on_set_buf_after: list<func> # {{{2
 	var _on_close: list<func> # {{{2
-	var _buf: buffer.Buffer # {{{2
 	static const group = 'WindowClass' # {{{2
 
 	def _Init() # {{{2
@@ -24,27 +23,25 @@ export class Window # {{{1
 	enddef # }}}
 
 	def new(pos: string = '', height: number = 0, name: string = '') # {{{2
-		this._New(pos, height, name)
+		var buf = buffer.Buffer.newByBufnr(this.GetBufnr())
+		this._New(pos, height, name ?? buf.name)
 		this._Init()
-		this._buf = buffer.Buffer.newByBufnr(this.GetBufnr())
 	enddef # }}}
 
 	def newByBufnr(bufnr: number, pos: string = '', height: number = 0) # {{{2
-		this._buf = buffer.Buffer.newByBufnr(bufnr)
-		this._New(pos, height, this._buf.name)
+		var buf = buffer.Buffer.newByBufnr(bufnr)
+		this._New(pos, height, buf.name)
 		this._Init()
 	enddef # }}}
 
 	def newByBuffer(buf: buffer.Buffer, pos: string = '', height: number = 0) # {{{2
-		this._buf = buf
-		this._New(pos, height, this._buf.name)
+		this._New(pos, height, buf.name)
 		this._Init()
 	enddef # }}}
 
 	def newWrap(this.winnr) # {{{2
 		this.winnr = this.winnr < 1000 ? win_getid(this.winnr) : this.winnr
 		this._Init()
-		this._buf = buffer.Buffer.newByBufnr(this.GetBufnr())
 	enddef # }}}
 
 	def newCurrent() # {{{2
@@ -69,7 +66,7 @@ export class Window # {{{1
 	enddef # }}}
 
 	def GetBuffer(): buffer.Buffer # {{{2
-		return this._buf
+		return buffer.Buffer.newByBufnr(this.GetBufnr())
 	enddef # }}}
 
 	def GetBufnr(): number # {{{2
@@ -102,7 +99,6 @@ export class Window # {{{1
 		endfor
 
 		this.Execute($'silent! buffer! {bufnr}')
-		this._buf = buffer.Buffer.newByBufnr(bufnr)
 
 		for F in this._on_set_buf_after
 			F(this)
@@ -115,7 +111,6 @@ export class Window # {{{1
 		endfor
 
 		this.Execute($'silent! buffer! {buf.bufnr}')
-		this._buf = buf
 
 		for F in this._on_set_buf_after
 			F(this)

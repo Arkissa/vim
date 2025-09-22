@@ -40,6 +40,10 @@ export class Ring # {{{1
 	enddef # }}}
 
 	def Current<T>(): T # {{{2
+		if this->empty()
+			return null_object
+		endif
+
 		return this._list[this._i]
 	enddef # }}}
 
@@ -50,6 +54,7 @@ export class Ring # {{{1
 
 		var c = remove(this._list, this._i)
 		if this->empty()
+			this._i = 0
 			return c
 		endif
 
@@ -59,7 +64,11 @@ export class Ring # {{{1
 	enddef # }}}
 
 	def Add<T>(t: T) # {{{2
-		insert(this._list, t, this._i + 1)
+		if this->empty()
+			add(this._list, t)
+		else
+			insert(this._list, t, (this._i + 1))
+		endif
 		this._i = (this._i + 1) % this->len()
 	enddef # }}}
 
@@ -85,7 +94,7 @@ export class Ring # {{{1
 endclass # }}}
 
 export class IncID # {{{1
-	var _id: number
+	var _id = -1
 
 	def ID(): number # {{{2
 		this._id += 1

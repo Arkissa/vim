@@ -7,7 +7,7 @@ import autoload './repldebug.vim'
 type REPLDebugBackend = repldebug.REPLDebugBackend
 type Address = repldebug.Address
 
-export class Delve extends REPLDebugBackend # {{{1
+class Delve extends REPLDebugBackend # {{{1
 	var _dropRegexps = [
 		'^\s\+\d+',
 		'^=>',
@@ -19,7 +19,7 @@ export class Delve extends REPLDebugBackend # {{{1
 	enddef # }}}
 
 	def newAttach(pid: string)
-		this._cmd = $'dlv attach {prg}'
+		this._cmd = $'dlv attach {pid}'
 	enddef
 
 	def Prompt(): string # {{{2
@@ -37,25 +37,32 @@ export class Delve extends REPLDebugBackend # {{{1
 	enddef
 
 	def MakeCommand(text: string): string
-		var [f, lnum, _] = text->split(':')
+		var paths = text->split(':')
+		if paths->len() >= 2
+			paths = paths[ : 2]
+		endif
 
-		var a = Address.new(f, lnum)
-		return this._UI.code.GetBreakpointsByAddress(this.id, a) == -1 ? $'break {f}:{lnum}' : $'clear {f}:{lnum}'
+		var [f, lnum] = paths
+
+		return has_key(this._UI.code.GetBreakpoints(this.id), $'{f}:{lnum}')
+			? $'clear {f}:{lnum}'
+			: $'break {f}:{lnum}'
 	enddef
 
-	def HandleToggleBreakpoint(text: string): tuple<number, Address>
-		var m = matchlist(text, '^Breakpoint\s\(\d\+\)\s.\{-\}\(.\{,1\}/.*\.go:\d\+\)')
+	def HandleToggleBreakpoint(text: string): Address
+		var m = matchlist(text, '^Breakpoint\s\d\+\s.\{-\}\(.\{,1\}/.*\.go:\d\+\)')
 		if m->len() != 10
-			return null_tuple
+			return null_object
 		endif
 
 		var path = m[2]->split(':')
-		if path->empty()
-			return null_tuple
+		if path->len() < 2
+			return null_object
 		endif
 
-		var [f, lnum] = path
-		return (m[1]->str2nr(), Address.new(f, lnum->str2nr()))
+		var [f, lnum] = path[ : 2]
+
+		return Address.new(f, lnum->str2nr())
 	enddef
 
 	def HandleGoto(text: string): Address
@@ -73,3 +80,5 @@ export class Delve extends REPLDebugBackend # {{{1
 		return Address.new(fnamemodify(f, ':.'), lnum->str2nr())
 	enddef
 endclass # }}}
+
+export type Backend = Delve

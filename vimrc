@@ -116,3 +116,7 @@ g:SimpleSession = {
 g:helptoc = {
 	shell_prompt: '^\$\s'
 }
+
+g:REPLDebugConfig = {
+	go: 'plugin/repldebug/delve'
+}
