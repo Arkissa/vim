@@ -42,6 +42,7 @@ if executable('gopls')
 					shadow: false, unusedparams: false, SA5008: false,
 					QF1002: false, QF1003: false, any: false, SA4: false,
 				   	ST1020: false, ST1003: false, ST1001: false,
+					ST1021: false, ST1022: false,
 					ST1000: false, S1033: false, S1028: false, # temporary
 				},
 				staticcheck: true,
