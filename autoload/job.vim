@@ -72,11 +72,10 @@ export abstract class Prompt extends Job # {{{1
 	abstract def Callback(chan: channel, msg: string) # {{{2
 
 	def ExitCb(job: job, code: number) # {{{2
-		if code != 0
-			echo $'Exit Code {code} {v:shell_error}'
-		endif
-
 		this.prompt.Delete()
+		if code != 0
+			echo $'Exit Code {code}'
+		endif
 	enddef
 
 	def Send(msg: string) # {{{2
