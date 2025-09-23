@@ -30,12 +30,18 @@ def RegisterKeymap(bind: Bind, kvs: dict<any>)
 	endfor
 enddef
 
-def RegisterByFt(exe: command.Execute, keymaps: tuple<Bind, dict<any>> = null_tuple)
+def RegisterByFt(exe: command.Execute, keymaps: dict<any> = null_dict)
 	obj = exe
-	if keymaps != null_tuple
-		var [bind, maps] = keymaps
-		RegisterKeymap(bind.Buffer(), maps)
+	if keymaps == null_dict
+		return
 	endif
+
+	var bind = get(keymaps, 'bind', null_object)
+	if bind == null_object
+		return
+	endif
+
+	RegisterKeymap(bind.Buffer(), keymaps->filter((k, _) => k != 'bind'))
 enddef
 
 for conf in g:GrepConfig
@@ -48,15 +54,16 @@ for conf in g:GrepConfig
 	var module = fnamemodify(conf.name, ':t:r')
 	cache[module] = eval($'{module}.Grep.{has_key(conf, 'args') ? 'new(conf.args)' : 'new()'}')
 
+	var ft = ['*']
+
 	if has_key(conf, 'ft')
-		Autocmd.new('FileType')
-			.Group(group)
-			.Pattern(type(conf.ft) == type(null_string) ? [conf.ft] : (conf.ft ?? ['*']))
-			.Callback(funcref(RegisterByFt, [cache[module], has_key(conf, 'keymaps') ? conf.keymaps : null_tuple]))
-	elseif has_key(conf, 'keymaps')
-		var [bind: Bind, maps: dict<any>] = conf.keymaps
-		RegisterKeymap(bind, maps)
+		ft = type(conf.ft) == type(null_string) ? [conf.ft] : (conf.ft ?? ft)
 	endif
+
+	Autocmd.new('FileType')
+		.Group(group)
+		.Pattern(ft)
+		.Callback(funcref(RegisterByFt, [cache[module], has_key(conf, 'keymaps') ? conf.keymaps : null_dict]))
 endfor
 
 Command.new("Grep")

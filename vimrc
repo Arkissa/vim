@@ -21,20 +21,22 @@ g:GrepConfig = [
 		name: 'plugin/greps/grepprg',
 		Init: () => {
 			&grepprg = vim.Cmd(['grep', '-r', '-n', '$*'])
+		},
+		keymaps: {
+			bind: Bind.new(Mods.n).Buffer().NoRemap(),
+			['\w']: ':Grep ',
 		}
 	},
 	{
 		name: 'plugin/greps/cgrep',
 		ft: 'go',
-		keymaps: (
-			Bind.new(Mods.n).NoRemap(),
-			{
-				['\w']: ':Grep ',
-				['\s']: ':Grep --string ',
-				['\r']: ':Grep -G ',
-				['\d']: ':Grep --name <C-r><C-w>',
-			}
-		),
+		keymaps: {
+			bind: Bind.new(Mods.n).Buffer().NoRemap(),
+			['\w']: ':Grep ',
+			['\s']: ':Grep --string ',
+			['\r']: ':Grep -G ',
+			['\d']: ':Grep --name <C-r><C-w>',
+		},
 		args: {
 			types: ["Go"],
 			pruneDirs: ["proto", "3rd", "bin", "node_modules", "dist-newstyle", ".git"],
