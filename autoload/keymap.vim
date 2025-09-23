@@ -24,15 +24,15 @@ export class Bind # {{{1
 
 	static def InternalFunction(name: string): func() # {{{2
 		return _mapFunction[name]
-	enddef
+	enddef # }}}
 
 	def new(m: Mods) # {{{2
 		this._mods->add(m)
-	enddef
+	enddef # }}}
 
 	def newMulti(...ms: list<Mods>) # {{{2
 		this._mods->extend(ms)
-	enddef
+	enddef # }}}
 
 	def ScriptCmd(lhs: string, Rhs: func()): Bind # {{{2
 		if this._When != null_function && !call(this._When, [])
@@ -59,7 +59,7 @@ export class Bind # {{{1
 		endfor
 
 		return this
-	enddef
+	enddef # }}}
 
 	def Map(lhs: string, rhs: string): Bind # {{{2
 		if this._When != null_function && !call(this._When, [])
@@ -83,50 +83,50 @@ export class Bind # {{{1
 		endfor
 
 		return this
-	enddef
+	enddef # }}}
 
 	def Buffer(): Bind # {{{2
 		this._args->add('<buffer>')
 		return this
-	enddef
+	enddef # }}}
 
 	def NoWait(): Bind # {{{2
 		this._args->add('<nowait>')
 		return this
-	enddef
+	enddef # }}}
 
 	def Silent(): Bind # {{{2
 		this._args->add('<silent>')
 		return this
-	enddef
+	enddef # }}}
 
 	def Special(): Bind # {{{2
 		this._args->add('<special>')
 		return this
-	enddef
+	enddef # }}}
 
 	def Script(): Bind # {{{2
 		this._args->add('<script>')
 		return this
-	enddef
+	enddef # }}}
 
 	def Expr(): Bind # {{{2
 		this._args->add('<expr>')
 		return this
-	enddef
+	enddef # }}}
 
 	def Unique(): Bind # {{{2
 		this._args->add('<unique>')
 		return this
-	enddef
+	enddef # }}}
 
 	def NoRemap(): Bind # {{{2
 		this._noremap = true
 		return this
-	enddef
+	enddef # }}}
 
 	def When(F: func(): bool): Bind # {{{2
 		this._When = F
 		return this
-	enddef
-endclass
+	enddef # }}}
+endclass # }}}
