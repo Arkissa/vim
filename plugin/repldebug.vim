@@ -19,58 +19,59 @@ const group = 'REPLDebug'
 var manager = REPLDebugManager.new()
 var REPLDebugConfig: dict<string> = g:REPLDebugConfig
 
+def REPLDebug(expr: string, exprAttach: string)
+	Command.new('REPLDebug')
+		.Bar()
+		.Buffer()
+		.Overlay()
+		.NArgs(NArgs.Star)
+		.Callback((attr) => {
+			manager.Open(eval(printf(expr, attr.args)))
+		})
+
+	Command.new('REPLDebugAttach')
+		.Bar()
+		.Buffer()
+		.Overlay()
+		.NArgs(NArgs.One)
+		.Callback((attr) => {
+			manager.Open(eval(printf(exprAttach, attr.args)))
+		})
+
+	Command.new('REPLDebugClose')
+		.Bar()
+		.Buffer()
+		.Overlay()
+		.Callback(() => {
+			manager.Close()
+			manager = REPLDebugManager.new()
+		})
+
+	Command.new('REPLDebugSessionPrev')
+		.Bar()
+		.Buffer()
+		.Overlay()
+		.Callback(manager.PrevSession)
+
+	Command.new('REPLDebugSessionNext')
+		.Bar()
+		.Buffer()
+		.Overlay()
+		.Callback(manager.NextSession)
+
+	Command.new('ToggleBreakpoint')
+		.Bar()
+		.Buffer()
+		.Overlay()
+		.Callback(manager.ToggleBreakpoint)
+enddef
+
 for [ft, module] in REPLDebugConfig->items()
-	import autoload $'{module}.vim' as REPL
+	import autoload $'{module}.vim'
 
-	var REPLDebug = () => {
-		Command.new('REPLDebug')
-			.Bar()
-			.Buffer()
-			.Overlay()
-			.NArgs(NArgs.Star)
-			.Callback((attr) => {
-				manager.Open(eval($'REPL.Backend.new("{attr.args}")'))
-			})
-
-		Command.new('REPLDebugAttach')
-			.Bar()
-			.Buffer()
-			.Overlay()
-			.NArgs(NArgs.One)
-			.Callback((attr) => {
-				manager.Open(eval($'REPL.Backend.newAttach("{attr.args}")'))
-			})
-
-		Command.new('REPLDebugClose')
-			.Bar()
-			.Buffer()
-			.Overlay()
-			.Callback(() => {
-				manager.Close()
-				manager = REPLDebugManager.new()
-			})
-
-		Command.new('REPLDebugSessionPrev')
-			.Bar()
-			.Buffer()
-			.Overlay()
-			.Callback(manager.PrevSession)
-
-		Command.new('REPLDebugSessionNext')
-			.Bar()
-			.Buffer()
-			.Overlay()
-			.Callback(manager.NextSession)
-
-		Command.new('ToggleBreakpoint')
-			.Bar()
-			.Buffer()
-			.Overlay()
-			.Callback(manager.ToggleBreakpoint)
-	}
-
+	var m = fnamemodify(module, ':t:r')
 	Autocmd.new('FileType')
 		.Group(group)
 		.Pattern([ft])
-		.Callback(REPLDebug)
+		.Callback(function(REPLDebug, [$'{m}.Backend.new("%s")', $'{m}.Backend.newAttach("%s")']))
 endfor

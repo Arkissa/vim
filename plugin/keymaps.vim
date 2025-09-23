@@ -1,7 +1,6 @@
 vim9script
 
 import '../autoload/keymap.vim'
-import '../autoload/plugin/greps/cgrep.vim'
 
 type Bind = keymap.Bind
 type Mods = keymap.Mods
@@ -38,14 +37,6 @@ Bind.new(Mods.n)
 	.ScriptCmd('<Leader>]', () => {
 		appendbufline(bufnr(), line('.'), '')
 	})
-
-Bind.new(Mods.n)
-	.When(() => instanceof(g:Grep, cgrep.Cgrep))
-	.NoRemap()
-	.Map('\w', ':Grep ')
-	.Map('\s', ':Grep --string ')
-	.Map('\r', ':Grep -G ')
-	.Map('\d', ':Grep --name <C-r><C-w>')
 
 Bind.new(Mods.c)
 	.NoWait()

@@ -3,7 +3,7 @@ vim9script
 import autoload "vim.vim"
 import autoload "command.vim"
 
-export class Grepprg extends command.ErrorFormat
+class Grepprg extends command.ErrorFormat
 	def Cmd(): string
 		var args = []
 		var ignores = split(&wildignore, ',')
@@ -22,3 +22,5 @@ export class Grepprg extends command.ErrorFormat
 		return &grepformat
 	enddef
 endclass
+
+export type Grep = Grepprg

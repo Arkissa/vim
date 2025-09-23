@@ -3,7 +3,7 @@ vim9script
 import autoload 'vim.vim'
 import autoload 'command.vim'
 
-export class Cgrep extends command.ErrorFormat
+class Cgrep extends command.ErrorFormat
 	var _command = ["cgrep", "-r"]
 
 	def new(args: dict<any> = {})
@@ -33,3 +33,5 @@ export class Cgrep extends command.ErrorFormat
 		])
 	enddef
 endclass
+
+export type Grep = Cgrep

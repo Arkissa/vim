@@ -1,6 +1,6 @@
 vim9script
 
-if !exists("g:Linters")
+if !exists("g:LinterConfig")
 	finish
 endif
 
@@ -10,22 +10,15 @@ import '../autoload/autocmd.vim'
 type Command = command.Command
 type Autocmd = autocmd.Autocmd
 
-# type check
-g:Linters->values()
-	->map((_, d) => d.lint)
-	->foreach((_, k: command.Execute) => {
-	})
-
 const group = "Linter"
 
-const fts = g:Linters->keys()
+const fts = g:LinterConfig->keys()
 
-Autocmd.new('FileType')
-	.Group(group)
-	.Pattern(fts)
-	.Replace()
-	.Callback(() => {
-		var conf = g:Linters[&filetype]
+for [ft, conf] in g:LinterConfig->items()
+	import autoload $'{conf.name}.vim'
+
+	var expr = $'{fnamemodify(conf.name, ':t:r')}.Lint.new()'
+	var Register = () => {
 		if conf->has_key('onSaveCmd')
 			Autocmd.new('BufWritePost')
 				.Group(group)
@@ -33,6 +26,8 @@ Autocmd.new('FileType')
 				.Replace()
 				.Command(conf.onSaveCmd)
 		endif
+
+		var lint: command.Execute = eval(expr)
 
 		Command.new("Lint")
 			.Bar()
@@ -45,7 +40,7 @@ Autocmd.new('FileType')
 					return
 				endif
 
-				conf.lint.Attr(attr).Run()
+				lint.Attr(attr).Run()
 			})
 
 		Command.new("LLint")
@@ -59,6 +54,13 @@ Autocmd.new('FileType')
 					return
 				endif
 
-				conf.lint.Attr(attr, true).Run()
+				lint.Attr(attr, true).Run()
 			})
-	})
+	}
+
+	Autocmd.new('FileType')
+		.Group(group)
+		.Pattern([ft])
+		.Replace()
+		.Callback(Register)
+endfor

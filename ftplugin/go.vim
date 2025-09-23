@@ -4,14 +4,13 @@ import '../autoload/vim.vim'
 import '../autoload/path.vim'
 import '../autoload/keymap.vim'
 import '../autoload/command.vim'
-import '../autoload/autocmd.vim' as au
-import '../autoload/plugin/greps/cgrep.vim'
+import '../autoload/autocmd.vim'
 
 type Bind = keymap.Bind
 type Mods = keymap.Mods
-type Autocmd = au.Autocmd
-type Command = command.Command
 type NArgs = command.NArgs
+type Autocmd = autocmd.Autocmd
+type Command = command.Command
 
 :setlocal nolist
 :setlocal nowrap

@@ -2,8 +2,61 @@ vim9script
 
 import './autoload/vim.vim'
 import './autoload/path.vim'
-import './autoload/plugin/greps/cgrep.vim'
-import './autoload/plugin/linters/golangci.vim'
+import './autoload/keymap.vim'
+
+type Bind = keymap.Bind
+type Mods = keymap.Mods
+
+g:mapleader = ' '
+g:netrw_dirhistmax = 0
+g:netrw_keepj = 'keepj'
+g:dispatch_no_maps = 1
+
+g:REPLDebugConfig = {
+	go: 'plugin/repldebug/delve'
+}
+
+g:GrepConfig = [
+	{
+		name: 'plugin/greps/grepprg',
+		Init: () => {
+			&grepprg = vim.Cmd(['grep', '-r', '-n', '$*'])
+		}
+	},
+	{
+		name: 'plugin/greps/cgrep',
+		ft: 'go',
+		keymaps: (
+			Bind.new(Mods.n).NoRemap(),
+			{
+				['\w']: ':Grep ',
+				['\s']: ':Grep --string ',
+				['\r']: ':Grep -G ',
+				['\d']: ':Grep --name <C-r><C-w>',
+			}
+		),
+		args: {
+			types: ["Go"],
+			pruneDirs: ["proto", "3rd", "bin", "node_modules", "dist-newstyle", ".git"],
+			kind: ["Language"]
+		}
+	}
+]
+
+g:LinterConfig = {
+	go: {
+		name: 'plugin/linters/golangci',
+		# onSaveCmd: 'silent LLint %:p:h'
+	}
+}
+
+g:SimpleSession = {
+	saveOnVimLeave: true
+}
+
+g:helptoc = {
+	shell_prompt: '^\$\s'
+}
 
 if has('gui_running')
     :set guicursor=n-v-c:block,i-ci:ver25,r-cr:hor20,o:hor50
@@ -89,34 +142,3 @@ var stateDir = path.OsStateDir()
 if $MYVIMDIR =~# $'^{getcwd()}'
 	&wildignore ..= ',pack/'
 endif
-
-g:mapleader = ' '
-g:netrw_dirhistmax = 0
-g:dispatch_no_maps = 1
-
-g:Linters = {
-	go: {
-		lint: golangci.GolangCiLint.new(),
-		onSaveCmd: "silent LLint %:p:h"
-	}
-}
-
-&grepprg = vim.Cmd(['grep', '-r', '-n', '$*'])
-
-g:Grep = cgrep.Cgrep.new({
-	types: ["Go"],
-	pruneDirs: ["proto", "3rd", "bin", "node_modules", "dist-newstyle", ".git"],
-	kind: ["Language"]
-})
-
-g:SimpleSession = {
-	saveOnVimLeave: true
-}
-
-g:helptoc = {
-	shell_prompt: '^\$\s'
-}
-
-g:REPLDebugConfig = {
-	go: 'plugin/repldebug/delve'
-}

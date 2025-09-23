@@ -211,12 +211,15 @@ export class REPLDebugUI
 		this.code = DebugCodeWindow.new()
 	enddef
 
-	def SetPrompt(prompt: buffer.Buffer)
-		this.prompt = window.Window.newByBuffer(prompt)
+	def SetPrompt(prompt: buffer.Buffer, pos: string = '', height: number = 0)
+		if this.prompt == null_object
+			this.prompt = window.Window.new(pos, height, '')
+		elseif height != 0
+			this.prompt.Resize(height)
+		endif
+
+		this.prompt.SetBuffer(prompt)
 		this.prompt.Execute('startinsert')
-		this.prompt.OnSetBufPost((w) => {
-			w.Execute('startinsert')
-		})
 	enddef
 
 	def ExtendsWindow(name: string, win: window.Window)
@@ -279,7 +282,6 @@ export abstract class REPLDebugBackend extends jb.Prompt
 
 	def SetUI(ui: REPLDebugUI)
 		this._UI = ui
-		this._UI.prompt.SetBuffer(this.prompt)
 	enddef
 endclass
 
@@ -345,9 +347,9 @@ export class REPLDebugManager
 		])
 	enddef
 
-	def Open(repl: REPLDebugBackend)
+	def Open(repl: REPLDebugBackend, pos: string = '', count: number = 0)
 		repl.Run()
-		this._UI.SetPrompt(repl.prompt)
+		this._UI.SetPrompt(repl.prompt, pos, count)
 		repl.OnInterruptCb(this._OnInterruptCb)
 		repl.SetUI(this._UI)
 
