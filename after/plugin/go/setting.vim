@@ -25,6 +25,7 @@ if executable('gopls')
 					'-proto/',
 					'-docs/',
 					'-tools/',
+					'-common/redisx/',
 				],
 				workspaceFiles: [
 					'app/**',
