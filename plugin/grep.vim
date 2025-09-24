@@ -4,6 +4,9 @@ if !exists("g:GrepConfig") || g:GrepConfig->empty()
 	finish
 endif
 
+# type check
+var grepConfig: list<dict<any>> = g:GrepConfig
+
 import '../autoload/command.vim'
 import '../autoload/autocmd.vim'
 import '../autoload/keymap.vim'
@@ -16,9 +19,9 @@ type Complete = command.Complete
 
 const group = 'Grep'
 
-var obj: command.Execute
-var cache: dict<command.Execute> = {}
-var grepConfig: list<dict<any>> = g:GrepConfig
+var cache: dict<command.Execute> = {
+	current: null_object
+}
 
 def RegisterKeymap(bind: Bind, kvs: dict<any>)
 	for [k, v] in kvs->items()
@@ -30,40 +33,34 @@ def RegisterKeymap(bind: Bind, kvs: dict<any>)
 	endfor
 enddef
 
-def RegisterByFt(exe: command.Execute, keymaps: dict<any> = null_dict)
-	obj = exe
-	if keymaps == null_dict
-		return
-	endif
-
-	var bind = get(keymaps, 'bind', null_object)
-	if bind == null_object
-		return
-	endif
-
-	RegisterKeymap(bind.Buffer(), keymaps->filter((k, _) => k != 'bind'))
-enddef
-
 for conf in g:GrepConfig
-	import autoload $'{conf.name}.vim'
+	import autoload $'{conf.module}.vim'
 
 	if has_key(conf, 'Init') && type(conf['Init']) == type(null_function)
-		call(conf['Init'], [])
+		call(conf.Init, [])
 	endif
 
-	var module = fnamemodify(conf.name, ':t:r')
-	cache[module] = eval($'{module}.Grep.{has_key(conf, 'args') ? 'new(conf.args)' : 'new()'}')
+	var obj: command.Execute = eval($'{fnamemodify(conf.module, ':t:r')}.Grep.{has_key(conf, 'args') ? 'new(conf.args)' : 'new()'}')
 
-	var ft = ['*']
-
+	var fts = ['*']
 	if has_key(conf, 'ft')
-		ft = type(conf.ft) == type(null_string) ? [conf.ft] : (conf.ft ?? ft)
+		fts = type(conf.ft) == type(null_string) ? [conf.ft] : (conf.ft ?? fts)
 	endif
 
-	Autocmd.new('FileType')
-		.Group(group)
-		.Pattern(ft)
-		.Callback(funcref(RegisterByFt, [cache[module], has_key(conf, 'keymaps') ? conf.keymaps : null_dict]))
+	uniq(fts)
+
+	if has_key(conf, 'keymaps') && has_key(conf.keymaps, 'bind')
+		var bind: Bind = conf.keymaps.bind
+
+		Autocmd.new('FileType')
+			.Group(group)
+			.Pattern(fts)
+			.Callback(funcref(RegisterKeymap, [bind, conf.keymaps->filter((k, _) => k != 'bind')]))
+	endif
+
+	fts->foreach((_, ft) => {
+		cache[ft] = obj
+	})
 endfor
 
 Command.new("Grep")
@@ -71,8 +68,14 @@ Command.new("Grep")
 	.Bang()
 	.NArgs(command.NArgs.Star)
 	.Callback((attr) => {
-		if obj != null_object
-			obj.Attr(attr).Run()
+		if cache.current != null_object
+			cache.current.Attr(attr).Run()
+		elseif has_key(cache, &filetype)
+			cache.current = cache[&filetype]
+			cache.current.Attr(attr).Run()
+		elseif has_key(cache, '*')
+			cache.current = cache['*']
+			cache.current.Attr(attr).Run()
 		else
 			echoerr 'No defined Grep.'
 		endif
@@ -81,12 +84,19 @@ Command.new("Grep")
 Command.new('GrepChange')
 	.NArgs(command.NArgs.One)
 	.Complete(Complete.CustomList, (A, L, P): list<string> => {
-		return cache->keys()
+		return grepConfig->mapnew((_, conf) => fnamemodify(conf.module, ':t:r'))
 	})
 	.Callback((attr) => {
-		if has_key(cache, attr.args)
-			obj = cache[attr.args]
-		else
+		var i = grepConfig->indexof((_, conf) => fnamemodify(conf.module, ':t:r') == attr.args)
+		if i == -1
 			echoerr $'unknown Grep {attr.args}'
 		endif
+
+		var conf = grepConfig[i]
+		var ft = '*'
+		if has_key(conf, 'ft')
+			ft = type(conf.ft) == type(null_string) ? conf.ft : conf.ft[0]
+		endif
+
+		cache.current = cache[ft]
 	})

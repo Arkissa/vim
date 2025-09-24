@@ -7,18 +7,19 @@ import './autoload/keymap.vim'
 type Bind = keymap.Bind
 type Mods = keymap.Mods
 
+g:LspServers = []
 g:mapleader = ' '
-g:netrw_dirhistmax = 0
 g:netrw_keepj = 'keepj'
+g:netrw_dirhistmax = 0
 g:dispatch_no_maps = 1
 
 g:REPLDebugConfig = {
-	go: 'plugin/repldebug/delve'
+	go: 'plugin/repldebug/delve',
 }
 
 g:GrepConfig = [
 	{
-		name: 'plugin/greps/grepprg',
+		module: 'plugin/greps/grepprg',
 		Init: () => {
 			&grepprg = vim.Cmd(['grep', '-r', '-n', '$*'])
 		},
@@ -28,7 +29,7 @@ g:GrepConfig = [
 		}
 	},
 	{
-		name: 'plugin/greps/cgrep',
+		module: 'plugin/greps/cgrep',
 		ft: 'go',
 		keymaps: {
 			bind: Bind.new(Mods.n).Buffer().NoRemap(),
@@ -47,7 +48,7 @@ g:GrepConfig = [
 
 g:LinterConfig = {
 	go: {
-		name: 'plugin/linters/golangci',
+		module: 'plugin/linters/golangci',
 		# onSaveCmd: 'silent LLint %:p:h'
 	}
 }
@@ -68,10 +69,7 @@ else
     &t_SR = "\e[4 q"
 endif
 
-if exists('+comments')
-    :packadd comment
-endif
-
+:packadd comment
 :packadd cfilter
 :packadd nohlsearch
 :packadd hlyank
@@ -126,7 +124,8 @@ var stateDir = path.OsStateDir()
 	'winpos', 'resize', 'terminal', 'folds', 'help',
 	'localoptions'
 ])
-&completeopt = vim.Option(['menuone', 'noinsert', 'noselect', 'fuzzy', 'popup', 'preview'])
+&completeopt = vim.Option(['menuone', 'noinsert', 'noselect', 'fuzzy', 'popup', 'preview', 'longest'])
+&completefuzzycollect = vim.Option(['keyword', 'files', 'whole_line'])
 &completeitemalign = vim.Option(['kind', 'abbr', 'menu'])
 &suffixes = vim.Option(['.bak', '~', '.o', '.h', '.info', '.swp', '.obj', '.pyc', '.pyo', '.egg-info', '.class'])
 &wildignore = vim.Option([
@@ -138,7 +137,7 @@ var stateDir = path.OsStateDir()
 	'*.bmp', '*.tga', '*.pcx', '*.ppm', '*.img', '*.iso', '*.so',
 	'*.swp', '*.zip', '*/.Trash/**', '*.pdf', '*.dmg', '*/.rbenv/**',
  	'*/.nx/**', '*.app', '*.git', '.git/', '__pycache__/', 'dist-newstyle/',
- 	'*.wav', '*.mp3', '*.ogg', '*.pcm', 'node_modules/', '*.pb.*'
+ 	'*.wav', '*.mp3', '*.ogg', '*.pcm', 'node_modules/', '*.pb.*', '*/3rd/**'
 ])
 
 if $MYVIMDIR =~# $'^{getcwd()}'
