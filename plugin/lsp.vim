@@ -19,10 +19,10 @@ Autocmd.new('User')
 	.Pattern(['LspAttached'])
 	.Callback(() => {
 		if LspHas('documentFormatting')
-			:setlocal formatexpr=lsp.FormatExpr()
+			&l:formatexpr = 'lsp.FormatExpr()'
 		endif
 
-		:setlocal tagfunc=lsp.TagFunc
+		&l:tagfunc = lsp.TagFunc
 
 		Bind.new(Mods.i)
 			.NoRemap()
@@ -72,14 +72,15 @@ g:LspOptionsSet({
     autoHighlight: true,
     autoHighlightDiags: true,
     completionMatcher: 'fuzzy',
-    completionMatcherValue: 1,
+	completionTextEdit: true,
     diagSignErrorText: '✘',
     diagSignWarningText: '',
     diagSignHintText: '',
     diagSignInfoText: '',
+	snippetSupport: true,
     keepFocusInDiags: true,
     keepFocusInReferences: true,
-    completionTextEdit: true,
+	ignoreMissingServer: false,
 	outlineOnRight: true,
 	outlineWinSize: 50,
     popupBorder: true,
@@ -93,6 +94,9 @@ g:LspOptionsSet({
     showDiagWithSign: true,
     showInlayHints: true,
     showSignature: true,
+	condensedCompletionMenu: true,
+	filterCompletionDuplicates: true,
+	useBufferCompletion: true,
     useQuickfixForLocations: true,
     usePopupInCodeAction: true,
     bufferCompletionTimeout: 100,
@@ -126,33 +130,3 @@ g:LspOptionsSet({
 		Buffer: ''
     },
 })
-
-var lsp_servers = [
-    {
-		name: 'python',
-		filetype: ['python'],
-		path: 'basedpyright-langserver',
-		args: ["--stdio"],
-		workspaceConfig: {
-			python: {
-				autoSearchPaths: true,
-				useLibraryCodeForTypes: true,
-				analysis: {
-					diagnosticMode: 'workspace',
-					typeCheckingMode: 'recommended',
-					inlayHints: {
-						variableTypes: true,
-						callArgumentNames: true,
-						functionReturnTypes: true,
-						genericTypes: true,
-					}
-				}
-			}
-		},
-    },
-]
-
-Autocmd.new('User')
-	.Group('Lsp')
-	.Pattern(['LspSetup'])
-	.Callback(funcref(g:LspAddServer, [lsp_servers->filter((_, server) => executable(server.path) == 1)]))
