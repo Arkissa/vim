@@ -6,10 +6,10 @@ import '../autoload/quickfix.vim'
 type Bind = keymap.Bind
 type Mods = keymap.Mods
 
-:setlocal nolist
-:setlocal nowrap
-:setlocal nobuflisted
-:setlocal norelativenumber
+&l:list = false
+&l:wrap = false
+&l:buflisted = false
+&l:relativenumber = false
 
 Bind.new(Mods.n)
 	.NoRemap()

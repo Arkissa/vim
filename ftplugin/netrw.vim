@@ -1,7 +1,7 @@
 vim9script
 
-:setlocal nolist
-:setlocal nowrap
-:setlocal nobuflisted
-:setlocal norelativenumber
-:setlocal bufhidden=wipe
+&l:list = false
+&l:wrap = false
+&l:bufhidden = 'wipe'
+&l:buflisted = false
+&l:relativenumber = false

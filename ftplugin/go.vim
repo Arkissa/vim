@@ -12,9 +12,9 @@ type NArgs = command.NArgs
 type Autocmd = autocmd.Autocmd
 type Command = command.Command
 
-:setlocal nolist
-:setlocal nowrap
-:setlocal formatprg=golangci-lint\ fmt\ --stdin
+&l:list = false
+&l:wrap = false
+&l:formatprg = 'golangci-lint fmt --stdin'
 
 const group = "Go"
 

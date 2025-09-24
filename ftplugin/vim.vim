@@ -1,3 +1,3 @@
 vim9script
 
-:setlocal foldmethod=marker
+&l:foldmethod = 'marker'
