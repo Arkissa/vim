@@ -1,12 +1,16 @@
 vim9script
 
 import './log.vim'
+import './vim.vim'
 import './autocmd.vim'
 import './window.vim'
 import './buffer.vim'
 
 type Buffer = buffer.Buffer # {{{1
 type Autocmd = autocmd.Autocmd # {{{1
+type Coroutine = vim.Coroutine
+
+const AsyncIO = vim.AsyncIO
 
 export enum Action # {{{1
 	A('a'),
@@ -381,22 +385,27 @@ export class Previewer # {{{1
 		return false
 	enddef
 
-	static def _WinOption(win: window.Popup) # {{{2
+	# static def _WinOption(win: window.Popup) # {{{2
+	static def _WinOption(opt: autocmd.EventArgs) # {{{2
+		var win: window.Popup = opt.data
 		win.SetVar("&number", true)
 		win.SetVar("&cursorline", true)
 		win.SetVar("&relativenumber", false)
 	enddef
 
-	static def _DetectFiletype(win: window.Popup) # {{{2
-		timer_start(0, (_) => {
+	# static def _DetectFiletype(win: window.Popup) # {{{2
+	static def _DetectFiletype(opt: autocmd.EventArgs) # {{{2
+		AsyncIO.Run(Coroutine.new((win) => {
 			var ft = win.GetVar('&filetype')
 			if ft == ""
 				win.Execute("filetype detect")
 			endif
-		})
+		}, opt.data))
 	enddef
 
-	static def _AddHightlightText(win: window.Popup) # {{{2
+	# static def _AddHightlightText(win: window.Popup) # {{{2
+	static def _AddHightlightText(opt: autocmd.EventArgs) # {{{2
+		var win: window.Popup = opt.data
 		var item = _qf.GetItemUnderTheCursor()
 		if item == null_object
 			return
@@ -414,14 +423,17 @@ export class Previewer # {{{1
 		})
 	enddef
 
-	static def _RemoveHightlightText(win: window.Popup) # {{{2
+	static def _RemoveHightlightText(opt: autocmd.EventArgs) # {{{2
+		var win: window.Popup = opt.data
 		prop_remove({
 			type: _prop_name,
 			bufnr: win.GetBufnr()
 		})
 	enddef
 
-	static def _DeleteHightlightName(win: window.Popup, _: any) # {{{2
+	static def _DeleteHightlightName(opt: autocmd.EventArgs) # {{{2
+		var data: tuple<window.Popup, any> = opt.data
+		var [win, _] = data
 		prop_remove({
 			type: _prop_name,
 			bufnr: win.GetBufnr()
@@ -447,6 +459,7 @@ export class Previewer # {{{1
 		prop_type_add(_prop_name, {
 			highlight: "Cursor",
 			override: true,
+			priority: 100,
 		})
 
 		var wininfo = getwininfo(winId)[0]
@@ -466,15 +479,32 @@ export class Previewer # {{{1
 		})
 
 		_window.SetFilter(_Filter)
-		_window.OnSetBufPre(_RemoveHightlightText)
-		_window.OnSetBufPost(_DetectFiletype, _WinOption, _AddHightlightText)
-		_window.OnClose(_DeleteHightlightName)
 		_CreateAutocmd(_window, winbufnr(winId))
 		_SetCursorUnderBuff()
 	enddef
 
 	static def _CreateAutocmd(win: window.Popup, bufnr: number) # {{{2
 		var group = "Quickfix.Previewer"
+		Autocmd.new('BufWinLeave')
+			.Group(group)
+			.Pattern([win.winnr->string()])
+			.Callback(_RemoveHightlightText)
+
+		Autocmd.new('BufWinEnter')
+			.Group(group)
+			.Pattern([win.winnr->string()])
+			.Callback(_DetectFiletype)
+			.Callback(_WinOption)
+			.Callback(_AddHightlightText)
+
+		Autocmd.new('WinClosed')
+			.Group(group)
+			.Pattern([win.winnr->string()])
+			.Callback(_DeleteHightlightName)
+			.Callback(() => {
+				autocmd_delete([{group: group}])
+			})
+
 		Autocmd.new('CursorMoved')
 			.Group(group)
 			.Bufnr(bufnr)
@@ -484,10 +514,6 @@ export class Previewer # {{{1
 			.Group(group)
 			.Bufnr(bufnr)
 			.Callback(Close)
-
-		win.OnClose((_: window.Popup, _: any) => {
-			autocmd_delete([{group: group}])
-		})
 	enddef
 
 	static def _SetCursorUnderBuff() # {{{2

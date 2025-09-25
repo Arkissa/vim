@@ -7,46 +7,27 @@ type Autocmd = autocmd.Autocmd
 
 export class Window # {{{1
 	var winnr: number = -1 # {{{2
-	var _on_set_buf_pre: list<func> # {{{2
-	var _on_set_buf_after: list<func> # {{{2
-	var _on_close: list<func> # {{{2
-	static const group = 'WindowClass' # {{{2
-
-	def _Init() # {{{2
-		Autocmd.new('WinClosed')
-			.Group(group)
-			.Pattern([string(this.winnr)])
-			.Once()
-			.Callback(() => {
-				this.Close()
-			})
-	enddef # }}}
 
 	def new(pos: string = '', height: number = 0, name: string = '') # {{{2
 		var buf = buffer.Buffer.newByBufnr(this.GetBufnr())
 		this._New(pos, height, name ?? buf.name)
-		this._Init()
 	enddef # }}}
 
 	def newByBufnr(bufnr: number, pos: string = '', height: number = 0) # {{{2
 		var buf = buffer.Buffer.newByBufnr(bufnr)
 		this._New(pos, height, buf.name)
-		this._Init()
 	enddef # }}}
 
 	def newByBuffer(buf: buffer.Buffer, pos: string = '', height: number = 0) # {{{2
 		this._New(pos, height, buf.name)
-		this._Init()
 	enddef # }}}
 
 	def newWrap(this.winnr) # {{{2
 		this.winnr = this.winnr < 1000 ? win_getid(this.winnr) : this.winnr
-		this._Init()
 	enddef # }}}
 
 	def newCurrent() # {{{2
 		this.winnr = win_getid()
-		this._Init()
 	enddef # }}}
 
 	def _New(pos: string = '', height: number = 0, name: string = '') # {{{2
@@ -81,53 +62,30 @@ export class Window # {{{1
 		this.Execute($'silent resize {height}')
 	enddef # }}}
 
-	def OnSetBufPre(...f: list<func>) # {{{2
-		extend(this._on_set_buf_pre, f)
-	enddef # }}}
-
-	def OnSetBufPost(...f: list<func>) # {{{2
-		extend(this._on_set_buf_after, f)
-	enddef # }}}
-
-	def OnClose(...f: list<func>) # {{{2
-		extend(this._on_close, f)
-	enddef # }}}
-
 	def SetBuf(bufnr: number) # {{{2
-		for F in this._on_set_buf_pre
-			F(this)
-		endfor
+		var winnr = this.winnr->string()
+		if exists($'#BufWinLeave#{winnr}')
+			Autocmd.Do('', 'BufWinLeave', [winnr], this)
+		endif
 
 		this.Execute($'silent! buffer! {bufnr}')
 
-		for F in this._on_set_buf_after
-			F(this)
-		endfor
+		if exists($'#BufWinEnter#{winnr}')
+			Autocmd.Do('', 'BufWinEnter', [winnr], this)
+		endif
 	enddef # }}}
 
 	def SetBuffer(buf: buffer.Buffer)
-		for F in this._on_set_buf_pre
-			F(this)
-		endfor
-
-		this.Execute($'silent! buffer! {buf.bufnr}')
-
-		for F in this._on_set_buf_after
-			F(this)
-		endfor
+		this.SetBuf(buf.bufnr)
 	enddef
 
 	def Close(result: any = null) # {{{2
-		var r = result
-		if r == null
-			r = winbufnr(this.winnr)
+		var win = this.winnr->string()
+		if exists($'#WinClosed#{win}')
+			Autocmd.Do('', 'WinClosed', [win], (this, result ?? this.GetBufnr()))
 		endif
 
-		this.Execute('close!')
-		for F in this._on_close
-			F(this, result)
-		endfor
-
+		this.Execute('silent! close!')
 		this.winnr = -1
 	enddef # }}}
 
@@ -172,16 +130,21 @@ export class Popup extends Window # {{{1
 	enddef # }}}
 
 	def SetBuf(bufnr: number) # {{{2
-		for F in this._on_set_buf_pre
-			F(this)
-		endfor
+		var winnr = this.winnr->string()
+		if exists($'#BufWinLeave#{winnr}')
+			Autocmd.Do('', 'BufWinLeave', [winnr], this)
+		endif
 
 		popup_setbuf(this.winnr, bufnr)
 
-		for F in this._on_set_buf_after
-			F(this)
-		endfor
+		if exists($'#BufWinEnter#{winnr}')
+			Autocmd.Do('', 'BufWinEnter', [winnr], this)
+		endif
 	enddef # }}}
+
+	def SetBuffer(buf: buffer.Buffer)
+		this.SetBuf(buf.bufnr)
+	enddef
 
 	def SetTitle(title: string) # {{{2
 		this.SetOptions({title: title})
@@ -192,11 +155,10 @@ export class Popup extends Window # {{{1
 	enddef # }}}
 
 	def _CloseCallback(id: number, result: any) # {{{2
-		for F in this._on_close
-			F(this, result)
-		endfor
-
-		this.winnr = -1
+		var win = this.winnr->string()
+		if exists($'#WinClosed#{win}')
+			Autocmd.Do('', 'WinClosed', [win], (this, result ?? this.GetBufnr()))
+		endif
 	enddef # }}}
 
 	def IsOpen(): bool # {{{2
@@ -208,12 +170,7 @@ export class Popup extends Window # {{{1
 	enddef # }}}
 
 	def Close(result: any = null) # {{{2
-		var r = result
-		if r == null
-			r = winbufnr(this.winnr)
-		endif
-
-		popup_close(this.winnr, r)
+		popup_close(this.winnr, result)
 		this.winnr = -1
 	enddef # }}}
 

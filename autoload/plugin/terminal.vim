@@ -10,6 +10,7 @@ type Terminal = buffer.Terminal # {{{1
 type Ring = vim.Ring
 
 export class Manager # {{{1
+	static const group = 'TerminalManager'
 	static var _terms: Ring
 	static var _win: window.Window # {{{2
 
@@ -77,14 +78,19 @@ export class Manager # {{{1
 			_terms.Add<Terminal>(_NewTerm(cmd))
 		else
 			 _win = window.Window.new(pos, count)
-			 _win.OnSetBufPost((w) => {
+
+			Autocmd.new('BufWinEnter')
+				.Group(group)
+				.Pattern([string(_win.winnr)])
+				.Callback((opt: autocmd.EventArgs) => {
+					var w = opt.data
 					w.SetVar('&statusline', '%{%plugin#terminal#Manager.StatusLineTerminals()%}')
 					w.SetVar('&number', false)
 					w.SetVar('&signcolumn', 'no')
 					w.SetVar('&winfixheight', true)
 					w.SetVar('&relativenumber', false)
 					w.SetVar('&hidden', false)
-			 })
+				})
 		endif
 
 		_win.SetBuf(_terms.Current<Terminal>().bufnr)
