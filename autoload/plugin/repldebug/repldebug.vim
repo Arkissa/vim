@@ -4,10 +4,14 @@ import autoload 'vim.vim'
 import autoload 'job.vim' as jb
 import autoload 'window.vim'
 import autoload 'buffer.vim'
+import autoload 'autocmd.vim'
 
 type Ring = vim.Ring
-type Coroutine = vim.Coroutine
 type Async = vim.Async
+type Autocmd = autocmd.Autocmd
+type Coroutine = vim.Coroutine
+
+const group = 'REPLDebug'
 
 export class Variable
 	var Type: string
@@ -205,10 +209,20 @@ endclass
 export class REPLDebugUI
 	var prompt: window.Window
 	var code: DebugCodeWindow
+
+	const _Breakpoints = 'REPLDebugBreakpoints'
 	final _extends: dict<window.Window>
 
 	def new()
 		this.code = DebugCodeWindow.new()
+	enddef
+
+	def GetBreakpointVar(): dict<any>
+		return this.code.GetVar(this._Breakpoints) ?? {}
+	enddef
+
+	def SetBreakpointsVar(d: dict<any>)
+		this.code.SetVar(this._Breakpoints, d)
 	enddef
 
 	def SetPrompt(prompt: buffer.Buffer, pos: string = '', height: number = 0)
@@ -243,7 +257,6 @@ final debug = vim.IncID.new()
 
 export abstract class REPLDebugBackend extends jb.Prompt
 	var id = debug.ID()
-	var _UI: REPLDebugUI
 	var _OnInterruptCb: func()
 
 	abstract def Prompt(): string
@@ -279,9 +292,43 @@ export abstract class REPLDebugBackend extends jb.Prompt
 		this._OnInterruptCb()
 		super.InterruptCb()
 	enddef
+endclass
 
-	def SetUI(ui: REPLDebugUI)
-		this._UI = ui
+class Breakpoint
+	const _sigName = 'REPLDebug-Variable'
+	var _breakpoint: dict<tuple<number, Address>>
+
+	def _Break(bufnr: number, addr: Address)
+		var signID = sign_place(
+			0,
+			group,
+			this._sigName,
+			bufnr,
+			{lnum: addr.Lnum, priority: 110}
+		)
+
+
+		this._breakpoint[addr->string()] = (signID, addr)
+	enddef
+
+	def _Clear(bufnr: number, addr: Address)
+		var [signID, _] = remove(this._breakpoint, addr->string())
+		sign_unplace(group, {buffer: bufnr, id: signID})
+	enddef
+
+	def Toggle()
+		var win = window.Window.newCurrent()
+		var buf = win.GetBuffer()
+
+		var [lnum, col] = bwin.GetCursorPosition()
+		var line = buf.GetOneLine(lnum)
+		var addr = Address.newAll(line, lnum, col)
+
+		if has_key(this._breakpoint, addr->string())
+			this._Clear(buf.bufnr, addr)
+		else
+			this._Break(buf.bufnr, addr)
+		endif
 	enddef
 endclass
 
@@ -317,10 +364,6 @@ class MockREPLDebugBackend extends REPLDebugBackend
 	def InterruptCb()
 	enddef
 
-	def SetUI(ui: REPLDebugUI)
-		this._UI = ui
-	enddef
-
 	def Send(_: string)
 	enddef
 
@@ -329,7 +372,6 @@ class MockREPLDebugBackend extends REPLDebugBackend
 endclass
 
 export class REPLDebugManager
-	var _UI: REPLDebugUI
 	var _Session: Ring
 
 	def new()
@@ -338,6 +380,21 @@ export class REPLDebugManager
 		var mock = MockREPLDebugBackend.new()
 		mock.SetUI(this._UI)
 		this._Session = Ring.new(mock)
+		Autocmd.new('BufWinEnter')
+			.Group(this._Breakpoints)
+			.Pattern([this.code->string()])
+			.Callback(() => {
+				Command.new('ToggleBreakpoint')
+					.Buffer()
+					.Callback(this.code.)
+			})
+
+		Autocmd.new('BufWinLeave')
+			.Group(this._Breakpoints)
+			.Pattern([this.code->string()])
+			.Callback(() => {
+				Command.Delete('ToggleBreakpoint', true)
+			})
 	enddef
 
 	def _InitHightlight()
@@ -418,6 +475,15 @@ export class REPLDebugManager
 			return
 		endif
 
+		var breakpoints = this._UI.GetBreakpointVar()
+		var breakpoints: any = this._UI.code.GetVar('REPLDebugBreakpoints')
+		if breakpoints == ''
+			breakpoints = {}
+		endif
+
+
+		this._UI.code.SetVar('')
+		this._UI.code.ToggleBreakpoint(this.id, Address.new(f, lnum->str2nr()))
 		cur.Send(cur.MakeCommand($'{buf.name}:{lnum}:{col}'))
 	enddef
 
