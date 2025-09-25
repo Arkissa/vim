@@ -202,14 +202,14 @@ export abstract class Async # {{{1
 	enddef # }}}
 endclass # }}}
 
-export class AsyncIO extends Async # {{{1
-	static def Run(co: Coroutine) # {{{2
+class InternalAsyncIO extends Async # {{{1
+	def Run(co: Coroutine) # {{{2
 		timer_start(co.delay, (_) => {
 			co.Func()
 		})
 	enddef # }}}
 
-	static def Gather(...cos: list<Coroutine>): Coroutine # {{{2
+	def Gather(...cos: list<Coroutine>): Coroutine # {{{2
 		for co in cos:
 				AsyncIO.Run(co)
 		endfor
@@ -219,3 +219,5 @@ export class AsyncIO extends Async # {{{1
 		}, cos)
 	enddef
 endclass # }}}
+
+export const AsyncIO = InternalAsyncIO.new()
