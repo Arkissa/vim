@@ -164,6 +164,12 @@ export class Command
 	static var _CommandInternalFunctions: dict<func> = {}
 	static var _CompleteFunctions: dict<func(string, string, number): list<string>> = {}
 
+	static def Delete(cmd: string, buffer: bool = false)
+		execute($'delcommand{buffer ? ' -buffer' : ''} {cmd}')
+		_CommandInternalFunctions->remove(cmd)
+		_CompleteFunctions->remove(cmd)
+	enddef
+
 	def new(this._name)
 	enddef
 
