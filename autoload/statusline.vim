@@ -68,7 +68,7 @@ export abstract class StatusLine
 
 	def BufName(): StatusLine
 		var buf = buffer.Buffer.newCurrent()
-		this._Append($'[{empty(buf.name) ? '(No Name)' : fnamemodify(buf.name, ':t')}]')
+		this._Append($'[{empty(buf.name) ? '(No Name)' : fnamemodify(buf.name, ':t')}%m]')
 
 		return this
 	enddef

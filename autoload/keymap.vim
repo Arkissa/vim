@@ -1,40 +1,40 @@
 vim9script
 
-export enum Mods # {{{1
-	n, # {{{2
-	v, # {{{2
-	i, # {{{2
-	x, # {{{2
-	s, # {{{2
-	o, # {{{2
-	ic, # {{{2
-	l, # {{{2
-	c, # {{{2
-	t # {{{2
+export enum Mods
+	n,
+	v,
+	i,
+	x,
+	s,
+	o,
+	ic,
+	l,
+	c,
+	t
 endenum
 
-export class Bind # {{{1
+export class Bind
 	const _cmd = 'map'
 	var _mods: list<Mods> = []
 	var _args: list<string> = []
 	var _arg: string
 	var _noremap: bool
 	var _When: func(): bool
-	static var _mapFunction: dict<func()> = {} # {{{2
+	static var _mapFunction: dict<func()> = {}
 
-	static def InternalFunction(name: string): func() # {{{2
+	static def InternalFunction(name: string): func()
 		return _mapFunction[name]
-	enddef # }}}
+	enddef
 
-	def new(m: Mods) # {{{2
+	def new(m: Mods)
 		this._mods->add(m)
-	enddef # }}}
+	enddef
 
-	def newMulti(...ms: list<Mods>) # {{{2
+	def newMulti(...ms: list<Mods>)
 		this._mods->extend(ms)
-	enddef # }}}
+	enddef
 
-	def ScriptCmd(lhs: string, Rhs: func()): Bind # {{{2
+	def ScriptCmd(lhs: string, Rhs: func()): Bind
 		if this._When != null_function && !call(this._When, [])
 			return this
 		endif
@@ -59,9 +59,9 @@ export class Bind # {{{1
 		endfor
 
 		return this
-	enddef # }}}
+	enddef
 
-	def Map(lhs: string, rhs: string): Bind # {{{2
+	def Map(lhs: string, rhs: string): Bind
 		if this._When != null_function && !call(this._When, [])
 			return this
 		endif
@@ -83,50 +83,50 @@ export class Bind # {{{1
 		endfor
 
 		return this
-	enddef # }}}
+	enddef
 
-	def Buffer(): Bind # {{{2
+	def Buffer(): Bind
 		this._args->add('<buffer>')
 		return this
-	enddef # }}}
+	enddef
 
-	def NoWait(): Bind # {{{2
+	def NoWait(): Bind
 		this._args->add('<nowait>')
 		return this
-	enddef # }}}
+	enddef
 
-	def Silent(): Bind # {{{2
+	def Silent(): Bind
 		this._args->add('<silent>')
 		return this
-	enddef # }}}
+	enddef
 
-	def Special(): Bind # {{{2
+	def Special(): Bind
 		this._args->add('<special>')
 		return this
-	enddef # }}}
+	enddef
 
-	def Script(): Bind # {{{2
+	def Script(): Bind
 		this._args->add('<script>')
 		return this
-	enddef # }}}
+	enddef
 
-	def Expr(): Bind # {{{2
+	def Expr(): Bind
 		this._args->add('<expr>')
 		return this
-	enddef # }}}
+	enddef
 
-	def Unique(): Bind # {{{2
+	def Unique(): Bind
 		this._args->add('<unique>')
 		return this
-	enddef # }}}
+	enddef
 
-	def NoRemap(): Bind # {{{2
+	def NoRemap(): Bind
 		this._noremap = true
 		return this
-	enddef # }}}
+	enddef
 
-	def When(F: func(): bool): Bind # {{{2
+	def When(F: func(): bool): Bind
 		this._When = F
 		return this
-	enddef # }}}
-endclass # }}}
+	enddef
+endclass

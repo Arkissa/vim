@@ -1,53 +1,53 @@
 vim9script
 
-export def Cmd(s: list<string>): string # {{{1
+export def Cmd(s: list<string>): string
 	return s->join(' ')
-enddef # }}}
+enddef
 
-export def Option(s: list<string>): string # {{{1
+export def Option(s: list<string>): string
 	return s->join(',')
-enddef # }}}
+enddef
 
-export abstract class Void # {{{1
-	def string(): string # {{{2
+export abstract class Void
+	def string(): string
 		return 'void'
-	enddef # }}}
-endclass # }}}
+	enddef
+endclass
 
-class SingleVoid extends Void # {{{1
-endclass # }}}
+class SingleVoid extends Void
+endclass
 
-export const void = SingleVoid.new() # {{{1
+export const void = SingleVoid.new()
 
-export class Ring # {{{1
+export class Ring
 	var _list: list<any>
 	var _i: number
 
-	def new(a: any) # {{{2
+	def new(a: any)
 		this._list = [a]
-	enddef # }}}
+	enddef
 
-	def len(): number # {{{2
+	def len(): number
 		if this == null_object
 			return 0
 		endif
 
 		return len(this._list)
-	enddef # }}}
+	enddef
 
-	def empty(): bool # {{{2
+	def empty(): bool
 		return this->len() == 0
-	enddef # }}}
+	enddef
 
-	def Current<T>(): T # {{{2
+	def Current<T>(): T
 		if this->empty()
 			return null_object
 		endif
 
 		return this._list[this._i]
-	enddef # }}}
+	enddef
 
-	def Remove<T>(): T # {{{2
+	def Remove<T>(): T
 		if this->empty()
 			return null_object
 		endif
@@ -61,86 +61,86 @@ export class Ring # {{{1
 		this._i %= this->len()
 
 		return c
-	enddef # }}}
+	enddef
 
-	def Add<T>(t: T) # {{{2
+	def Add<T>(t: T)
 		if this->empty()
 			add(this._list, t)
 		else
 			insert(this._list, t, (this._i + 1))
 		endif
 		this._i = (this._i + 1) % this->len()
-	enddef # }}}
+	enddef
 
-	def SlideLeft(): Ring # {{{2
+	def SlideLeft(): Ring
 		this._i = (this._i - 1) % this->len()
 		return this
-	enddef # }}}
+	enddef
 
-	def SlideRight(): Ring # {{{2
+	def SlideRight(): Ring
 		this._i = (this._i + 1) % this->len()
 		return this
-	enddef # }}}
+	enddef
 
-	def ToList<T>(): list<T> # {{{2
+	def ToList<T>(): list<T>
 		return copy(this._list)
-	enddef # }}}
+	enddef
 
-	def ForEach(F: func(any)) # {{{2
+	def ForEach(F: func(any))
 		for item in this._list
 			F(item)
 		endfor
-	enddef # }}}
-endclass # }}}
+	enddef
+endclass
 
-export class IncID # {{{1
+export class IncID
 	var _id = -1
 
-	def ID(): number # {{{2
+	def ID(): number
 		this._id += 1
 		return this._id
-	enddef # }}}
-endclass # }}}
+	enddef
+endclass
 
-export class Exception # {{{1
-	var _exception: string # {{{2
+export class Exception
+	var _exception: string
 
-	def new(this._exception) # {{{2
-	enddef # }}}
+	def new(this._exception)
+	enddef
 
-	def string(): string # {{{2
+	def string(): string
 		return this._exception
-	enddef # }}}
-endclass # }}}
+	enddef
+endclass
 
-export class TimeoutException extends Exception # {{{1
-	def new(s: string) # {{{2
+export class TimeoutException extends Exception
+	def new(s: string)
 		this._exception = $'Timeout: {s}'
-	enddef # }}}
-endclass # }}}
+	enddef
+endclass
 
-export class CoroutineDeadException extends Exception # {{{1
-	def new(id: number) # {{{2
+export class CoroutineDeadException extends Exception
+	def new(id: number)
 		this._exception = $'Dead: can''t waiting for already dead with {id} coroutine .'
-	enddef # }}}
-endclass # }}}
+	enddef
+endclass
 
-export enum CoroutineStatus # {{{1
+export enum CoroutineStatus
 	Running,
 	Suspended,
 	Dead
-endenum # }}}
+endenum
 
 final coroutine = IncID.new()
 
-export class Coroutine # {{{1
+export class Coroutine
 	var id = coroutine.ID()
 	var delay = 0
 	var Func: func
 	var status = CoroutineStatus.Suspended
 	var _ret: dict<any> = {}
 
-	def new(F: func, ...args: list<any>) # {{{2
+	def new(F: func, ...args: list<any>)
 		this.Func = () => {
 			this.status = CoroutineStatus.Running
 
@@ -157,21 +157,21 @@ export class Coroutine # {{{1
 				this.status = CoroutineStatus.Dead
 			endtry
 		}
-	enddef # }}}
+	enddef
 
-	def SetDelay(time: number): Coroutine # {{{2
+	def SetDelay(time: number): Coroutine
 		this.delay = time
 		return this
-	enddef # }}}
+	enddef
 
 	# if you is not Await, don't use it.
-	def UnsafeHookReturn(d: dict<any>) # {{{2
+	def UnsafeHookReturn(d: dict<any>)
 		this._ret = d
-	enddef # }}}
-endclass # }}}
+	enddef
+endclass
 
-export abstract class Async # {{{1
-	def Await<T>(co: Coroutine, timeout: tuple<number, T> = null_tuple): T # {{{2
+export abstract class Async
+	def Await<T>(co: Coroutine, timeout: tuple<number, T> = null_tuple): T
 		var ret = {}
 		co.UnsafeHookReturn(ret)
 
@@ -199,17 +199,17 @@ export abstract class Async # {{{1
 		endif
 
 		return val
-	enddef # }}}
-endclass # }}}
+	enddef
+endclass
 
-class InternalAsyncIO extends Async # {{{1
-	def Run(co: Coroutine) # {{{2
+class InternalAsyncIO extends Async
+	def Run(co: Coroutine)
 		timer_start(co.delay, (_) => {
 			co.Func()
 		})
-	enddef # }}}
+	enddef
 
-	def Gather(...cos: list<Coroutine>): Coroutine # {{{2
+	def Gather(...cos: list<Coroutine>): Coroutine
 		for co in cos:
 				AsyncIO.Run(co)
 		endfor
@@ -218,6 +218,6 @@ class InternalAsyncIO extends Async # {{{1
 			return cs->mapnew((_, co) => this.Await<any>(co))->filter((_, v) => !instanceof(v, Void))
 		}, cos)
 	enddef
-endclass # }}}
+endclass
 
 export const AsyncIO = InternalAsyncIO.new()

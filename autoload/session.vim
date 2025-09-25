@@ -2,10 +2,10 @@ vim9script
 
 import './log.vim'
 
-const sep = has('win') ? '\' : '/' # {{{1
+const sep = has('win') ? '\' : '/'
 
-export class Session # {{{1
-	static def _GetCacheDir(): string # {{{2
+export class Session
+	static def _GetCacheDir(): string
 		if has('win')
 			return getenv('LOCALAPPDATA')
 		elseif has_key(environ(), 'XDG_CACHE_HOME')
@@ -13,19 +13,19 @@ export class Session # {{{1
 		else
 			return expand('~/.cache')
 		endif
-	enddef # }}}
+	enddef
 
-	static def _Join(...paths: list<string>): string # {{{2
+	static def _Join(...paths: list<string>): string
 		return paths
 			->map((_, path) => trim(simplify(path), sep, 2))
 			->join(sep)
-	enddef # }}}
+	enddef
 
-	static def All(dir: string): list<string> # {{{2
+	static def All(dir: string): list<string>
 		return globpath(dir ?? _Join(_GetCacheDir(), 'vim-simple-session'), '**/Session.vim', false, true)
-	enddef # }}}
+	enddef
 
-	static def Save(dir: string, sessionName: string, silent: bool) # {{{2
+	static def Save(dir: string, sessionName: string, silent: bool)
 		var d = _Join(dir ?? _Join(_GetCacheDir(), 'vim-simple-session'), sessionName)
 		if !d->isdirectory()
 			mkdir(d, 'p')
@@ -39,9 +39,9 @@ export class Session # {{{1
 			:redraw
 			:echo $'Session saved {session}'
 		endif
-	enddef # }}}
+	enddef
 
-	static def Load(dir: string, sessionName: string, silent: bool) # {{{2
+	static def Load(dir: string, sessionName: string, silent: bool)
 		var sname = sessionName ?? fnamemodify(getcwd(), ':t')
 		var sessions = All(dir)->filter((_, name) => name =~# $'\/{sname}\/')
 
@@ -70,5 +70,5 @@ export class Session # {{{1
 
 		execute('silent! %bw')
 		execute($'silent! source {session}')
-	enddef # }}}
-endclass # }}}
+	enddef
+endclass
