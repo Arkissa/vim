@@ -23,15 +23,11 @@ export class Ring
 	var _list: list<any>
 	var _i: number
 
-	def new(a: any)
-		this._list = [a]
+	def new(a: any = null)
+		this._list = a == null ? [] : [a]
 	enddef
 
 	def len(): number
-		if this == null_object
-			return 0
-		endif
-
 		return len(this._list)
 	enddef
 
@@ -39,17 +35,35 @@ export class Ring
 		return this->len() == 0
 	enddef
 
-	def Current<T>(): T
+	def SwitchOf(F: func(any): bool)
 		if this->empty()
-			return null_object
+			return
+		endif
+
+		var maxCount = this->len()
+		var count: number
+		var i = this._i
+		while !F(this.Peek()) && count < maxCount
+			this.SlideRight()
+			count += 1
+		endwhile
+
+		if count >= maxCount
+			this._i = i
+		endif
+	enddef
+
+	def Peek(): any
+		if this->empty()
+			return null
 		endif
 
 		return this._list[this._i]
 	enddef
 
-	def Remove<T>(): T
+	def Pop(): any
 		if this->empty()
-			return null_object
+			return null
 		endif
 
 		var c = remove(this._list, this._i)
@@ -63,7 +77,7 @@ export class Ring
 		return c
 	enddef
 
-	def Add<T>(t: T)
+	def Push(t: any)
 		if this->empty()
 			add(this._list, t)
 		else
@@ -73,7 +87,7 @@ export class Ring
 	enddef
 
 	def SlideLeft(): Ring
-		this._i = (this._i - 1) % this->len()
+		this._i = (this._i - 1 + this->len()) % this->len()
 		return this
 	enddef
 
