@@ -8,25 +8,29 @@ import autoload 'autocmd.vim'
 
 type Ring = vim.Ring
 type Async = vim.Async
+type Buffer = buffer.Buffer
+type Window = window.Window
 type Autocmd = autocmd.Autocmd
+type Terminal = buffer.Terminal
 type Coroutine = vim.Coroutine
 
 const group = 'REPLDebug'
-
-export class Variable
-	var Type: string
-	var Name: string
-	var Value: string
-
-	def new(this.Type, this.Name, this.Value)
-	enddef
-endclass
 
 export enum VariableTag
 	Watch,
 	Global,
 	Local
 endenum
+
+export class Variable
+	var Tag: VariableTag
+	var Type: string
+	var Name: string
+	var Value: string
+
+	def new(this.Tag, this.Type, this.Name, this.Value)
+	enddef
+endclass
 
 class DebugVariablesWindow extends Async
 	var _win: window.Window
@@ -105,11 +109,14 @@ export class Address
 	var FileName: string
 	var Lnum: number
 	var Col: number
+	var Bufnr: number
 
 	def new(this.FileName, this.Lnum)
+		this.Bufnr = Buffer.new(this.FileName).bufnr
 	enddef
 
 	def newAll(this.FileName, this.Lnum, this.Col)
+		this.Bufnr = Buffer.new(this.FileName).bufnr
 	enddef
 
 	def string(): string
@@ -119,137 +126,187 @@ export class Address
 	enddef
 endclass
 
-class DebugCodeWindow
-	const signGroup = 'REPLDebug'
-	const signBreakpoint = 'REPLDebug-Breakpoint'
-	var _win: window.Window
-	var _breakpoints: dict<dict<tuple<number, Address>>>
+class BreakpointUI
+	const _sigName = 'REPLDebug-Variable'
+	var _breakpoint: dict<tuple<number, Address>>
 
 	def new()
-		this._win = window.Window.newCurrent()
-		this._breakpoints = {}
-		sign_define(this.signBreakpoint, {
+		sign_define(this._sigName, {
 			text: '●',
 			texthl: 'REPLDebugBreakpoint',
 		})
 	enddef
 
-	def GetBreakpoints(sessionID: number): dict<tuple<number, Address>>
-		return has_key(this._breakpoints, sessionID) ? this._breakpoints[sessionID] : null_dict
+	def IsExists(addr: Address): bool
+		return has_key(this._breakpoint, addr->string())
 	enddef
 
-	def SetBreakpoint(sessionID: number, addr: Address)
+	def Break(addr: Address)
 		var signID = sign_place(
 			0,
-			$'{this.signGroup}-{sessionID}',
-			this.signBreakpoint,
-			this._win.GetBufnr(),
+			group,
+			this._sigName,
+			addr.Bufnr,
 			{lnum: addr.Lnum, priority: 110}
 		)
-		if !has_key(this._breakpoints, sessionID)
-			this._breakpoints[sessionID] = {}
-		endif
 
-		this._breakpoints[sessionID][addr->string()] = (signID, addr)
+
+		this._breakpoint[addr->string()] = (signID, addr)
 	enddef
 
-	def ClearBreakpoint(sessionID: number, addr: Address)
-		var [signID, _] = remove(this._breakpoints[sessionID], addr->string())
-		sign_unplace($'{this.signGroup}-{sessionID}', {buffer: this._win.GetBufnr(), id: signID})
+	def Clear(addr: Address)
+		var [signID, _] = remove(this._breakpoint, addr->string())
+		sign_unplace(group, {buffer: addr.Bufnr, id: signID})
 	enddef
 
-	def ToggleBreakpoint(sessionID: number, addr: Address)
-		if !this.BreakpointIsExists(sessionID, addr)
-			this.SetBreakpoint(sessionID, addr)
+	def Toggle(break: Address = null_object)
+		var addr: Address
+
+		if break != null_object
+			addr = address
 		else
-			this.ClearBreakpoint(sessionID, addr)
+			var win = window.Window.newCurrent()
+			buf = win.GetBuffer()
+
+			var [lnum, col] = bwin.GetCursorPosition()
+			var line = buf.GetOneLine(lnum)
+			addr = Address.newAll(line, lnum, col)
+		endif
+
+		if has_key(this._breakpoint, addr->string())
+			this.Clear(addr)
+		else
+			this.Break(addr)
 		endif
 	enddef
 
-	def BreakpointIsExists(sessionID: number, addr: Address): bool
-		return has_key(this._breakpoints, sessionID)
-			&& has_key(this._breakpoints[sessionID], addr->string())
-	enddef
-
-	def GetBuffer(): buffer.Buffer
-		return this._win.GetBuffer()
-	enddef
-
-	def GetCursorPos(): tuple<number, number>
-		return this._win.GetCursorPos()
-	enddef
-
-	def Goto(addr: Address)
-		var buf = this._win.GetBuffer()
-		if buf.name != addr.FileName
-			buf = buffer.Buffer.new(addr.FileName)
-		endif
-
-		this._win.SetBuffer(buf)
-		this._win.SetCursor(addr.Lnum, addr.Col)
-	enddef
-
-	def ClearSessionBreakpoint(sessionID: number)
-		if has_key(this._breakpoints, sessionID)
-			remove(this._breakpoints, sessionID)
-			sign_unplace($'{this.signGroup}-{sessionID}')
-		endif
-	enddef
-
-	def ClearAllSessionBreakpoint()
-		this._breakpoints
-			->keys()
-			->foreach((_, sessionID) => {
-				sign_unplace($'{this.signGroup}-{sessionID}')
-			})
-		sign_undefine(this.signBreakpoint)
+	def ClearAll()
+		for signID in this._breakpoint->values()->map((_, break) => break[0])
+			sign_unplace(group, {id: signID})
+		endfor
+		sign_undefine(this._sigName)
 	enddef
 endclass
 
-export class REPLDebugUI
-	var prompt: window.Window
-	var code: DebugCodeWindow
-
-	const _Breakpoints = 'REPLDebugBreakpoints'
-	final _extends: dict<window.Window>
+export class StepUI
+	const _sigName = 'REPLDebug-Step'
+	var _id: number
 
 	def new()
-		this.code = DebugCodeWindow.new()
+		sign_define(this._sigName, {
+			text: '=>',
+			texthl: 'REPLDebugStep',
+			linehl: 'CursorLine'
+		})
 	enddef
 
-	def GetBreakpointVar(): dict<any>
-		return this.code.GetVar(this._Breakpoints) ?? {}
+	def Set(addr: Address)
+		sign_unplace(group, {id: signID})
+		var _id	= sign_place(
+			0,
+			group,
+			this._sigName,
+			addr.Bufnr,
+			{lnum: addr.Lnum, priority: 110}
+		)
 	enddef
 
-	def SetBreakpointsVar(d: dict<any>)
-		this.code.SetVar(this._Breakpoints, d)
+	def Clear()
+		sign_unplace(group, {id: signID})
+		sign_undefine(this._sigName)
 	enddef
+endclass
 
-	def SetPrompt(prompt: buffer.Buffer, pos: string = '', height: number = 0)
-		if this.prompt == null_object
-			this.prompt = window.Window.new(pos, height, '')
-		elseif height != 0
-			this.prompt.Resize(height)
-		endif
+enum REPLDebugMethod
+	Step,
+	FocusMe,
+	ToggleBreakpoint
 
-		this.prompt.SetBuffer(prompt)
-		this.prompt.Execute('startinsert')
+	static def Names(): list<string>
+		return Method.values->mapnew((_, method) => method.name)
 	enddef
+endenum
 
-	def ExtendsWindow(name: string, win: window.Window)
-		this._extends[name] = win
-	enddef
+export class REPLDebugUI
+	var _step: StepUI
+	var _code: Window
+	var _scope: Window
+	var _prompt: Window
+	var _breakpoints BreakpointUI
 
-	def GetExtendsWindow(name: string): window.Window
-		return has_key(this._extends, name) ? this._extends[name] : null_object
+	def new(conf: dict<any> = null_object)
+		hlset([
+			{name: 'REPLDebugBreakpoint', ctermfg: 'red', guifg: 'red', term:  {reverse: true}},
+			{name: 'REPLDebugStep', default: true, linksto: 'Normal'}
+		])
+
+		this.code = Window.newCurrent()
+
+		var scopeConf = get(conf, 'scope', {})
+		this._scope = Window.new(get(scopeConf, 'pos', ''), get(scopeConf, 'height', 0), 'REPLDebug-Scope')
+
+		Autocmd.new('User')
+			.Group(group)
+			.Pattern(REPLDebugMethod.Names())
+			.Replace()
+			.Callback(this._Dispatch)
 	enddef
 
 	def Close()
-		this.prompt.Close()
-		for win in values(this._extends)
-			win.Close()
-		endfor
-		this.code = null_object
+		this._step.Clear()
+		this._scope.Close()
+		this._prompt.Close()
+		this._breakpoints.ClearAll()
+		autocmd_delete(REPLDebugMethod.Names()->mapnew((_, method) => {
+			return {
+				event: 'User',
+				group: group,
+				pattern: method}
+		}))
+	enddef
+
+	def _Dispatch(opt: autocmd.EventArgs)
+		if opt.event == ''
+	enddef
+
+	def _Step(opt: autocmd.EventArgs)
+		var addr: Address = opt.data
+		var buf = this._code.GetBuffer()
+		if buf.bufnr != addr.Bufnr
+			this._code.SetBuf(addr.bufnr)
+		endif
+
+		this._code.SetCursor(addr.Lnum, addr.Col)
+		this._step.Set(addr)
+		this._code.Feedkeys('z.', 'mx')
+	enddef
+
+	def _Breakpoint(opt: autocmd.EventArgs)
+		var addr: Address = opt.data
+		if this._breakpoints.IsExists(addr)
+			this._breakpoints.Clear(addr)
+		else
+			this._breakpoints.Break(addr)
+		endif
+	enddef
+
+	def _FocusMe(opt: autocmd.EventArgs)
+		var buffers: tuple<Buffer, buffer.Prompt, Buffer> = opt.data
+		var [code, prompt, scope] = buffers
+		this._code.SetBuffer(code)
+		this._prompt.SetBuffer(prompt)
+		this._scope.SetBuffer(scope)
+	enddef
+
+	def ToggleBreakpoint()
+		if exists('#User#REPLDebugToggleBreakPoint')
+			var win = window.Window.newCurrent()
+			buf = win.GetBuffer()
+
+			var [lnum, col] = win.GetCursorPosition()
+			var line = buf.GetOneLine(lnum)
+			Autocmd.Do('', 'User', ['REPLDebugToggleBreakPoint'], [Address.newAll(buf.name, lnum, col)])
+		endif
 	enddef
 endclass
 
@@ -291,44 +348,6 @@ export abstract class REPLDebugBackend extends jb.Prompt
 	def InterruptCb()
 		this._OnInterruptCb()
 		super.InterruptCb()
-	enddef
-endclass
-
-class Breakpoint
-	const _sigName = 'REPLDebug-Variable'
-	var _breakpoint: dict<tuple<number, Address>>
-
-	def _Break(bufnr: number, addr: Address)
-		var signID = sign_place(
-			0,
-			group,
-			this._sigName,
-			bufnr,
-			{lnum: addr.Lnum, priority: 110}
-		)
-
-
-		this._breakpoint[addr->string()] = (signID, addr)
-	enddef
-
-	def _Clear(bufnr: number, addr: Address)
-		var [signID, _] = remove(this._breakpoint, addr->string())
-		sign_unplace(group, {buffer: bufnr, id: signID})
-	enddef
-
-	def Toggle()
-		var win = window.Window.newCurrent()
-		var buf = win.GetBuffer()
-
-		var [lnum, col] = bwin.GetCursorPosition()
-		var line = buf.GetOneLine(lnum)
-		var addr = Address.newAll(line, lnum, col)
-
-		if has_key(this._breakpoint, addr->string())
-			this._Clear(buf.bufnr, addr)
-		else
-			this._Break(buf.bufnr, addr)
-		endif
 	enddef
 endclass
 
@@ -410,7 +429,7 @@ export class REPLDebugManager
 		repl.OnInterruptCb(this._OnInterruptCb)
 		repl.SetUI(this._UI)
 
-		var cur = this._Session.Current<REPLDebugBackend>()
+		var cur = this._Session.Peek()
 		if instanceof(cur, MockREPLDebugBackend)
 			this._UI
 				.code
@@ -419,15 +438,15 @@ export class REPLDebugManager
 				->foreach((_, path) => {
 					repl.Send(repl.MakeCommand(path))
 				})
-			this._Session.Remove<REPLDebugBackend>()
+			this._Session.Pop<REPLDebugBackend>()
 		endif
 
-		this._Session.Add<REPLDebugBackend>(repl)
+		this._Session.Push(repl)
 	enddef
 
 	def _OnInterruptCb()
-		this._UI.code.ClearSessionBreakpoint(this._Session.Current<REPLDebugBackend>().id)
-		this._Session.Remove<REPLDebugBackend>()
+		this._UI.code.ClearSessionBreakpoint(this._Session.Peek().id)
+		this._Session.Pop<REPLDebugBackend>()
 		if this._Session.empty()
 			if exists(':REPLDebugClose')
 				execute('REPLDebugClose')
@@ -437,7 +456,7 @@ export class REPLDebugManager
 
 	def NextSession()
 		this._Session.SlideRight()
-		var cur = this._Session.Current<REPLDebugBackend>()
+		var cur = this._Session.Peek()
 		if cur.prompt == null_object
 			return
 		endif
@@ -448,7 +467,7 @@ export class REPLDebugManager
 
 	def PrevSession()
 		this._Session.SlideLeft()
-		var cur = this._Session.Current<REPLDebugBackend>()
+		var cur = this._Session.Peek()
 		if cur.prompt == null_object
 			return
 		endif
@@ -458,7 +477,7 @@ export class REPLDebugManager
 	enddef
 
 	def ToggleBreakpoint()
-		var cur = this._Session.Current<REPLDebugBackend>()
+		var cur = this._Session.Peek()
 		if cur == null_object
 			return
 		endif

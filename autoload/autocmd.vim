@@ -91,7 +91,7 @@ export class Autocmd
 				c.SetData(data)
 			})
 
-		execute(['doautocmd ', '<nomodeline>', group, event, pattern->join(',')]->join(' '))
+		execute(['doautocmd', '<nomodeline>', group, event, pattern->join(',')]->join(' '))
 	enddef
 
 	def When(F: func(): bool): Autocmd

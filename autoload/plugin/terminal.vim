@@ -19,7 +19,7 @@ export class Manager # {{{1
 
 	static def _OnClose(_) # {{{2
 		if !_terms->empty()
-			_terms.Remove<Terminal>()
+			_terms.Pop<Terminal>()
 		endif
 	enddef # }}}
 
@@ -40,7 +40,7 @@ export class Manager # {{{1
 	enddef # }}}
 
 	static def Current(): Terminal # {{{2
-		return _terms.Current<Terminal>()
+		return _terms.Peek()
 	enddef # }}}
 
 	static def _TerminalName(name: string): string # {{{2
@@ -51,7 +51,7 @@ export class Manager # {{{1
 		var str = []
 
 		for term in _terms.ToList<Terminal>()
-			str->add(term.bufnr != _terms.Current<Terminal>().bufnr
+			str->add(term.bufnr != _terms.Peek().bufnr
 				? _TerminalName(term.name)
 				: $'[{_TerminalName(term.name)}]'
 			)
@@ -75,7 +75,7 @@ export class Manager # {{{1
 		endif
 
 		if _IsOpen()
-			_terms.Add<Terminal>(_NewTerm(cmd))
+			_terms.Push(_NewTerm(cmd))
 		else
 			 _win = window.Window.new(pos, count)
 
@@ -93,7 +93,7 @@ export class Manager # {{{1
 				})
 		endif
 
-		_win.SetBuf(_terms.Current<Terminal>().bufnr)
+		_win.SetBuf(_terms.Peek().bufnr)
 	enddef # }}}
 
 	static def SlideRight() # {{{2
@@ -106,9 +106,9 @@ export class Manager # {{{1
 
 	static def KillCurrentTerminal() # {{{2
 		if _terms->len() != 1
-			_terms.Current<Terminal>().Stop()
+			_terms.Peek().Stop()
 		else
-			_terms.Current<Terminal>().Delete()
+			_terms.Peek().Delete()
 			_CloseWindow()
 		endif
 	enddef # }}}
