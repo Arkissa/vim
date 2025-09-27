@@ -66,7 +66,9 @@ endclass
 
 export abstract class Prompt extends Job
 	var prompt: buffer.Prompt
+	var pty: buffer.Terminal
 
+	abstract def Cmd(): string
 	abstract def Prompt(): string
 	abstract def Bufname(): string
 	abstract def Callback(chan: channel, msg: string)
@@ -99,7 +101,18 @@ export abstract class Prompt extends Job
 		this.prompt.SetCallback(this.Send)
 		this.prompt.SetInterrupt(this.InterruptCb)
 
-		this._job = job_start(this._cmd, {
+		var ptyOpt = {
+			hidden: true,
+			term_finish: 'close',
+		}
+
+		if has('windows')
+			ptyOpt.tty_type = 'winpty'
+		endif
+
+		this.pty = buffer.Terminal.new('NONE', ptyOpt)
+
+		this._job = job_start(this.Cmd(), {
 			pty: true,
 			cwd: getcwd(),
 			exit_cb: this.ExitCb,

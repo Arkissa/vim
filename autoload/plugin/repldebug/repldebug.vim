@@ -8,13 +8,11 @@ import autoload 'autocmd.vim'
 
 type Ring = vim.Ring
 type Async = vim.Async
-type Buffer = buffer.Buffer
 type Window = window.Window
 type Autocmd = autocmd.Autocmd
-type Terminal = buffer.Terminal
 type Coroutine = vim.Coroutine
 
-const group = 'REPLDebug'
+const AsyncIO = vim.AsyncIO
 
 export enum VariableTag
 	Watch,
@@ -32,31 +30,25 @@ export class Variable
 	enddef
 endclass
 
-class DebugVariablesWindow extends Async
+class ScopeUI
 	var _win: window.Window
-	var _variables: dict<dict<Variable>> = {
-		Watch: {},
-		Global: {},
-		Local: {},
-	}
+	const _scopeName = 'REPLDebugScope'
+	const _scopeBufname = 'REPLDebug-Scope'
 
 	def new(pos: string, height: number)
-		this._win = window.Window.new(pos, height)
-		this.OnSetBufPost((_) => {
-			this.Await(this.Draw())
-		})
+		this._win = window.Window.new(pos, height, this._scopeBufname)
 	enddef
 
-	def Update(tag: VariableTag, vs: dict<Variable>)
-		var vars = this._variables[tag.name]
-		for [k, v] in vs->items()
-			vars[k] = v
+	def Refresh(vars: list<Variable>)
+		var scope = {}
+		for v in vars
+			scope[v.Tag.name][v.Name] = v
 		endfor
 
-		this.Await(this.Draw())
+		AsyncIO.Await(this._Draw(scope))
 	enddef
 
-	static def _MaxLength(d: dict<Variable>): tuple<number, number, number>
+	def _MaxLength(d: list<Variable>): tuple<number, number, number>
 		var tnv = [0, 0, 0]
 		for v in values(d)
 			var tl = v.Type->strdisplaywidth()
@@ -78,8 +70,8 @@ class DebugVariablesWindow extends Async
 		return tnl->list2tuple()
 	enddef
 
-	static def _Banner(d: dict<Variable>): list<string>
-		var [tl, nl, vl] = _MaxLength(d)
+	def _Banner(d: list<Variable>): list<string>
+		var [tl, nl, vl] = this._MaxLength(d)
 
 		var format = $'%{tl}s %{nl}s %{vl}s'
 		var lines = [printf(format, 'Type', 'Name', 'Value')]
@@ -90,18 +82,18 @@ class DebugVariablesWindow extends Async
 		return lines
 	enddef
 
-	def Draw(): Coroutine
-		return Coroutine.new(() => {
+	def _Draw(scope: dict<Variabale>): Coroutine
+		return Coroutine.new((variables, buf) => {
 			var lines = []
 
-			for [tag, vars] in items(this._variables)
+			for [tag, vars] in variables->items()
 				lines->add($'{tag} Variables:')
-				lines->extend(_Banner(vars))
+				lines->extend(this._Banner(vars))
 			endfor
 
 			buf.Clear()
 			buf.SetLine(lines)
-		})
+		}, scope, this._win.GetBuffer())
 	enddef
 endclass
 
@@ -112,15 +104,15 @@ export class Address
 	var Bufnr: number
 
 	def new(this.FileName, this.Lnum)
-		this.Bufnr = Buffer.new(this.FileName).bufnr
+		this.Bufnr = buffer.Buffer.new(this.FileName).bufnr
 	enddef
 
 	def newAll(this.FileName, this.Lnum, this.Col)
-		this.Bufnr = Buffer.new(this.FileName).bufnr
+		this.Bufnr = buffer.Buffer.new(this.FileName).bufnr
 	enddef
 
 	def string(): string
-		return this.Col == 0
+		return this.Col < 1
 			? $'{this.FileName}:{this.Lnum}'
 			: $'{this.FileName}:{this.Lnum}:{this.Col}'
 	enddef
@@ -188,7 +180,7 @@ class BreakpointUI
 	enddef
 endclass
 
-export class StepUI
+class StepUI
 	const _sigName = 'REPLDebug-Step'
 	var _id: number
 
@@ -217,33 +209,150 @@ export class StepUI
 	enddef
 endclass
 
-enum REPLDebugMethod
+export enum REPLDebugMethod
 	Step,
+	Scope,
+	Finish,
 	FocusMe,
 	ToggleBreakpoint
 
 	static def Names(): list<string>
 		return Method.values->mapnew((_, method) => method.name)
 	enddef
+
+	static def Request(group, pattern: REPLDebugMethod, data: any = null)
+		if exists($'#{group}#User#{pattern.name}')
+			Autocmd.Do(group, 'User', [pattern.name], data)
+		endif
+	enddef
 endenum
 
+final debug = vim.IncID.new()
+
+export abstract class REPLDebugBackend extends jb.Prompt
+	var id = debug.ID()
+	var scope: buffer.Buffer
+
+	const REPLDebugBackendGroup = 'REPLDebugBackend'
+
+	abstract def Prompt(): string
+	abstract def Bufname(): string
+	abstract def HandleStep(text: string): Address
+	abstract def HandleScope(text: string): list<Variable>
+	abstract def HandleFocusMe(text: string): tuple<buffer.Prompt, buffer.Terminal, buffer.Buffer, Address>
+	abstract def HandleToggleBreakpoint(text: string): Address
+
+	def RequestUIMethod(pattern: string, data: any = null)
+		REPLDebugMethod.Request(REPLDebugUI.group, 'User', [pattern], data)
+	enddef
+
+	def Bufname(): string
+		return $'{trim(this.Prompt())}-{this.id}'
+	enddef
+
+	def Callback(_: channel, line: string)
+		var scope = this.HandleScope(line)
+		if scope != null_list
+			this.RequestUIMethod(REPLDebugMethod.Scope, scope)
+			return
+		endif
+
+		var addr = this.HandleStep(line)
+		if addr != null_object
+			this.RequestUIMethod(REPLDebugMethod.Step, addr)
+			return
+		endif
+
+		var break = this.HandleToggleBreakpoint(line)
+		if break != null_object
+			this.RequestUIMethod(REPLDebugMethod.ToggleBreakpoint, break)
+			return
+		endif
+
+		var focusMe = this.HandleFocusMe(line)
+		if focusMe != null_tuple
+			var [prompt, pty, scope, addr] = focusMe
+			this.RequestUIMethod(REPLDebugMethod.FocusMe, (prompt, pty, scope)))
+			this.RequestUIMethod(REPLDebugMethod.Step, addr)
+			return
+		endif
+
+		this.prompt.AppendLine(line)
+	enddef
+
+	def InterruptCb()
+		super.InterruptCb()
+	enddef
+
+	def Run()
+		this.scope = buffer.Buffer.new()
+		super.Run()
+	enddef
+endclass
+
+class MockREPLDebugBackend extends REPLDebugBackend
+	var _breaks: list<Address> = []
+	const _togglePoint = Autocmd.new('ToggleBreakpoint')
+		.Group(this.REPLDebugBackendGroup)
+		.Callback((opt) => {
+			this._breaks->extend(opt.data)
+			this.RequestUIMethod(REPLDebugMethod.ToggleBreakpoint, breaks[-1])
+		})
+
+	def Prompt(): string
+		return ''
+	enddef
+
+	def Bufname(): string
+		return ''
+	enddef
+
+	def HandleStep(_: string): Address
+		return null_object
+	enddef
+
+	def HandleToggleBreakpoint(_: string): Address
+		return null_object
+	enddef
+
+	def Callback(_: channel, _: string)
+	enddef
+
+	def InterruptCb()
+		REPLDebugMethod.Request(this.REPLDebugBackendGroup, REPLDebugMethod.ToggleBreakpoint, this.breaks)
+	enddef
+
+	def Send(_: string)
+	enddef
+
+	def HandleFocusMe(_: string): tuple<buffer.Prompt, Address>
+		return null_tuple
+	enddef
+
+	def HandleScope(_: string): list<Variable>
+		return null_list
+	enddef
+
+	def Run()
+	enddef
+endclass
+
 export class REPLDebugUI
+	var _pty: Window
 	var _step: StepUI
 	var _code: Window
-	var _scope: Window
+	var _scope: ScopeUI
 	var _prompt: Window
 	var _breakpoints BreakpointUI
 
-	def new(conf: dict<any> = null_object)
+	static const group = 'REPLDebugUI'
+
+	def new()
+		this.code = Window.newCurrent()
 		hlset([
 			{name: 'REPLDebugBreakpoint', ctermfg: 'red', guifg: 'red', term:  {reverse: true}},
 			{name: 'REPLDebugStep', default: true, linksto: 'Normal'}
 		])
-
-		this.code = Window.newCurrent()
-
-		var scopeConf = get(conf, 'scope', {})
-		this._scope = Window.new(get(scopeConf, 'pos', ''), get(scopeConf, 'height', 0), 'REPLDebug-Scope')
 
 		Autocmd.new('User')
 			.Group(group)
@@ -252,21 +361,16 @@ export class REPLDebugUI
 			.Callback(this._Dispatch)
 	enddef
 
-	def Close()
-		this._step.Clear()
-		this._scope.Close()
-		this._prompt.Close()
-		this._breakpoints.ClearAll()
-		autocmd_delete(REPLDebugMethod.Names()->mapnew((_, method) => {
-			return {
-				event: 'User',
-				group: group,
-				pattern: method}
-		}))
-	enddef
-
 	def _Dispatch(opt: autocmd.EventArgs)
-		if opt.event == ''
+		if opt.event == REPLDebugMethod.Step.name
+			this._Step(opt)
+		elseif opt.event == REPLDebugMethod.ToggleBreakpoint.name
+			this._Breakpoint(opt)
+		elseif opt.event == REPLDebugMethod.FocusMe.name
+			this._FocusMe(opt)
+		else
+			this._Finish()
+		endif
 	enddef
 
 	def _Step(opt: autocmd.EventArgs)
@@ -281,6 +385,18 @@ export class REPLDebugUI
 		this._code.Feedkeys('z.', 'mx')
 	enddef
 
+	def _Finish()
+		this._step.Clear()
+		this._scope.Close()
+		this._prompt.Close()
+		this._breakpoints.ClearAll()
+		autocmd_delete({group: group, pattern: REPLDebugMethod.Names()})
+	enddef
+
+	def _Scope(opt: autocmd.EventArgs)
+		var variables: list<Variable> = opt.data
+	enddef
+
 	def _Breakpoint(opt: autocmd.EventArgs)
 		var addr: Address = opt.data
 		if this._breakpoints.IsExists(addr)
@@ -291,200 +407,35 @@ export class REPLDebugUI
 	enddef
 
 	def _FocusMe(opt: autocmd.EventArgs)
-		var buffers: tuple<Buffer, buffer.Prompt, Buffer> = opt.data
-		var [code, prompt, scope] = buffers
-		this._code.SetBuffer(code)
-		this._prompt.SetBuffer(prompt)
+		var conf = get(g:, 'REPLDebugConfig', {})
+
+		if this._scope == null_object
+			var scopeConf = get(conf, 'scope', {})
+			this._scope = Window.new(get(scopeConf, 'pos', 'vertical rightbelow'), get(scopeConf, 'height', 0))
+		endif
+
+		if this._pty == null_object
+			var ptyConf = get(conf, 'pty', {})
+			this._pty = Window.new(get(ptyConf, 'pos', 'horizontal rightbelow'), get(ptyConf, 'height', 0))
+		endif
+
+		if this._prompt == null_object
+			var promptConf = get(conf, 'prompt', {})
+			this._prompt = Window.new(get(promptConf, 'pos', 'botright'), get(promptConf, 'height', 0))
+		endif
+
+		var backend: tuple<buffer.Prompt, buffer.Terminal, buffer.Buffer> = opt.data
+		var [prompt, pty, scope] = backend
+
+		this._pty.SetBuffer(pty)
 		this._scope.SetBuffer(scope)
+		this._prompt.SetBuffer(prompt)
 	enddef
 
-	def ToggleBreakpoint()
-		if exists('#User#REPLDebugToggleBreakPoint')
-			var win = window.Window.newCurrent()
-			buf = win.GetBuffer()
+	static def ToggleBreakpoint()
+		var win = Window.newCurrent()
+		buf = win.GetBuffer()
 
-			var [lnum, col] = win.GetCursorPosition()
-			var line = buf.GetOneLine(lnum)
-			Autocmd.Do('', 'User', ['REPLDebugToggleBreakPoint'], [Address.newAll(buf.name, lnum, col)])
-		endif
-	enddef
-endclass
-
-final debug = vim.IncID.new()
-
-export abstract class REPLDebugBackend extends jb.Prompt
-	var id = debug.ID()
-	var _OnInterruptCb: func()
-
-	abstract def Prompt(): string
-	abstract def HandleGoto(text: string): Address
-	abstract def HandleToggleBreakpoint(text: string): Address
-	abstract def MakeCommand(text: string): string
-
-	def Bufname(): string
-		return $'{trim(this.Prompt())}-{this.id}'
-	enddef
-
-	def Callback(_: channel, line: string)
-		var break = this.HandleToggleBreakpoint(line)
-		if break != null_object
-			this._UI.code.ToggleBreakpoint(this.id, break)
-			return
-		endif
-
-		var addr = this.HandleGoto(line)
-		if addr != null_object
-			this._UI.code.Goto(addr)
-			return
-		endif
-
-		this.prompt.AppendLine(line)
-	enddef
-
-	def OnInterruptCb(F: func())
-		this._OnInterruptCb = F
-	enddef
-
-	def InterruptCb()
-		this._OnInterruptCb()
-		super.InterruptCb()
-	enddef
-endclass
-
-class MockREPLDebugBackend extends REPLDebugBackend
-	def Prompt(): string
-		return ''
-	enddef
-
-	def HandleGoto(_: string): Address
-		return null_object
-	enddef
-
-	def HandleToggleBreakpoint(_: string): Address
-		return null_object
-	enddef
-
-	def MakeCommand(path: string): string
-		var [f, lnum, _] = path->split(':')
-		this._UI.code.ToggleBreakpoint(this.id, Address.new(f, lnum->str2nr()))
-		return ''
-	enddef
-
-	def Bufname(): string
-		return ''
-	enddef
-
-	def Callback(_: channel, _: string)
-	enddef
-
-	def OnInterruptCb(F: func())
-	enddef
-
-	def InterruptCb()
-	enddef
-
-	def Send(_: string)
-	enddef
-
-	def Run()
-	enddef
-endclass
-
-export class REPLDebugManager
-	var _Session: Ring
-
-	def new()
-		this._InitHightlight()
-		this._UI = REPLDebugUI.new()
-		var mock = MockREPLDebugBackend.new()
-		mock.SetUI(this._UI)
-		this._Session = Ring.new(mock)
-		Autocmd.new('BufWinEnter')
-			.Group(this._Breakpoints)
-			.Pattern([this.code->string()])
-			.Callback(() => {
-				Command.new('ToggleBreakpoint')
-					.Buffer()
-					.Callback(this.code.)
-			})
-
-		Autocmd.new('BufWinLeave')
-			.Group(this._Breakpoints)
-			.Pattern([this.code->string()])
-			.Callback(() => {
-				Command.Delete('ToggleBreakpoint', true)
-			})
-	enddef
-
-	def _InitHightlight()
-		hlset([
-			{name: 'REPLDebugBreakpoint', ctermfg: 'red', guifg: 'red', term:  {reverse: true}},
-			{name: 'REPLDebugStep', ctermfg: 'red', guifg: 'red', term:  {reverse: true}}
-		])
-	enddef
-
-	def Open(repl: REPLDebugBackend, pos: string = '', count: number = 0)
-		repl.Run()
-		this._UI.SetPrompt(repl.prompt, pos, count)
-		repl.OnInterruptCb(this._OnInterruptCb)
-		repl.SetUI(this._UI)
-
-		var cur = this._Session.Peek()
-		if instanceof(cur, MockREPLDebugBackend)
-			this._UI
-				.code
-				.GetBreakpoints(cur.id)
-				->keys()
-				->foreach((_, path) => {
-					repl.Send(repl.MakeCommand(path))
-				})
-			this._Session.Pop<REPLDebugBackend>()
-		endif
-
-		this._Session.Push(repl)
-	enddef
-
-	def _OnInterruptCb()
-		this._UI.code.ClearSessionBreakpoint(this._Session.Peek().id)
-		this._Session.Pop<REPLDebugBackend>()
-		if this._Session.empty()
-			if exists(':REPLDebugClose')
-				execute('REPLDebugClose')
-			endif
-		endif
-	enddef
-
-	def NextSession()
-		this._Session.SlideRight()
-		var cur = this._Session.Peek()
-		if cur.prompt == null_object
-			return
-		endif
-
-		this._UI.SetPrompt(cur.prompt)
-		cur.SetUI(this._UI)
-	enddef
-
-	def PrevSession()
-		this._Session.SlideLeft()
-		var cur = this._Session.Peek()
-		if cur.prompt == null_object
-			return
-		endif
-
-		this._UI.SetPrompt(cur.prompt)
-		cur.SetUI(this._UI)
-	enddef
-
-	def ToggleBreakpoint()
-		var cur = this._Session.Peek()
-		if cur == null_object
-			return
-		endif
-
-		var buf = this._UI.code.GetBuffer()
-		var [lnum, col] = this._UI.code.GetCursorPos()
-		var line = buf.GetOneLine(lnum)
 		var cms = &commentstring->split('%s')
 		if line =~ '^\s\{-\}$'
 				|| (!empty(cms)
@@ -493,23 +444,8 @@ export class REPLDebugManager
 				&& line =~ $'^\s\{{-\}}{trim(cms[1])}')
 			return
 		endif
-
-		var breakpoints = this._UI.GetBreakpointVar()
-		var breakpoints: any = this._UI.code.GetVar('REPLDebugBreakpoints')
-		if breakpoints == ''
-			breakpoints = {}
-		endif
-
-
-		this._UI.code.SetVar('')
-		this._UI.code.ToggleBreakpoint(this.id, Address.new(f, lnum->str2nr()))
-		cur.Send(cur.MakeCommand($'{buf.name}:{lnum}:{col}'))
-	enddef
-
-	def Close()
-		this._UI.code.ClearAllSessionBreakpoint()
-		this._Session.ForEach((repl: REPLDebugBackend) => {
-			repl.prompt.Delete()
-		})
+		var [lnum, col] = win.GetCursorPosition()
+		var line = buf.GetOneLine(lnum)
+		REPLDebugMethod.Request('REPLDebugBackend', 'ToggleBreakpoint', [Address.newAll(buf.name, lnum, col)])
 	enddef
 endclass
