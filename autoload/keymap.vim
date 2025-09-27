@@ -20,9 +20,9 @@ export class Bind
 	var _arg: string
 	var _noremap: bool
 	var _When: func(): bool
-	static var _mapFunction: dict<func()> = {}
+	static var _mapFunction: dict<func> = {}
 
-	static def InternalFunction(name: string): func()
+	static def InternalFunction(name: string): func
 		return _mapFunction[name]
 	enddef
 
@@ -34,7 +34,10 @@ export class Bind
 		this._mods->extend(ms)
 	enddef
 
-	def ScriptCmd(lhs: string, Rhs: func()): Bind
+	def ScriptCmd(lhs: string, Rhs: func): Bind
+		if ['func()', 'func(): string', 'func(): any']->index(typename(Rhs)) == -1
+			throw 'Rhs type must be func() or func(): string or func(): any.'
+		endif
 		if this._When != null_function && !call(this._When, [])
 			return this
 		endif
@@ -55,7 +58,11 @@ export class Bind
 			var name = $'{m}_{rand()}'
 			_mapFunction[name] = Rhs
 
-			execute($'{m} {this._arg} {lhs} <ScriptCmd>call(Bind.InternalFunction("{name}"), [])<CR>')
+			if this._arg =~# '<expr>'
+				execute($'{m} {this._arg} {lhs} call(Bind.InternalFunction("{name}"), [])')
+			else
+				execute($'{m} {this._arg} {lhs} <ScriptCmd>call(Bind.InternalFunction("{name}"), [])<CR>')
+			endif
 		endfor
 
 		return this
