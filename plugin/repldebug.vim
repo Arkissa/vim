@@ -12,12 +12,13 @@ type NArgs = command.NArgs
 type Command = command.Command
 type Complete = command.Complete
 type Autocmd = autocmd.Autocmd
-type REPLDebugManager = repldebug.REPLDebugManager
 
 const group = 'REPLDebug'
+const REPLDebugUI = repldebug.REPLDebugUI
 
-var manager = REPLDebugManager.new()
-var REPLDebugConfig: dict<string> = g:REPLDebugConfig
+var REPLDebugConfig: dict<any> = g:REPLDebugConfig
+
+const modules = REPLDebugConfig.modules
 
 def REPLDebug(expr: string, exprAttach: string)
 	Command.new('REPLDebug')
@@ -26,7 +27,7 @@ def REPLDebug(expr: string, exprAttach: string)
 		.Overlay()
 		.NArgs(NArgs.Star)
 		.Callback((attr) => {
-			manager.Open(eval(printf(expr, attr.args)))
+			REPLDebugUI.Open(eval(printf(expr, attr.args)))
 		})
 
 	Command.new('REPLDebugAttach')
@@ -35,7 +36,7 @@ def REPLDebug(expr: string, exprAttach: string)
 		.Overlay()
 		.NArgs(NArgs.One)
 		.Callback((attr) => {
-			manager.Open(eval(printf(exprAttach, attr.args)))
+			REPLDebugUI.Open(eval(printf(exprAttach, attr.args)))
 		})
 
 	Command.new('REPLDebugClose')
@@ -43,33 +44,33 @@ def REPLDebug(expr: string, exprAttach: string)
 		.Buffer()
 		.Overlay()
 		.Callback(() => {
-			manager.Close()
-			manager = REPLDebugManager.new()
+			REPLDebugUI.Close()
 		})
 
 	Command.new('REPLDebugSessionPrev')
 		.Bar()
 		.Buffer()
 		.Overlay()
-		.Callback(manager.PrevSession)
+		.Callback(REPLDebugUI.Prev)
 
 	Command.new('REPLDebugSessionNext')
 		.Bar()
 		.Buffer()
 		.Overlay()
-		.Callback(manager.NextSession)
+		.Callback(REPLDebugUI.Next)
 
 	Command.new('ToggleBreakpoint')
 		.Bar()
 		.Buffer()
 		.Overlay()
-		.Callback(manager.ToggleBreakpoint)
+		.Callback(REPLDebugUI.ToggleBreakpoint)
 enddef
 
-for [ft, module] in REPLDebugConfig->items()
-	import autoload $'{module}.vim'
+for module in modules
+	var [ft, name] = module
+	import autoload $'{name}.vim'
 
-	var m = fnamemodify(module, ':t:r')
+	var m = fnamemodify(name, ':t:r')
 	Autocmd.new('FileType')
 		.Group(group)
 		.Pattern([ft])

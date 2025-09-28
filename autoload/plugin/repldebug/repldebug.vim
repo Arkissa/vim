@@ -82,7 +82,7 @@ class ScopeUI
 		return lines
 	enddef
 
-	def _Draw(scope: dict<Variabale>): Coroutine
+	def _Draw(scope: dict<Variable>): Coroutine
 		return Coroutine.new((variables, buf) => {
 			var lines = []
 
@@ -120,7 +120,8 @@ endclass
 
 class BreakpointUI
 	const _sigName = 'REPLDebug-Variable'
-	var _breakpoint: dict<tuple<number, Address>>
+	const group = 'REPLDebug-Variable'
+	var _breakpoint: dict<dict<tuple<number, Address>>>
 
 	def new()
 		sign_define(this._sigName, {
@@ -129,52 +130,67 @@ class BreakpointUI
 		})
 	enddef
 
-	def IsExists(addr: Address): bool
-		return has_key(this._breakpoint, addr->string())
+	def IsExists(id: number, addr: Address): bool
+		return has_key(this._breakpoint, id) && has_key(this._breakpoint[id], addr->string())
 	enddef
 
-	def Break(addr: Address)
+	def Break(id: number, addr: Address)
 		var signID = sign_place(
 			0,
-			group,
+			this.group,
 			this._sigName,
 			addr.Bufnr,
 			{lnum: addr.Lnum, priority: 110}
 		)
 
-
-		this._breakpoint[addr->string()] = (signID, addr)
+		this._breakpoint[id][addr->string()] = (signID, addr)
 	enddef
 
-	def Clear(addr: Address)
-		var [signID, _] = remove(this._breakpoint, addr->string())
-		sign_unplace(group, {buffer: addr.Bufnr, id: signID})
+	def Clear(id: number, addr: Address)
+		if !has_key(this._breakpoint, id)
+			return
+		endif
+
+		var breaks = this._breakpoint[id]
+		var [signID, _] = remove(breaks, addr->string())
+		sign_unplace(this.group, {buffer: addr.Bufnr, id: signID})
 	enddef
 
-	def Toggle(break: Address = null_object)
-		var addr: Address
+# 	def Toggle(break: Address = null_object)
+# 		var addr: Address
 
-		if break != null_object
-			addr = address
-		else
-			var win = window.Window.newCurrent()
-			buf = win.GetBuffer()
+# 		if break != null_object
+# 			addr = address
+# 		else
+# 			var win = window.Window.newCurrent()
+# 			buf = win.GetBuffer()
 
-			var [lnum, col] = bwin.GetCursorPosition()
-			var line = buf.GetOneLine(lnum)
-			addr = Address.newAll(line, lnum, col)
+# 			var [lnum, col] = bwin.GetCursorPosition()
+# 			var line = buf.GetOneLine(lnum)
+# 			addr = Address.newAll(line, lnum, col)
+# 		endif
+
+# 		if this.IsExists(addr)
+# 			this.Clear(addr)
+# 		else
+# 			this.Break(addr)
+# 		endif
+# 	enddef
+
+	def ClearAllByID(id: number)
+		if !has_key(this._breakpoint, id)
+			return
 		endif
 
-		if has_key(this._breakpoint, addr->string())
-			this.Clear(addr)
-		else
-			this.Break(addr)
-		endif
+		var breaks = this._breakpoint[id]
+		for signID in breaks->values()->map((_, break: tuple<number, Address>) => break[0])
+			sign_unplace(this.group, {id: signID})
+		endfor
 	enddef
 
 	def ClearAll()
 		for signID in this._breakpoint->values()->map((_, break) => break[0])
-			sign_unplace(group, {id: signID})
+			sign_unplace(this.group, {id: signID})
 		endfor
 		sign_undefine(this._sigName)
 	enddef
@@ -182,6 +198,7 @@ endclass
 
 class StepUI
 	const _sigName = 'REPLDebug-Step'
+	const group = 'REPLDebug-Step'
 	var _id: number
 
 	def new()
@@ -193,10 +210,10 @@ class StepUI
 	enddef
 
 	def Set(addr: Address)
-		sign_unplace(group, {id: signID})
-		var _id	= sign_place(
+		sign_unplace(this.group, {id: this._id})
+		this._id = sign_place(
 			0,
-			group,
+			this.group,
 			this._sigName,
 			addr.Bufnr,
 			{lnum: addr.Lnum, priority: 110}
@@ -204,23 +221,26 @@ class StepUI
 	enddef
 
 	def Clear()
-		sign_unplace(group, {id: signID})
+		sign_unplace(this.group, {id: this._id})
 		sign_undefine(this._sigName)
 	enddef
 endclass
 
-export enum REPLDebugMethod
+export enum Method
 	Step,
-	Scope,
-	Finish,
+	# Scope,
+	# Stack,
+	Close,
 	FocusMe,
-	ToggleBreakpoint
+	Breakpoint,
+	ClearBreakpoint,
+	ClearAllBreakpoint
 
 	static def Names(): list<string>
 		return Method.values->mapnew((_, method) => method.name)
 	enddef
 
-	static def Request(group, pattern: REPLDebugMethod, data: any = null)
+	static def Request(group: string, pattern: Method, data: any = null)
 		if exists($'#{group}#User#{pattern.name}')
 			Autocmd.Do(group, 'User', [pattern.name], data)
 		endif
@@ -229,75 +249,122 @@ endenum
 
 final debug = vim.IncID.new()
 
-export abstract class REPLDebugBackend extends jb.Prompt
+export abstract class Backend extends jb.Prompt
+	const group = 'REPLDebugBackend'
+
 	var id = debug.ID()
 	var scope: buffer.Buffer
 
-	const REPLDebugBackendGroup = 'REPLDebugBackend'
-
 	abstract def Prompt(): string
-	abstract def Bufname(): string
-	abstract def HandleStep(text: string): Address
-	abstract def HandleScope(text: string): list<Variable>
-	abstract def HandleFocusMe(text: string): tuple<buffer.Prompt, buffer.Terminal, buffer.Buffer, Address>
-	abstract def HandleToggleBreakpoint(text: string): Address
-
-	def RequestUIMethod(pattern: string, data: any = null)
-		REPLDebugMethod.Request(REPLDebugUI.group, 'User', [pattern], data)
-	enddef
+	abstract def BreakpointCommand(addr: tuple<bool, Address>): string
+	abstract def HandleStepFromRPEL(text: string): Address
+	abstract def HandleFocusMeFromRPEL(text: string): Address
+	abstract def HandleSetBreakpointFromREPL(text: string): Address
+	abstract def HandleClearBreakpointFromREPL(text: string): Address
 
 	def Bufname(): string
 		return $'{trim(this.Prompt())}-{this.id}'
 	enddef
 
+	def InterruptCb()
+		this.RequestUIMethod(Method.Close)
+	enddef
+
+	def RequestUIMethod(pattern: Method, data: any = null)
+		Method.Request(UI.group, pattern, data)
+	enddef
+
+	def FocusMe()
+		def Breakpoint(b: Backend, opt: autocmd.EventArgs)
+			var data: list<Address> = opt.data
+			var cmds = data->mapnew((_, addr) => b.BreakpointCommand((opt.event == 'Breakpoint', addr)))
+
+			AsyncIO.Run(Coroutine.new(
+				(addrs, backend) => {
+					for addr in addrs
+						backend.Send(addr)
+					endfor
+				},
+				cmds,
+				b))
+		enddef
+
+		Autocmd.new('User')
+			.Group(this.group)
+			.Pattern(['Breakpoint', 'ClearBreakpoint'])
+			.Replace()
+			.Callback(funcref(Breakpoint, [this]))
+
+		# this.RequestUIMethod(Method.FocusMe, (this.id, this.prompt, this.pty, this.stack)))
+		this.RequestUIMethod(Method.FocusMe, (this.id, this.prompt, this.pty))
+	enddef
+
+	def Run()
+		# this.stack = buffer.Buffer.new($'REPLDebugBackend-Stack-{this.id}')
+		super.Run()
+	enddef
+
 	def Callback(_: channel, line: string)
-		var scope = this.HandleScope(line)
-		if scope != null_list
-			this.RequestUIMethod(REPLDebugMethod.Scope, scope)
-			return
-		endif
-
-		var addr = this.HandleStep(line)
+		var addr: Address = this.HandleFocusMeFromREPL(line)
 		if addr != null_object
-			this.RequestUIMethod(REPLDebugMethod.Step, addr)
+			this.FocusMe()
+			this.RequestUIMethod(Method.Step, addr)
 			return
 		endif
 
-		var break = this.HandleToggleBreakpoint(line)
-		if break != null_object
-			this.RequestUIMethod(REPLDebugMethod.ToggleBreakpoint, break)
+		addr = this.HandleSetBreakpointFromREPL(line)
+		if addr != null_object
+			this.RequestUIMethod(Method.Breakpoint, (this.id, addr))
 			return
 		endif
 
-		var focusMe = this.HandleFocusMe(line)
-		if focusMe != null_tuple
-			var [prompt, pty, scope, addr] = focusMe
-			this.RequestUIMethod(REPLDebugMethod.FocusMe, (prompt, pty, scope)))
-			this.RequestUIMethod(REPLDebugMethod.Step, addr)
+		addr = this.HandleClearBreakpointFromREPL(line)
+		if addr != null_object
+			this.RequestUIMethod(Method.ClearBreakpoint, (this.id, addr))
+			return
+		endif
+
+		addr = this.HandleStepFromREPL(line)
+		if addr != null_object
+			this.RequestUIMethod(Method.Step, addr)
 			return
 		endif
 
 		this.prompt.AppendLine(line)
 	enddef
-
-	def InterruptCb()
-		super.InterruptCb()
-	enddef
-
-	def Run()
-		this.scope = buffer.Buffer.new()
-		super.Run()
-	enddef
 endclass
 
-class MockREPLDebugBackend extends REPLDebugBackend
-	var _breaks: list<Address> = []
-	const _togglePoint = Autocmd.new('ToggleBreakpoint')
-		.Group(this.REPLDebugBackendGroup)
-		.Callback((opt) => {
-			this._breaks->extend(opt.data)
-			this.RequestUIMethod(REPLDebugMethod.ToggleBreakpoint, breaks[-1])
-		})
+class MockBackend extends Backend
+	var _breaks: dict<Address> = {}
+
+	def Cmd(): string
+		return ''
+	enddef
+
+	def BreakpointCommand(_: tuple<bool, Address>): string
+		return ''
+	enddef
+
+	def FocusMe()
+		Autocmd.new('User')
+			.Group(this.group)
+			.Pattern([Method.Breakpoint.name, Method.ClearBreakpoint.name])
+			.Replace()
+			.Callback((opt) => {
+				if opt.data == null || opt.data == null_string
+					return
+				endif
+
+				for addr in opt.data
+					if opt.event == Method.Breakpoint.name
+						this.RequestUIMethod(Method.Breakpoint, addr)
+						this._breaks[addr->string()] = addr
+					else
+						this.RequestUIMethod(Method.ClearBreakpoint, remove(this._breaks, addr->string()))
+					endif
+				endfor
+			})
+	enddef
 
 	def Prompt(): string
 		return ''
@@ -307,11 +374,15 @@ class MockREPLDebugBackend extends REPLDebugBackend
 		return ''
 	enddef
 
-	def HandleStep(_: string): Address
+	def HandleStepFromRPEL(_: string): Address
 		return null_object
 	enddef
 
-	def HandleToggleBreakpoint(_: string): Address
+	def HandleSetBreakpointFromREPL(_: string): Address
+		return null_object
+	enddef
+
+	def HandleClearBreakpointFromREPL(_: string): Address
 		return null_object
 	enddef
 
@@ -319,36 +390,38 @@ class MockREPLDebugBackend extends REPLDebugBackend
 	enddef
 
 	def InterruptCb()
-		REPLDebugMethod.Request(this.REPLDebugBackendGroup, REPLDebugMethod.ToggleBreakpoint, this.breaks)
+		Method.Request(this.group, Method.Breakpoint, this._breaks->values())
 	enddef
 
 	def Send(_: string)
 	enddef
 
-	def HandleFocusMe(_: string): tuple<buffer.Prompt, Address>
-		return null_tuple
+	def HandleFocusMeFromRPEL(_: string): Address
+		return null_object
 	enddef
 
-	def HandleScope(_: string): list<Variable>
-		return null_list
-	enddef
+	# def HandleScopeFromRPEL(_: string): list<Variable>
+	# 	return null_list
+	# enddef
 
 	def Run()
 	enddef
 endclass
 
-export class REPLDebugUI
+class UI
 	var _pty: Window
 	var _step: StepUI
 	var _code: Window
-	var _scope: ScopeUI
+	# var _scope: ScopeUI
+	# var _stack: Window
 	var _prompt: Window
-	var _breakpoints BreakpointUI
+	var _breakpoints: BreakpointUI
+	var _Session = Ring.new(MockBackend.new())
 
 	static const group = 'REPLDebugUI'
 
 	def new()
-		this.code = Window.newCurrent()
+		this._code = Window.newCurrent()
 		hlset([
 			{name: 'REPLDebugBreakpoint', ctermfg: 'red', guifg: 'red', term:  {reverse: true}},
 			{name: 'REPLDebugStep', default: true, linksto: 'Normal'}
@@ -356,20 +429,22 @@ export class REPLDebugUI
 
 		Autocmd.new('User')
 			.Group(group)
-			.Pattern(REPLDebugMethod.Names())
+			.Pattern(Method.Names())
 			.Replace()
 			.Callback(this._Dispatch)
 	enddef
 
 	def _Dispatch(opt: autocmd.EventArgs)
-		if opt.event == REPLDebugMethod.Step.name
+		if opt.event == Method.Step.name
 			this._Step(opt)
-		elseif opt.event == REPLDebugMethod.ToggleBreakpoint.name
+		elseif opt.event == Method.Breakpoint.name
 			this._Breakpoint(opt)
-		elseif opt.event == REPLDebugMethod.FocusMe.name
+		elseif opt.event == Method.ClearBreakpoint.name
+			this._ClearBreakpoint(opt)
+		elseif opt.event == Method.FocusMe.name
 			this._FocusMe(opt)
 		else
-			this._Finish()
+			this.Close()
 		endif
 	enddef
 
@@ -377,42 +452,59 @@ export class REPLDebugUI
 		var addr: Address = opt.data
 		var buf = this._code.GetBuffer()
 		if buf.bufnr != addr.Bufnr
-			this._code.SetBuf(addr.bufnr)
+			this._code.SetBuf(addr.Bufnr)
 		endif
 
 		this._code.SetCursor(addr.Lnum, addr.Col)
 		this._step.Set(addr)
-		this._code.Feedkeys('z.', 'mx')
+		this._code.FeedKeys('z.', 'mx')
 	enddef
 
 	def _Finish()
 		this._step.Clear()
-		this._scope.Close()
+		# this._scope.Close()
 		this._prompt.Close()
 		this._breakpoints.ClearAll()
-		autocmd_delete({group: group, pattern: REPLDebugMethod.Names()})
+		autocmd_delete([{group: group, event: 'User', pattern: Method.Names()}])
 	enddef
 
-	def _Scope(opt: autocmd.EventArgs)
-		var variables: list<Variable> = opt.data
+	def _Stack(opt: autocmd.EventArgs)
+		var data: string = opt.data
+		if data == ""
+			this._stack.GetBuffer().Clear()
+		else
+			this._stack.AppendLine(data)
+		endif
 	enddef
 
 	def _Breakpoint(opt: autocmd.EventArgs)
-		var addr: Address = opt.data
-		if this._breakpoints.IsExists(addr)
-			this._breakpoints.Clear(addr)
-		else
-			this._breakpoints.Break(addr)
-		endif
+		var data: tuple<number, Address> = opt.data
+		var [id, addr] = data
+		this._breakpoints.Break(id, addr)
+	enddef
+
+	def _ClearBreakpoint(opt: autocmd.EventArgs)
+		var data: tuple<number, Address> = opt.data
+		var [id, addr] = data
+		this._breakpoints.Clear(id, addr)
+	enddef
+
+	def _ClearAllBreakpoint(opt: autocmd.EventArgs)
+		var id: number = opt.data
+		this._breakpoints.ClearAllByID(id)
 	enddef
 
 	def _FocusMe(opt: autocmd.EventArgs)
 		var conf = get(g:, 'REPLDebugConfig', {})
 
-		if this._scope == null_object
-			var scopeConf = get(conf, 'scope', {})
-			this._scope = Window.new(get(scopeConf, 'pos', 'vertical rightbelow'), get(scopeConf, 'height', 0))
-		endif
+		# if this._scope == null_object
+		# 	var scopeConf = get(conf, 'scope', {})
+		# 	this._scope = Window.new(get(scopeConf, 'pos', 'vertical rightbelow'), get(scopeConf, 'height', 0))
+		# endif
+		# if this._stack == null_object
+		# 	var stackConf = get(conf, 'stack', {})
+		# 	this._stack = Window.new(get(stackConf, 'pos', 'vertical rightbelow'), get(stackConf, 'height', 0))
+		# endif
 
 		if this._pty == null_object
 			var ptyConf = get(conf, 'pty', {})
@@ -421,20 +513,54 @@ export class REPLDebugUI
 
 		if this._prompt == null_object
 			var promptConf = get(conf, 'prompt', {})
-			this._prompt = Window.new(get(promptConf, 'pos', 'botright'), get(promptConf, 'height', 0))
+			this._prompt = Window.new(get(promptConf, 'pos', 'horizontal botright'), get(promptConf, 'height', 0))
 		endif
 
-		var backend: tuple<buffer.Prompt, buffer.Terminal, buffer.Buffer> = opt.data
-		var [prompt, pty, scope] = backend
+		var backend: tuple<number, buffer.Prompt, buffer.Terminal, buffer.Buffer> = opt.data
+		# var [id, prompt, pty, stack] = backend
+		var [id, prompt, pty] = backend
 
 		this._pty.SetBuffer(pty)
-		this._scope.SetBuffer(scope)
+		# this._stack.SetBuffer(stack)
 		this._prompt.SetBuffer(prompt)
+		this._Session.SwitchOf((b) => b.id == id)
 	enddef
 
-	static def ToggleBreakpoint()
+	def Open(repl: Backend)
+		if instanceof(this._Session.Peek(), MockBackend)
+			this._Session.Pop().InterruptCb()
+		endif
+
+		this._Session.Push(repl)
+		repl.FocusMe()
+	enddef
+
+	def Close()
+		this._Session.Pop()
+
+		if this._Session->empty()
+			this._Session.Push(MockBackend.new())
+			this._Finish()
+		endif
+
+		this._Session.Peek().FocusMe()
+	enddef
+
+	def Next()
+		this._Session.SlideRight()
+		this._Session.Peek().FocusMe()
+	enddef
+
+	def Prev()
+		this._Session.SlideLeft()
+		this._Session.Peek().FocusMe()
+	enddef
+
+	def ToggleBreakpoint()
 		var win = Window.newCurrent()
-		buf = win.GetBuffer()
+		var buf = win.GetBuffer()
+		var [lnum, col] = win.GetCursorPos()
+		var line = buf.GetOneLine(lnum)
 
 		var cms = &commentstring->split('%s')
 		if line =~ '^\s\{-\}$'
@@ -444,8 +570,12 @@ export class REPLDebugUI
 				&& line =~ $'^\s\{{-\}}{trim(cms[1])}')
 			return
 		endif
-		var [lnum, col] = win.GetCursorPosition()
-		var line = buf.GetOneLine(lnum)
-		REPLDebugMethod.Request('REPLDebugBackend', 'ToggleBreakpoint', [Address.newAll(buf.name, lnum, col)])
+		var addr = Address.newAll(buf.name, lnum, col)
+
+		var backend = this._Session.Peek()
+		var event = this._breakpoints.IsExists(backend.id, addr) ? Method.ClearBreakpoint : Method.Breakpoint
+		Method.Request('REPLDebugBackend', event, [addr])
 	enddef
 endclass
+
+export const REPLDebugUI = UI.new()

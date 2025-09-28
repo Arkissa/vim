@@ -13,9 +13,11 @@ g:netrw_keepj = 'keepj'
 g:netrw_dirhistmax = 0
 g:dispatch_no_maps = 1
 
-# g:REPLDebugConfig = {
-# 	go: 'plugin/repldebug/delve',
-# }
+g:REPLDebugConfig = {
+	modules: [
+		('go', 'plugin/repldebug/delve'),
+	],
+}
 
 g:GrepConfig = [
 	{
