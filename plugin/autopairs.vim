@@ -16,8 +16,6 @@ var pairs = get(g:, 'AutoPairs', {
 	['"']: '"',
 })
 
-var bind = Bind.new(Mods.i).NoRemap().Expr()
-
 def Del(): string
 	var win = Window.newCurrent()
 	var [lnum, col] = win.GetCursorPos()
@@ -35,6 +33,12 @@ def Del(): string
 		: $"\<BS>"
 enddef
 
+var bind = Bind.new(Mods.i)
+	.NoRemap()
+	.Expr()
+	.ScriptCmd("\<BS>", Del)
+	.ScriptCmd("", Del)
+
 for [open, close] in pairs->items()
 	var opening = open
 	var closing = close
@@ -42,6 +46,4 @@ for [open, close] in pairs->items()
 	bind.ScriptCmd(opening, (): string => {
 		return $"{opening}{closing}\<Left>"
 	})
-	.ScriptCmd("\<BS>", Del)
-	.ScriptCmd("", Del)
 endfor
