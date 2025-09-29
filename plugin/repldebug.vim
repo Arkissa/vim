@@ -26,6 +26,7 @@ def REPLDebug(expr: string, exprAttach: string)
 		.Buffer()
 		.Overlay()
 		.NArgs(NArgs.Star)
+		.Complete(Complete.ShellCmd)
 		.Callback((attr) => {
 			REPLDebugUI.Open(eval(printf(expr, attr.args)))
 		})

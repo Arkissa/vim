@@ -219,7 +219,7 @@ endclass
 class InternalAsyncIO extends Async
 	def Run(co: Coroutine)
 		timer_start(co.delay, (_) => {
-			co.Func()
+			call(co.Func, [])
 		})
 	enddef
 

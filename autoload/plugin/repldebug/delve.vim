@@ -4,29 +4,29 @@ import autoload 'job.vim' as jb
 import autoload 'buffer.vim'
 import autoload './repldebug.vim'
 
-type REPLDebugBackend = repldebug.REPLDebugBackend
-type Address = repldebug.Address
 type Method = repldebug.Method
+type Address = repldebug.Address
+type REPLDebugBackend = repldebug.Backend
+type Context = repldebug.Context
 
 class Delve extends REPLDebugBackend # {{{1
 	var _dropRegexps = [
-		'^\s\+\d+',
+		'^\s\+\d\+:',
 		'^=>',
-		'^(dlv)'
+		'^(dlv)\s',
 	]
+
 	var _args: list<string> = ['dlv']
 
 	def new(prg: string) # {{{2
-		this._args = ['exec', prg]
+		this._args->extend(['exec', prg])
 	enddef # }}}
 
 	def newAttach(pid: string)
-		this._args = ['attach', pid]
+		this._args->extend(['attach', pid])
 	enddef
 
 	def Cmd(): string
-		this._args->extend(['--tty', job_info(this.pty.GetJob())['tty_out']])
-
 		return this._args->join()
 	enddef
 
@@ -44,81 +44,91 @@ class Delve extends REPLDebugBackend # {{{1
 		super.Callback(ch, msg)
 	enddef
 
-	def BreakpointCommand(addr: tuple<bool, string>): string
-		var [break, text] = addr
-
-		var paths = text->split(':')
-		if paths->len() >= 2
-			paths = paths[ : 2]
-		endif
-
-		var [f, lnum] = paths
+	def BreakpointCommand(cmd: tuple<bool, Address>): string
+		var [break, addr] = cmd
 
 		return break
-			? $'break {f}:{lnum}'
-			: $'clear {f}:{lnum}'
+			? $'break {addr.FileName}:{addr.Lnum}'
+			: $'clear {addr.FileName}:{addr.Lnum}'
 	enddef
 
-	def HandleSetBreakpoint(text: string): Address
+	def HandleSetBreakpoint(ctx: Context, text: string)
 		var m = matchlist(text, '^Breakpoint\s\d\+\sset\sat\s.\{-\}\(.\{,1\}/.*\.go:\d\+\)')
 		if m->len() != 10
-			return null_object
+			return
 		endif
 
-		var path = m[2]->split(':')
+		var path = m[1]->split(':')
 		if path->len() < 2
-			return null_object
+			return
 		endif
 
 		var [f, lnum] = path[ : 2]
-
-		return Address.new(f, lnum->str2nr())
+		this.RequestUIMethod(Method.Breakpoint, (this.id, Address.new(f, lnum->str2nr())))
+		ctx.Write(text)
+		ctx.Abort()
 	enddef
 
-	def HandleClearBreakpoint(text: string): Address
+	def HandleClearBreakpoint(ctx: Context, text: string)
 		var m = matchlist(text, '^Breakpoint\s\d\+\scleared\sat\s.\{-\}\(.\{,1\}/.*\.go:\d\+\)')
 		if m->len() != 10
-			return null_object
+			return
 		endif
 
-		var path = m[2]->split(':')
+		var path = m[1]->split(':')
 		if path->len() < 2
-			return null_object
+			return
 		endif
 
 		var [f, lnum] = path[ : 2]
 
-		return Address.new(f, lnum->str2nr())
+		this.RequestUIMethod(Method.ClearBreakpoint, (this.id, Address.new(f, lnum->str2nr())))
+		ctx.Write(text)
+		ctx.Abort()
 	enddef
 
-	def HandleStepFromRPEL(text: string): Address
-		var m = matchlist(text, '>\s.\{-\}\..\{-\}()\s\(.\{,1\}/.*\.go:\d\+\)', 0, 1)
+	def HandleStep(ctx: Context, text: string)
+		var m = matchlist(text, '>\s.\{-\}\s\(.\{,1\}/.*\.go:\d\+\)\s', 0, 1)
 		if m->len() != 10
-			return null_object
+			return
 		endif
 
-		var path = m[2]->split(':', 1)
+		var path = m[1]->split(':', 1)
 		if path->empty()
-			return null_object
+			return
 		endif
 
 		var [f, lnum] = path
-		return Address.new(fnamemodify(f, ':.'), lnum->str2nr())
+		this.RequestUIMethod(Method.Step, Address.new(fnamemodify(f, ':.'), lnum->str2nr()))
+		ctx.Abort()
 	enddef
 
-	def HandleFocusMeFromRPEL(text: string): Address
-		var m = matchlist(text, '>\s\[Breakpoint\s\d\+]\s.\{-\}\..\{-\}()\s\(.\{,1\}/.*\.go:\d\+\)', 0, 1)
+	def HandleFocusMe(ctx: Context, text: string)
+		var m = matchlist(text, '>\s\[Breakpoint\s\d\+]\s.\{-\}\s\(.\{,1\}/.*\.go:\d\+\)\s', 0, 1)
 		if m->len() != 10
-			return null_object
+			return
 		endif
 
-		var path = m[2]->split(':', 1)
-		if path->empty()
-			return null_object
+		var path = m[1]->split(':', 1)
+		if path->len() != 2
+			return
 		endif
 
 		var [f, lnum] = path
-		return Address.new(fnamemodify(f, ':.'), lnum->str2nr())
+		this.FocusMe()
+		this.RequestUIMethod(Method.Step, Address.new(fnamemodify(f, ':.'), lnum->str2nr()))
+		ctx.Abort()
+	enddef
+
+	def Run()
+		this.handles = [
+			this.HandleFocusMe,
+			this.HandleStep,
+			this.HandleSetBreakpoint,
+			this.HandleClearBreakpoint
+		]
+
+		super.Run()
 	enddef
 
 	def Send(text: string)

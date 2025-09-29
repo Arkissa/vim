@@ -4,6 +4,9 @@ import './vim.vim'
 import './quickfix.vim'
 import './buffer.vim'
 import './window.vim'
+import './autocmd.vim'
+
+type Autocmd = autocmd.Autocmd
 
 # maybe more extensions for channel-mode?
 export class Job
@@ -66,7 +69,7 @@ endclass
 
 export abstract class Prompt extends Job
 	var prompt: buffer.Prompt
-	var pty: buffer.Terminal
+	static const AutocmdGroup = 'PromptJobGroup'
 
 	abstract def Cmd(): string
 	abstract def Prompt(): string
@@ -74,7 +77,6 @@ export abstract class Prompt extends Job
 	abstract def Callback(chan: channel, msg: string)
 
 	def ExitCb(job: job, code: number)
-		this.prompt.Delete()
 		if code != 0
 			echo $'Exit Code {code}'
 		endif
@@ -88,7 +90,7 @@ export abstract class Prompt extends Job
 	enddef
 
 	def InterruptCb()
-		this.Stop()
+		this.Send('')
 	enddef
 
 	def Run()
@@ -101,16 +103,11 @@ export abstract class Prompt extends Job
 		this.prompt.SetCallback(this.Send)
 		this.prompt.SetInterrupt(this.InterruptCb)
 
-		var ptyOpt = {
-			hidden: true,
-			term_finish: 'close',
-		}
-
-		if has('windows')
-			ptyOpt.tty_type = 'winpty'
-		endif
-
-		this.pty = buffer.Terminal.new('NONE', ptyOpt)
+		Autocmd.newMulti(['BufWipeout', 'BufDelete'])
+			.Group(AutocmdGroup)
+			.Pattern([this.prompt.bufnr->string()])
+			.Once()
+			.Callback(this.Stop)
 
 		this._job = job_start(this.Cmd(), {
 			pty: true,
