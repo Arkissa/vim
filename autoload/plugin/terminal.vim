@@ -19,7 +19,7 @@ export class Manager # {{{1
 
 	static def _OnClose(_) # {{{2
 		if !_terms->empty()
-			_terms.Pop<Terminal>()
+			_terms.Pop()
 		endif
 	enddef # }}}
 

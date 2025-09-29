@@ -385,7 +385,6 @@ export class Previewer
 		return false
 	enddef
 
-	# static def _WinOption(win: window.Popup)
 	static def _WinOption(opt: autocmd.EventArgs)
 		var win: window.Popup = opt.data
 		win.SetVar("&number", true)
@@ -393,7 +392,6 @@ export class Previewer
 		win.SetVar("&relativenumber", false)
 	enddef
 
-	# static def _DetectFiletype(win: window.Popup)
 	static def _DetectFiletype(opt: autocmd.EventArgs)
 		AsyncIO.Run(Coroutine.new((win) => {
 			var ft = win.GetVar('&filetype')
@@ -403,7 +401,6 @@ export class Previewer
 		}, opt.data))
 	enddef
 
-	# static def _AddHightlightText(win: window.Popup)
 	static def _AddHightlightText(opt: autocmd.EventArgs)
 		var win: window.Popup = opt.data
 		var item = _qf.GetItemUnderTheCursor()
