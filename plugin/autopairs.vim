@@ -14,6 +14,7 @@ var pairs = get(g:, 'AutoPairs', {
 	['<']: '>',
 	["'"]: "'",
 	['"']: '"',
+	['`']: '`',
 })
 
 def Del(): string

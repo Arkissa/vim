@@ -9,9 +9,9 @@ import '../autoload/autocmd.vim'
 import '../autoload/plugin/repldebug/repldebug.vim'
 
 type NArgs = command.NArgs
+type Autocmd = autocmd.Autocmd
 type Command = command.Command
 type Complete = command.Complete
-type Autocmd = autocmd.Autocmd
 
 const group = 'REPLDebug'
 const REPLDebugUI = repldebug.REPLDebugUI
@@ -40,21 +40,13 @@ def REPLDebug(expr: string, exprAttach: string)
 			REPLDebugUI.Open(eval(printf(exprAttach, attr.args)))
 		})
 
-	Command.new('REPLDebugClose')
-		.Bar()
-		.Buffer()
-		.Overlay()
-		.Callback(() => {
-			REPLDebugUI.Close()
-		})
-
-	Command.new('REPLDebugSessionPrev')
+	Command.new('REPLDebugPrev')
 		.Bar()
 		.Buffer()
 		.Overlay()
 		.Callback(REPLDebugUI.Prev)
 
-	Command.new('REPLDebugSessionNext')
+	Command.new('REPLDebugNext')
 		.Bar()
 		.Buffer()
 		.Overlay()

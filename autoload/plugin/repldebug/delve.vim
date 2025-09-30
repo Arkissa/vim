@@ -4,10 +4,11 @@ import autoload 'job.vim' as jb
 import autoload 'buffer.vim'
 import autoload './repldebug.vim'
 
-type Method = repldebug.Method
+type Server = repldebug.Server
 type Address = repldebug.Address
 type REPLDebugBackend = repldebug.Backend
 type Context = repldebug.Context
+type Rpc = repldebug.Rpc
 
 class Delve extends REPLDebugBackend # {{{1
 	var _dropRegexps = [
@@ -64,7 +65,7 @@ class Delve extends REPLDebugBackend # {{{1
 		endif
 
 		var [f, lnum] = path[ : 2]
-		this.RequestUIMethod(Method.Breakpoint, (this.id, Address.new(f, lnum->str2nr())))
+		this.RequestUIServer(Server.Breakpoint, Rpc.new('Break', this.id, Address.new(f, lnum->str2nr())))
 		ctx.Write(text)
 		ctx.Abort()
 	enddef
@@ -82,7 +83,7 @@ class Delve extends REPLDebugBackend # {{{1
 
 		var [f, lnum] = path[ : 2]
 
-		this.RequestUIMethod(Method.ClearBreakpoint, (this.id, Address.new(f, lnum->str2nr())))
+		this.RequestUIServer(Server.Breakpoint, Rpc.new('Clear', this.id, Address.new(f, lnum->str2nr())))
 		ctx.Write(text)
 		ctx.Abort()
 	enddef
@@ -99,7 +100,7 @@ class Delve extends REPLDebugBackend # {{{1
 		endif
 
 		var [f, lnum] = path
-		this.RequestUIMethod(Method.Step, Address.new(fnamemodify(f, ':.'), lnum->str2nr()))
+		this.RequestUIServer(Server.Step, Rpc.new('Set', Address.new(fnamemodify(f, ':.'), lnum->str2nr())))
 		ctx.Abort()
 	enddef
 
@@ -116,7 +117,7 @@ class Delve extends REPLDebugBackend # {{{1
 
 		var [f, lnum] = path
 		this.FocusMe()
-		this.RequestUIMethod(Method.Step, Address.new(fnamemodify(f, ':.'), lnum->str2nr()))
+		this.RequestUIServer(Server.Step, Rpc.new('Set', Address.new(fnamemodify(f, ':.'), lnum->str2nr())))
 		ctx.Abort()
 	enddef
 
@@ -133,7 +134,7 @@ class Delve extends REPLDebugBackend # {{{1
 
 	def Send(text: string)
 		if text == 'clearall'
-			this.RequestUIMethod(Method.ClearAllBreakpoint, this.id)
+			this.RequestUIServer(Server.Breakpoint, Rpc.new('ClearAllByID', this.id))
 		endif
 
 		super.Send(text)

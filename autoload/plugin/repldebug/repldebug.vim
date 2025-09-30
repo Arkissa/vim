@@ -14,187 +14,105 @@ type Coroutine = vim.Coroutine
 
 const AsyncIO = vim.AsyncIO
 
-export class Address
+enum Host
+	REPLDebugUI,
+	REPLDebugBackend
+endenum
+
+export class Rpc # {{{1
+	var _method: string
+	var args: list<any>
+
+	def new(this._method, ...args: list<any>) # {{{2
+		this.args = args
+	enddef # }}}
+
+	def Method(): string
+		return $'Rpc{this._method}'
+	enddef
+endclass # }}}
+
+export enum Server # {{{1
+	Step,
+	Session,
+	Monitor,
+	Breakpoint
+
+	static def Names(): list<string> # {{{2
+		return Server.values->mapnew((_, method) => method.name)
+	enddef # }}}
+
+	static def Request(host: Host, server: Server, ...rpc: list<Rpc>) # {{{2
+		if exists($'#{host.name}#User#{server.name}')
+			Autocmd.Do(host.name, 'User', [server.name], rpc)
+		endif
+	enddef # }}}
+endenum # }}}
+
+export class Address # {{{1
 	var FileName: string
 	var Lnum: number
 	var Col: number
 	var Bufnr: number
 
-	def new(this.FileName, this.Lnum)
+	def new(this.FileName, this.Lnum) # {{{2
 		this.Bufnr = buffer.Buffer.new(this.FileName).bufnr
-	enddef
+	enddef # }}}
 
-	def newAll(this.FileName, this.Lnum, this.Col)
+	def newAll(this.FileName, this.Lnum, this.Col) # {{{2
 		this.Bufnr = buffer.Buffer.new(this.FileName).bufnr
-	enddef
+	enddef # }}}
 
-	def string(): string
+	def string(): string # {{{2
 		return this.Col < 1
 			? $'{this.FileName}:{this.Lnum}'
 			: $'{this.FileName}:{this.Lnum}:{this.Col}'
-	enddef
-endclass
-
-class BreakpointUI
-	const _sigName = 'REPLDebug-Variable'
-	const group = 'REPLDebug-Variable'
-	var _breakpoint: dict<dict<tuple<number, Address>>>
-
-	def new()
-		sign_define(this._sigName, {
-			text: '●',
-			texthl: 'REPLDebugBreakpoint',
-		})
-	enddef
-
-	def IsExists(id: number, addr: Address): bool
-		return has_key(this._breakpoint, id) && has_key(this._breakpoint[id], addr->string())
-	enddef
-
-	def Break(id: number, addr: Address)
-		var signID = sign_place(
-			0,
-			this.group,
-			this._sigName,
-			addr.Bufnr,
-			{lnum: addr.Lnum, priority: 110}
-		)
-
-		if !has_key(this._breakpoint, id)
-			this._breakpoint[id] = {}
-		endif
-
-		this._breakpoint[id][addr->string()] = (signID, addr)
-	enddef
-
-	def Clear(id: number, addr: Address)
-		if !has_key(this._breakpoint, id)
-			return
-		endif
-
-		var breaks = this._breakpoint[id]
-		var [signID, _] = remove(breaks, addr->string())
-		sign_unplace(this.group, {buffer: addr.Bufnr, id: signID})
-	enddef
-
-	def ClearAllByID(id: number)
-		if !has_key(this._breakpoint, id)
-			return
-		endif
-
-		var breaks = this._breakpoint[id]
-		for signID in breaks->values()->map((_, break: tuple<number, Address>) => break[0])
-			sign_unplace(this.group, {id: signID})
-		endfor
-	enddef
-
-	def ClearAll()
-		for breaks in this._breakpoint->values()
-			for break in breaks->values()
-				sign_unplace(this.group, {id: break[0]})
-			endfor
-		endfor
-		this._breakpoint = {}
-	enddef
-endclass
-
-class StepUI
-	const _sigName = 'REPLDebug-Step'
-	const group = 'REPLDebug-Step'
-	var _id: number
-
-	def new()
-		sign_define(this._sigName, {
-			text: '=>',
-			texthl: 'REPLDebugStep',
-			linehl: 'CursorLine'
-		})
-	enddef
-
-	def Set(addr: Address)
-		if this._id > 0
-			sign_unplace(this.group, {id: this._id})
-		endif
-
-		this._id = sign_place(
-			0,
-			this.group,
-			this._sigName,
-			addr.Bufnr,
-			{lnum: addr.Lnum, priority: 110}
-		)
-	enddef
-
-	def Clear()
-		if this._id > 0
-			sign_unplace(this.group, {id: this._id})
-		endif
-	enddef
-endclass
-
-export enum Method
-	Step,
-	Close,
-	FocusMe,
-	Breakpoint,
-	ClearBreakpoint,
-	ClearAllBreakpoint
-
-	static def Names(): list<string>
-		return Method.values->mapnew((_, method) => method.name)
-	enddef
-
-	static def Request(group: string, pattern: Method, data: any = null)
-		if exists($'#{group}#User#{pattern.name}')
-			Autocmd.Do(group, 'User', [pattern.name], data)
-		endif
-	enddef
-endenum
+	enddef # }}}
+endclass # }}}
 
 final debug = vim.IncID.new()
 
-export class Context
+export class Context # {{{1
 	var abort: bool
 	var _buf: buffer.Buffer
 
-	def new(this._buf)
-	enddef
+	def new(this._buf) # {{{2
+	enddef # }}}
 
-	def Abort()
+	def Abort() # {{{2
 		this.abort = true
-	enddef
+	enddef # }}}
 
-	def Write(line: string)
+	def Write(line: string) # {{{2
 		this._buf.AppendLine(line)
-	enddef
-endclass
+	enddef # }}}
+endclass # }}}
 
-export abstract class Backend extends jb.Prompt
-	static const group = 'REPLDebugBackend'
-
+export abstract class Backend extends jb.Prompt # {{{1
 	var id = debug.ID()
 	var handles: list<func(Context, string)>
 
 	abstract def Prompt(): string
 	abstract def BreakpointCommand(addr: tuple<bool, Address>): string
 
-	def Bufname(): string
+	def Bufname(): string # {{{2
 		return $'{trim(this.Prompt())}-{this.id}'
-	enddef
+	enddef # }}}
 
-	def ExitCb(job: job, code: number)
-		this.RequestUIMethod(Method.Close)
+	def ExitCb(job: job, code: number) # {{{2
+		this.RequestUIServer(Server.Session, Rpc.new('Stop'))
 		super.ExitCb(job, code)
-	enddef
+	enddef # }}}
 
-	def RequestUIMethod(pattern: Method, data: any = null)
-		Method.Request(UI.group, pattern, data)
-	enddef
+	def RequestUIServer(server: Server, ...rpcs: list<Rpc>) # {{{2
+		call(function(Server.Request, [Host.REPLDebugUI, server]), rpcs)
+	enddef # }}}
 
-	def FocusMe()
-		def Breakpoint(backend: Backend, opt: autocmd.EventArgs)
-			var data: list<Address> = opt.data
-			var cmds = data->mapnew((_, addr) => backend.BreakpointCommand((opt.match == 'Breakpoint', addr)))
+	def FocusMe() # {{{2
+		def Brkpit(backend: Backend, opt: autocmd.EventArgs)
+			var rpc: Rpc = opt.data
+			var addrs: list<Address> = rpc.args
+			var cmds = addrs->mapnew((_, addr) => backend.BreakpointCommand((rpc.Method() == 'Break', addr)))
 
 			for cmd in cmds
 				backend.Send(cmd)
@@ -202,242 +120,322 @@ export abstract class Backend extends jb.Prompt
 		enddef
 
 		Autocmd.new('User')
-			.Group(group)
-			.Pattern([Method.Breakpoint.name, Method.ClearBreakpoint.name])
+			.Group(Host.REPLDebugBackend.name)
+			.Pattern([Server.Breakpoint.name])
 			.Replace()
-			.Callback(funcref(Breakpoint, [this]))
-
-		Autocmd.new('User')
-			.Group(group)
-			.Pattern([Method.Close.name])
+			.Callback(funcref(Brkpit, [this]))
+			.Pattern([Server.Session.name])
 			.Replace()
 			.Callback(this.Stop)
 
-		this.RequestUIMethod(Method.FocusMe, (this.id, this.prompt))
-	enddef
+		this.RequestUIServer(Server.Session, Rpc.new('FocusMe', this.id, this.prompt))
+	enddef # }}}
 
-	def Callback(_: channel, line: string)
+	def Callback(_: channel, line: string) # {{{2
+		var i = 0
 		var ctx = Context.new(this.prompt)
-		for Handle in this.handles
+		while i < len(this.handles) && !ctx.abort
+			var Handle = this.handles[i]
 			Handle(ctx, line)
-
-			if ctx.abort
-				break
-			endif
-		endfor
-	enddef
-
-	def Append(text: string)
-		this.prompt.AppendLine(line)
-	enddef
+		endwhile
+	enddef # }}}
 endclass
 
-class MockBackend extends Backend
+class MockBackend extends Backend # {{{1
 	var _breaks: dict<Address> = {}
 
-	def Cmd(): string
+	def Cmd(): string # {{{2
 		return ''
-	enddef
+	enddef # }}}
 
-	def BreakpointCommand(_: tuple<bool, Address>): string
+	def BreakpointCommand(_: tuple<bool, Address>): string # {{{2
 		return ''
-	enddef
+	enddef # }}}
 
-	def _Break(opt: autocmd.EventArgs): Coroutine
-		return Coroutine.new((addrs, match) => {
+	def FocusMe() # {{{2
+		def Break(opt: autocmd.EventArgs)
+			if opt.data == null
+				return
+			endif
+
+			var addrs: list<Address> = opt.data
 			for addr in addrs
-				if match == Method.Breakpoint.name
-					this.RequestUIMethod(Method.Breakpoint, (this.id, addr))
+				if opt.match == Server.Breakpoint.name
+					this.RequestUIServer(
+						Server.Breakpoint,
+						Rpc.new('Break', this.id, addr),
+					)
 					this._breaks[addr->string()] = addr
 				else
-					this.RequestUIMethod(Method.ClearBreakpoint, (this.id, remove(this._breaks, addr->string())))
+					this.RequestUIServer(
+						Server.Breakpoint,
+						Rpc.new('Clear', this.id, remove(this._breaks, addr->string())),
+					)
 				endif
 			endfor
-		}, opt.data, opt.match)
-	enddef
+		enddef
 
-	def FocusMe()
 		Autocmd.new('User')
-			.Group(Backend.group)
-			.Pattern([Method.Breakpoint.name, Method.ClearBreakpoint.name])
+			.Group(Host.REPLDebugBackend.name)
+			.Pattern([Server.Breakpoint.name])
 			.Replace()
-			.Callback((opt) => {
-				if opt.data == null || opt.data == null_list
-					return
-				endif
+			.Callback(Break)
+	enddef # }}}
 
-				AsyncIO.Await<vim.Void>(this._Break(opt))
-			})
-	enddef
-
-	def Prompt(): string
+	def Prompt(): string # {{{2
 		return ''
-	enddef
+	enddef # }}}
 
-	def Bufname(): string
+	def Bufname(): string # {{{2
 		return ''
-	enddef
+	enddef # }}}
 
-	def Callback(_: channel, _: string)
-	enddef
+	def Callback(_: channel, _: string) # {{{2
+	enddef # }}}
 
-	def InterruptCb()
-		Method.Request(Backend.group, Method.Breakpoint, this._breaks->values())
-		Method.Request(Backend.group, Method.ClearAllBreakpoint, this.id)
-	enddef
+	def InterruptCb() # {{{2
+		this.RequestUIServer(
+			Server.Breakpoint,
+			Rpc.new('Break', this._breaks->values()),
+			Rpc.new('ClearAllByID', this.id),
+		)
+	enddef # }}}
 
-	def Send(_: string)
-	enddef
+	def Send(_: string) # {{{2
+	enddef # }}}
 
-	def Run()
-	enddef
-endclass
+	def Run() # {{{2
+	enddef # }}}
+endclass # }}}
 
-class UI extends vim.Async
-	var _step: StepUI
+# UI
+class Breakpoint # {{{1
+	static const sigName = 'REPLDebug-Variable'
+	static const group = 'REPLDebug-Variable'
+
+	static var _breakpoint: dict<dict<tuple<number, Address>>> = {}
+
+	static def IsExists(id: number, addr: Address): bool # {{{2
+		return has_key(_breakpoint, id) && has_key(_breakpoint[id], addr->string())
+	enddef # }}}
+
+	static def RpcBreak(id: number, addr: Address) # {{{2
+		popup_notification('hello world', {})
+		var signID = sign_place(
+			0,
+			group,
+			sigName,
+			addr.Bufnr,
+			{lnum: addr.Lnum, priority: 110}
+		)
+
+		if !has_key(this._breakpoint, id)
+			_breakpoint[id] = {}
+		endif
+
+		_breakpoint[id][addr->string()] = (signID, addr)
+	enddef # }}}
+
+	static def RpcClear(id: number, addr: Address) # {{{2
+		if !has_key(_breakpoint, id)
+			return
+		endif
+
+		var breaks = _breakpoint[id]
+		var [signID, _] = remove(breaks, addr->string())
+		sign_unplace(group, {buffer: addr.Bufnr, id: signID})
+	enddef # }}}
+
+	static def RpcClearAllByID(id: number) # {{{2
+		if !has_key(_breakpoint, id)
+			return
+		endif
+
+		var breaks = _breakpoint[id]
+		for break in breaks->values()
+			sign_unplace(group, {id: break[0]})
+		endfor
+	enddef # }}}
+
+	static def ClearAll() # {{{2
+		for breaks in _breakpoint->values()
+			for break in breaks->values()
+				sign_unplace(group, {id: break[0]})
+			endfor
+		endfor
+		_breakpoint = {}
+	enddef # }}}
+endclass # }}}
+
+class Step # {{{1
+	static var _id: number
+	public static var code: Window
+
+	static const sigName = 'REPLDebug-Step'
+	static const group = 'REPLDebug-Step'
+
+	static def _MoveCursor(addr: Address) # {{{2
+		var buf = code.GetBuffer()
+		if buf.bufnr != addr.Bufnr
+			code.SetBuf(addr.Bufnr)
+			var ft = code.GetBuffer().GetVar('&filetype')
+			if ft == ""
+				code.Execute('filetype detect')
+			endif
+		endif
+
+		code.SetCursor(addr.Lnum, addr.Col)
+		code.FeedKeys('z.', 'mx')
+	enddef # }}}
+
+	static def RpcSet(addr: Address) # {{{2
+		_MoveCursor(addr)
+
+		if _id > 0
+			sign_unplace(group, {id: this._id})
+		endif
+
+		_id = sign_place(
+			0,
+			group,
+			sigName,
+			addr.Bufnr,
+			{lnum: addr.Lnum, priority: 110}
+		)
+	enddef # }}}
+
+	static def Clear() # {{{2
+		if this._id > 0
+			sign_unplace(group, {id: this._id})
+		endif
+	enddef # }}}
+endclass # }}}
+
+class Session # {{{1
+	static var _prompt: Window
+	static var _session = Ring.new(MockBackend.new())
+
+	static def Create(repl: Backend) # {{{2
+		if !_session->empty() && instanceof(_session.Peek(), MockBackend)
+			AsyncIO.Run(Coroutine.new(_session.Pop().InterruptCb))
+		endif
+
+		_session.Push(repl)
+		repl.Run()
+		repl.FocusMe()
+	enddef # }}}
+
+	static def RpcStop() # {{{2
+		_session.Pop()
+
+		if _session->empty()
+			_session.Push(MockBackend.new())
+			_Finish()
+		endif
+
+		_session.Peek().FocusMe()
+	enddef # }}}
+
+	static def RpcFocusMe(id: number, prompt: buffer.Prompt) # {{{2
+		var conf = get(g:, 'REPLDebugConfig', {})
+
+		if _prompt == null_object
+			var promptConf = get(conf, 'prompt', {})
+			_prompt = Window.new(get(promptConf, 'pos', 'horizontal botright'), get(promptConf, 'height', 0))
+
+			Autocmd.new('WinClosed')
+				.Group(Host.REPLDebugUI.name)
+				.Pattern([_prompt.winnr->string()])
+				.Once()
+				.Callback(function(Server.Request, [Host.REPLDebugUI, Server.Session, Rpc.new('Stop')]))
+		endif
+
+		_prompt.SetBuffer(prompt)
+		execute('startinsert')
+		_session.SwitchOf((b) => b.id == id)
+	enddef # }}}
+
+	static def Peek(): any # {{{1
+		return _session.Peek()
+	enddef # }}}
+
+	static def _Finish() # {{{2
+		Step.Clear()
+		Breakpoint.ClearAll()
+	enddef # }}}
+
+	static def Next() # {{{2
+		_session.SlideRight()
+		_session.Peek().FocusMe()
+	enddef # }}}
+
+	static def Prev() # {{{2
+		_session.SlideLeft()
+		_session.Peek().FocusMe()
+	enddef # }}}
+endclass # }}}
+
+class UI extends vim.Async # {{{1
 	var _code: Window
-	var _prompt: Window
-	var _breakpoints: BreakpointUI
-	var _Session: Ring
 
-	static const group = 'REPLDebugUI'
-
-	def new()
+	def new() # {{{2
 		this._code = Window.newCurrent()
-		this._breakpoints = BreakpointUI.new()
-		this._step = StepUI.new()
-		this._Session = Ring.new(MockBackend.new())
-		this._Session.Peek().FocusMe()
+		Step.code = this._code
 
 		hlset([
 			{name: 'REPLDebugBreakpoint', ctermfg: 'red', guifg: 'red', term:  {reverse: true}},
 			{name: 'REPLDebugStep', default: true, linksto: 'Function'}
 		])
 
+		sign_define(Breakpoint.sigName, {
+			text: '●',
+			texthl: 'REPLDebugBreakpoint',
+		})
+
+		sign_define(Step.sigName, {
+			text: '=>',
+			texthl: 'REPLDebugStep',
+			linehl: 'CursorLine'
+		})
+
 		Autocmd.new('User')
-			.Group(group)
-			.Pattern(Method.Names())
+			.Group(Host.REPLDebugUI.name)
+			.Pattern(Server.Names())
 			.Replace()
 			.Callback(this._Dispatch)
-	enddef
-
-	def _Dispatch(opt: autocmd.EventArgs)
-		if opt.match == Method.Step.name
-			this.Await<vim.Void>(this._Step(opt))
-		elseif opt.match == Method.Breakpoint.name
-			this.Await<vim.Void>(this._Breakpoint(opt))
-		elseif opt.match == Method.ClearBreakpoint.name
-			this.Await<vim.Void>(this._ClearBreakpoint(opt))
-		elseif opt.match == Method.ClearAllBreakpoint.name
-			this.Await<vim.Void>(this._ClearAllBreakpoint(opt))
-		elseif opt.match == Method.FocusMe.name
-			this.Await<vim.Void>(this._FocusMe(opt))
-		else
-			this.Close()
-		endif
-	enddef
-
-	def _Step(opt: autocmd.EventArgs): Coroutine
-		return Coroutine.new((addr: Address) => {
-			var buf = this._code.GetBuffer()
-			if buf.bufnr != addr.Bufnr
-				this._code.SetBuf(addr.Bufnr)
-				var ft = this._code.GetBuffer().GetVar('&filetype')
-				if ft == ""
-					this._code.Execute('filetype detect')
-				endif
-			endif
-
-			this._code.SetCursor(addr.Lnum, addr.Col)
-			this._step.Set(addr)
-			this._code.FeedKeys('z.', 'mx')
-		}, opt.data)
-	enddef
-
-	def _Finish()
-		this._step.Clear()
-		this._prompt.Close()
-		this._prompt = null_object
-		this._breakpoints.ClearAll()
-	enddef
-
-	def _Breakpoint(opt: autocmd.EventArgs): Coroutine
-		var data: tuple<number, Address> = opt.data
-		var [id, addr] = data
-
-		return Coroutine.new(this._breakpoints.Break, id, addr)
-	enddef
-
-	def _ClearBreakpoint(opt: autocmd.EventArgs): Coroutine
-		var data: tuple<number, Address> = opt.data
-		var [id, addr] = data
-
-		return Coroutine.new(this._breakpoints.Clear, id, addr)
-	enddef
-
-	def _ClearAllBreakpoint(opt: autocmd.EventArgs): Coroutine
-		return Coroutine.new(this._breakpoints.ClearAllByID, opt.data)
-	enddef
-
-	def _FocusMe(opt: autocmd.EventArgs): Coroutine
-		var backend: tuple<number, buffer.Prompt> = opt.data
-		var [id, prompt] = backend
-
-		return Coroutine.new(() => {
-			var conf = get(g:, 'REPLDebugConfig', {})
-
-			if this._prompt == null_object
-				var promptConf = get(conf, 'prompt', {})
-				this._prompt = Window.new(get(promptConf, 'pos', 'horizontal botright'), get(promptConf, 'height', 0))
-
-				Autocmd.new('WinClosed')
-					.Group(UI.group)
-					.Pattern([this._prompt.winnr->string()])
-					.Once()
-					.Callback(function(Method.Request, [Backend.group, Method.Close, null]))
-			endif
-
-			this._prompt.SetBuffer(prompt)
-			execute('startinsert')
-			this._Session.SwitchOf((b) => b.id == id)
-		})
-	enddef
+	enddef # }}}
 
 	def Open(repl: Backend)
-		if instanceof(this._Session.Peek(), MockBackend)
-			AsyncIO.Run(Coroutine.new(this._Session.Pop().InterruptCb))
-		endif
-
-		this._Session.Push(repl)
-		repl.Run()
-		repl.FocusMe()
+		Session.Create(repl)
 	enddef
 
-	def Close()
-		this._Session.Pop()
+	def _Dispatch(opt: autocmd.EventArgs) # {{{2
+		var rpcs: list<Rpc> = opt.data
 
-		if this._Session->empty()
-			this._Session.Push(MockBackend.new())
-			this._Finish()
-		endif
-
-		this._Session.Peek().FocusMe()
-	enddef
+		for rpc in rpcs
+			var Method = eval($'{opt.match}.{rpc.Method()}')
+			timer_start(0, (_) => {
+				popup_notification($'{opt.match} {rpc.Method()} Start', {})
+				call(Method, rpc.args)
+				popup_notification($'{opt.match} {rpc.Method()} Done', {})
+			})
+			popup_notification($'{opt.match} {rpc.Method()} Start', {})
+			call(eval($'{opt.match}.{rpc.Method()}'), rpc.args)
+			popup_notification($'{opt.match} {rpc.Method()} Done', {})
+		endfor
+	enddef # }}}
 
 	def Next()
-		this._Session.SlideRight()
-		this._Session.Peek().FocusMe()
+		Session.Next()
 	enddef
 
 	def Prev()
-		this._Session.SlideLeft()
-		this._Session.Peek().FocusMe()
+		Session.Prev()
 	enddef
 
-	def ToggleBreakpoint()
-		var win = Window.newCurrent()
-		var buf = win.GetBuffer()
-		var [lnum, col] = win.GetCursorPos()
+	def ToggleBreakpoint() # {{{2
+		var buf = this._code.GetBuffer()
+		var [lnum, col] = this._code.GetCursorPos()
 		var line = buf.GetOneLine(lnum)
 
 		var cms = &commentstring->split('%s')
@@ -450,10 +448,10 @@ class UI extends vim.Async
 		endif
 		var addr = Address.new(buf.name, lnum)
 
-		var backend = this._Session.Peek()
-		var match = this._breakpoints.IsExists(backend.id, addr) ? Method.ClearBreakpoint : Method.Breakpoint
-		Method.Request('REPLDebugBackend', match, [addr])
-	enddef
-endclass
+		var backend = Session.Peek()
+		var method = Breakpoint.IsExists(backend.id, addr) ? 'Clear' : 'Break'
+		Server.Request(Host.REPLDebugBackend, Server.Breakpoint, Rpc.new(method, [addr]))
+	enddef # }}}
+endclass # }}}
 
-export const REPLDebugUI = UI.new()
+export var REPLDebugUI = UI.new()
