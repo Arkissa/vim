@@ -1,7 +1,7 @@
 vim9script
 
-import autoload 'vim.vim'
-import autoload 'command.vim'
+import 'vim.vim'
+import 'command.vim'
 
 class Cgrep extends command.ErrorFormat
 	var _command = ["cgrep", "-r"]

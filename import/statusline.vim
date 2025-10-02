@@ -1,7 +1,7 @@
 vim9script
 
-import autoload 'vim.vim'
-import autoload 'buffer.vim'
+import 'vim.vim'
+import 'buffer.vim'
 import autoload 'lsp/diag.vim'
 
 type Buffer = buffer.Buffer

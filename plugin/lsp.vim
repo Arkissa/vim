@@ -3,8 +3,8 @@ packadd vim9-lsp
 
 import autoload 'lsp/lsp.vim'
 import autoload 'lsp/buffer.vim'
-import '../autoload/autocmd.vim'
-import '../autoload/keymap.vim'
+import 'autocmd.vim'
+import 'keymap.vim'
 
 type Autocmd = autocmd.Autocmd
 type Bind = keymap.Bind

@@ -1,8 +1,8 @@
 vim9script
 
-import './autoload/vim.vim'
-import './autoload/path.vim'
-import './autoload/keymap.vim'
+import 'vim.vim'
+import 'path.vim'
+import 'keymap.vim'
 
 type Bind = keymap.Bind
 type Mods = keymap.Mods
@@ -15,13 +15,13 @@ g:dispatch_no_maps = 1
 
 g:REPLDebugConfig = {
 	modules: [
-		('go', 'plugin/repldebug/delve'),
+		('go', 'repldebug/delve'),
 	],
 }
 
 g:GrepConfig = [
 	{
-		module: 'plugin/greps/grepprg',
+		module: 'greps/grepprg',
 		Init: () => {
 			&grepprg = vim.Cmd(['grep', '-r', '-n', '$*'])
 		},
@@ -31,7 +31,7 @@ g:GrepConfig = [
 		}
 	},
 	{
-		module: 'plugin/greps/cgrep',
+		module: 'greps/cgrep',
 		ft: 'go',
 		keymaps: {
 			bind: Bind.new(Mods.n).Buffer().NoRemap(),
@@ -50,7 +50,7 @@ g:GrepConfig = [
 
 g:LinterConfig = {
 	go: {
-		module: 'plugin/linters/golangci',
+		module: 'linters/golangci',
 		# onSaveCmd: 'silent LLint %:p:h'
 	}
 }

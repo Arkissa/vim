@@ -1,10 +1,10 @@
 vim9script
 
-import './vim.vim'
-import './quickfix.vim'
-import './buffer.vim'
-import './window.vim'
-import './autocmd.vim'
+import 'vim.vim'
+import 'quickfix.vim'
+import 'buffer.vim'
+import 'window.vim'
+import 'autocmd.vim'
 
 type Autocmd = autocmd.Autocmd
 

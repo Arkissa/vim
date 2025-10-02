@@ -1,8 +1,8 @@
 vim9script
 
-import '../autoload/command.vim'
-import '../autoload/keymap.vim'
-import '../autoload/plugin/terminal.vim'
+import 'command.vim'
+import 'keymap.vim'
+import '../autoload/terminal.vim'
 
 type Bind = keymap.Bind
 type Mods = keymap.Mods

@@ -7,9 +7,9 @@ endif
 # type check
 var grepConfig: list<dict<any>> = g:GrepConfig
 
-import '../autoload/command.vim'
-import '../autoload/autocmd.vim'
-import '../autoload/keymap.vim'
+import 'command.vim'
+import 'autocmd.vim'
+import 'keymap.vim'
 
 type Bind = keymap.Bind
 type NArgs = command.NArgs

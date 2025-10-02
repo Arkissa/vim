@@ -1,6 +1,6 @@
 vim9script
 
-import './log.vim'
+import 'log.vim'
 
 const sep = has('win') ? '\' : '/'
 

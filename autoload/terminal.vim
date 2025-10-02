@@ -1,9 +1,14 @@
 vim9script
 
-import autoload 'vim.vim'
-import autoload 'window.vim'
-import autoload 'buffer.vim'
-import autoload 'autocmd.vim'
+# import autoload 'vim.vim'
+# import autoload 'window.vim'
+# import autoload 'buffer.vim'
+# import autoload 'autocmd.vim'
+
+import 'vim.vim'
+import 'window.vim'
+import 'buffer.vim'
+import 'autocmd.vim'
 
 type Autocmd = autocmd.Autocmd # {{{1
 type Terminal = buffer.Terminal # {{{1

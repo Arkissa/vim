@@ -1,9 +1,9 @@
 vim9script
 
-import './quickfix.vim'
-import './log.vim'
-import './job.vim' as jb
-import './vim.vim'
+import 'log.vim'
+import 'job.vim' as jb
+import 'vim.vim'
+import 'quickfix.vim'
 
 type Coroutine = vim.Coroutine
 

@@ -1,10 +1,16 @@
 vim9script
 
-import '../autoload/vim.vim'
-import '../autoload/path.vim'
-import '../autoload/keymap.vim'
-import '../autoload/command.vim'
-import '../autoload/autocmd.vim'
+# import '../autoload/vim.vim'
+# import '../autoload/path.vim'
+# import '../autoload/keymap.vim'
+# import '../autoload/command.vim'
+# import '../autoload/autocmd.vim'
+
+import 'vim.vim'
+import 'path.vim'
+import 'keymap.vim'
+import 'command.vim'
+import 'autocmd.vim'
 
 type Bind = keymap.Bind
 type Mods = keymap.Mods

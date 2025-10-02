@@ -1,6 +1,6 @@
 vim9script
 
-import './buffer.vim'
+import 'buffer.vim'
 
 export class EventArgs
 	var id: number

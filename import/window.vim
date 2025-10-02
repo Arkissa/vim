@@ -1,7 +1,7 @@
 vim9script
 
-import './buffer.vim'
-import './autocmd.vim'
+import 'buffer.vim'
+import 'autocmd.vim'
 
 type Autocmd = autocmd.Autocmd
 

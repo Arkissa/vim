@@ -4,9 +4,9 @@ if !exists("g:REPLDebugConfig")
 	finish
 endif
 
-import '../autoload/command.vim'
-import '../autoload/autocmd.vim'
-import '../autoload/plugin/repldebug/repldebug.vim'
+import 'command.vim'
+import 'autocmd.vim'
+import '../autoload/repldebug/repldebug.vim'
 
 type NArgs = command.NArgs
 type Autocmd = autocmd.Autocmd

@@ -1,10 +1,10 @@
 vim9script
 
-import autoload 'vim.vim'
-import autoload 'job.vim' as jb
-import autoload 'window.vim'
-import autoload 'buffer.vim'
-import autoload 'autocmd.vim'
+import 'vim.vim'
+import 'job.vim' as jb
+import 'window.vim'
+import 'buffer.vim'
+import 'autocmd.vim'
 
 type Ring = vim.Ring
 type Async = vim.Async

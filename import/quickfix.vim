@@ -1,10 +1,10 @@
 vim9script
 
-import './log.vim'
-import './vim.vim'
-import './autocmd.vim'
-import './window.vim'
-import './buffer.vim'
+import 'log.vim'
+import 'vim.vim'
+import 'autocmd.vim'
+import 'window.vim'
+import 'buffer.vim'
 
 type Buffer = buffer.Buffer
 type Autocmd = autocmd.Autocmd

@@ -1,7 +1,7 @@
 vim9script
 
-import autoload 'vim.vim'
-import autoload 'command.vim'
+import 'vim.vim'
+import 'command.vim'
 
 class GolangCiLint extends command.ErrorFormat
 	def Cmd(): string

@@ -1,7 +1,7 @@
 vim9script
 
-import autoload "vim.vim"
-import autoload "command.vim"
+import "vim.vim"
+import "command.vim"
 
 class Grepprg extends command.ErrorFormat
 	def Cmd(): string

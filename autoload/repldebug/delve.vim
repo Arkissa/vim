@@ -1,7 +1,7 @@
 vim9script
 
-import autoload 'job.vim' as jb
-import autoload 'buffer.vim'
+import 'job.vim' as jb
+import 'buffer.vim'
 import autoload './repldebug.vim'
 
 type Server = repldebug.Server

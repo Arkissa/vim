@@ -1,7 +1,8 @@
 vim9script
 
-import '../autoload/autocmd.vim'
-import '../autoload/buffer.vim'
+import 'buffer.vim'
+import 'autocmd.vim'
+import 'statusline.vim'
 
 type Autocmd = autocmd.Autocmd
 type Buffer = buffer.Buffer
@@ -9,6 +10,8 @@ type Buffer = buffer.Buffer
 const ExcludeFiletype = ["xxd", "gitrebase", "tutor", "help", "commint"]
 const ExcludeBuftype = ["quickfix", "terminal", "help", "xxd"]
 const group = 'MYVIMRC'
+
+g:statusline = statusline.helper
 
 Autocmd.new('BufReadPost')
 	.Group(group)
@@ -58,4 +61,4 @@ Autocmd.newMulti(['WinLeave', 'BufLeave'])
 
 Autocmd.new('VimEnter')
 	.Group(group)
-	.Command('set statusline=%{%statusline#helper.Cut().Mode().BufName().Right().Git().FileType().Dir().Role().Build()%}')
+	.Command('set statusline=%{%g:statusline.Cut().Mode().BufName().Right().Git().FileType().Dir().Role().Build()%}')
