@@ -1,10 +1,8 @@
 vim9script
 
-# import '../autoload/keymap.vim'
-# import '../autoload/quickfix.vim'
+import '../autoload/qfpreview.vim'
 
 import 'keymap.vim'
-import 'quickfix.vim'
 
 type Bind = keymap.Bind
 type Mods = keymap.Mods
@@ -20,4 +18,4 @@ Bind.new(Mods.n)
 	.Silent()
 	.Map('u', '<CMD>colder<CR>')
 	.Map('<C-r>', '<CMD>cnewer<CR>')
-	.ScriptCmd('K', quickfix.Previewer.Toggle)
+	.ScriptCmd('K', qfpreview.Toggle)

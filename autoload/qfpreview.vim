@@ -1,0 +1,191 @@
+vim9script
+
+import 'log.vim'
+import 'vim.vim'
+import 'quickfix.vim'
+import 'window.vim'
+import 'autocmd.vim'
+
+type Autocmd = autocmd.Autocmd
+type Location = quickfix.Location
+type Quickfix = quickfix.Quickfix
+type Coroutine = vim.Coroutine
+type Quickfixer = quickfix.Quickfixer
+
+const AsyncIO = vim.AsyncIO
+
+# peek quickfix buffer with popup window.
+class Previewer
+	static var _prop_name = "quickfix.Previewer"
+	static var _qf: Quickfixer
+	static var _window: window.Popup
+
+	static def _Filter(win: window.Popup, key: string): bool
+		if ["\<C-u>", "\<C-d>"]->index(key) != -1
+			win.FeedKeys(key, "mx")
+			return true
+		endif
+
+		return false
+	enddef
+
+	static def _WinOption(opt: autocmd.EventArgs)
+		var win: window.Popup = opt.data
+		win.SetVar("&number", true)
+		win.SetVar("&cursorline", true)
+		win.SetVar("&relativenumber", false)
+	enddef
+
+	static def _DetectFiletype(opt: autocmd.EventArgs)
+		AsyncIO.Run(Coroutine.new((win) => {
+			var ft = win.GetVar('&filetype')
+			if ft == ""
+				win.Execute("filetype detect")
+			endif
+		}, opt.data))
+	enddef
+
+	static def _AddHightlightText(opt: autocmd.EventArgs)
+		var win: window.Popup = opt.data
+		var item = _qf.GetItemUnderTheCursor()
+		if item == null_object
+			return
+		endif
+
+		var lnum = item.lnum ?? 1
+		var col = item.col ?? 1
+		prop_add(lnum, col, {
+			type: _prop_name,
+			end_lnum: item.end_lnum ?? lnum,
+			end_col: item.end_col ?? col,
+			bufnr: win.GetBufnr(),
+		})
+	enddef
+
+	static def _RemoveHightlightText(opt: autocmd.EventArgs)
+		var win: window.Popup = opt.data
+		prop_remove({
+			type: _prop_name,
+			bufnr: win.GetBufnr()
+		})
+	enddef
+
+	static def _DeleteHightlightName(opt: autocmd.EventArgs)
+		var data: tuple<window.Popup, any> = opt.data
+		var [win, _] = data
+		prop_remove({
+			type: _prop_name,
+			bufnr: win.GetBufnr()
+		})
+		prop_type_delete(_prop_name)
+	enddef
+
+	static def Open()
+		var winId = win_getid()
+		var wt = win_gettype(winId)
+		if ["quickfix", "loclist"]->index(wt) == -1
+			return
+		endif
+
+		_qf = wt == "loclist"
+			? Location.newCurrent()
+			: Quickfix.newCurrent()
+		var item = _qf.GetItemUnderTheCursor()
+		if _qf.Empty() || item == null_object
+			return
+		endif
+
+		prop_type_add(_prop_name, {
+			highlight: "Cursor",
+			override: true,
+			priority: 100,
+		})
+
+		var wininfo = getwininfo(winId)[0]
+		var lines = float2nr(getwinvar(winId, "&lines") * 0.5)
+		_window = window.Popup.new(wininfo.bufnr, {
+			pos: "botleft",
+			padding: [1, 1, 1, 1],
+			border: [1, 1, 1, 1],
+			borderchars: ['─', '│', '─', '│', '╭', '╮', '╯', '╰'],
+			borderhighlight: ["Title", "Title", "Title", "Title"],
+			maxheight: lines,
+			minheight: wininfo.width - 5,
+			minwidth: wininfo.width - 5,
+			maxwidth: wininfo.width - 5,
+			col: wininfo.wincol,
+			line: wininfo.winrow - 2,
+		})
+
+		_window.SetFilter(_Filter)
+		_CreateAutocmd(_window, winbufnr(winId))
+		_SetCursorUnderBuff()
+	enddef
+
+	static def _CreateAutocmd(win: window.Popup, bufnr: number)
+		var group = "Quickfix.Previewer"
+		Autocmd.new('BufWinLeave')
+			.Group(group)
+			.Pattern([win.winnr->string()])
+			.Callback(_RemoveHightlightText)
+
+		Autocmd.new('BufWinEnter')
+			.Group(group)
+			.Pattern([win.winnr->string()])
+			.Callback(_DetectFiletype)
+			.Callback(_WinOption)
+			.Callback(_AddHightlightText)
+
+		Autocmd.new('WinClosed')
+			.Group(group)
+			.Pattern([win.winnr->string()])
+			.Callback(_DeleteHightlightName)
+			.Callback(() => {
+				autocmd_delete([{group: group}])
+			})
+
+		Autocmd.new('CursorMoved')
+			.Group(group)
+			.Bufnr(bufnr)
+			.Callback(_SetCursorUnderBuff)
+
+		Autocmd.newMulti(["WinLeave", "WinClosed", "WinLeave", "BufWipeout", "BufHidden"])
+			.Group(group)
+			.Bufnr(bufnr)
+			.Callback(Close)
+	enddef
+
+	static def _SetCursorUnderBuff()
+		if _window == null_object || _qf == null_object || !_window.IsOpen()
+			log.Error("Unable to set the qfitem buffer under cursor line for preview window.")
+			return
+		endif
+
+		var item = _qf.GetItemUnderTheCursor()
+		if item == null_object
+			return
+		endif
+
+		_window.SetBuf(item.buffer.bufnr)
+		var bufinfo = item.buffer.GetInfo()
+		_window.SetTitle($" [{item.lnum}/{bufinfo.linecount}] buffer {item.buffer.bufnr}: {fnamemodify(bufinfo.name, ":~:.")} {bufinfo.changed ? "[+]" : ""}")
+		_window.SetCursor(item.lnum, item.col)
+		_window.FeedKeys("z.", "mx")
+	enddef
+
+	static def Toggle()
+		if _window != null_object && _window.IsOpen()
+			Close()
+		else
+			Open()
+		endif
+	enddef
+
+	static def Close()
+		if _window != null_object && _window.IsOpen()
+			_window.Close()
+		endif
+	enddef
+endclass
+
+export const Toggle = Previewer.Toggle
