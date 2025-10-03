@@ -6,7 +6,7 @@ import 'autocmd.vim'
 type Autocmd = autocmd.Autocmd
 
 export class Window
-	var winnr: number = -1
+	var winnr: number
 
 	def new(pos: string = '', height: number = 0, name: string = '')
 		var buf = buffer.Buffer.newByBufnr(this.GetBufnr())
@@ -86,7 +86,6 @@ export class Window
 		endif
 
 		this.Execute('silent! close!')
-		this.winnr = -1
 	enddef
 
 	def GetCursorPos(): tuple<number, number>
@@ -95,7 +94,7 @@ export class Window
 	enddef
 
 	def IsOpen(): bool
-		return this.winnr != -1
+		return !this.winnr->getwininfo()->empty()
 	enddef
 
 	def Execute(cmd: string)
@@ -161,17 +160,12 @@ export class Popup extends Window
 		endif
 	enddef
 
-	def IsOpen(): bool
-		return this.winnr != -1
-	enddef
-
 	def IsHidden(): bool
 		return this.IsOpen() && this.hidden
 	enddef
 
 	def Close(result: any = null)
 		popup_close(this.winnr, result)
-		this.winnr = -1
 	enddef
 
 	def Hide()
