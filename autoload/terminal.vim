@@ -82,7 +82,7 @@ export class Manager # {{{1
 		if _IsOpen()
 			_terms.Push(_NewTerm(cmd))
 		else
-			 _win = window.Window.new(pos, count)
+			_win = window.Window.new(pos, count)
 
 			Autocmd.new('BufWinEnter')
 				.Group(group)
