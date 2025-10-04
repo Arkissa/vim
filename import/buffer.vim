@@ -1,5 +1,7 @@
 vim9script
 
+import 'vim.vim'
+
 export class Sign
 	var id: number
 	var lnum: number
@@ -200,32 +202,33 @@ export class Buffer
 	enddef
 endclass
 
+final promptCount = vim.IncID.new()
+
 export class Prompt extends Buffer
-	static var _count: number = -1
+	const _count = promptCount.ID()
 
-	static def _Name(name: string = ''): string
-		_count += 1
-		if _count == 0
-			return name ? '(prompt)' : $'({name})'
-		endif
-
-		return name ? $'(prompt-{_count})' : $'({name}-{_count})'
-	enddef
-
-	def new(name: string = _Name())
+	def new(name: string = this._Name())
 		this.bufnr = bufadd(name)
 		this.name = name
 
 		this.SetVar('&buftype', 'prompt')
-		this.SetVar('&bufhidden', 'wipe')
+		this.SetVar('&bufhidden', 'hide')
 	enddef
 
 	def newByBufnr(bufnr: number)
 		this.bufnr = bufnr
-		this.name = _Name(bufname(bufnr))
+		this.name = this._Name(bufname(bufnr))
 
 		this.SetVar('&buftype', 'prompt')
-		this.SetVar('&bufhidden', 'wipe')
+		this.SetVar('&bufhidden', 'hidden')
+	enddef
+
+	def _Name(name: string = ''): string
+		if this._count == 0
+			return name ? '(prompt)' : $'({name})'
+		endif
+
+		return name ? $'(prompt-{this._count})' : $'({name}-{this._count})'
 	enddef
 
 	def GetPrompt(): string
