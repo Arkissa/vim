@@ -247,6 +247,7 @@ endclass
 
 export class Terminal extends Buffer
 	def new(cmd: string, opt: dict<any>)
+		opt.hidden = true
 		this.bufnr = term_start(cmd, opt)
 		this.name = bufname(this.bufnr)
 		this.SetVar("&buflisted", false)
