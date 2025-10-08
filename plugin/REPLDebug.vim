@@ -6,21 +6,36 @@ endif
 
 import 'command.vim'
 import 'autocmd.vim'
-import '../autoload/repldebug/repldebug.vim'
+import '../autoload/REPLDebug/REPLDebug.vim'
 
 type NArgs = command.NArgs
 type Autocmd = autocmd.Autocmd
 type Command = command.Command
 type Complete = command.Complete
+type UI = REPLDebug.REPLDebugUI
 
 const group = 'REPLDebug'
-const REPLDebugUI = repldebug.REPLDebugUI
+final REPLDebugUI = UI.new()
 
 var REPLDebugConfig: dict<any> = g:REPLDebugConfig
 
 const modules = REPLDebugConfig.modules
 
-def REPLDebug(expr: string, exprAttach: string)
+# handle ! on args of start.
+def Shell(args: string): string
+	if args !~ '^!'
+		return args
+	endif
+
+	var out = systemlist(args[1 : ])
+	if len(out) < 1
+		return args
+	endif
+
+	return trim(out[0])
+enddef
+
+def Debug(expr: string, exprAttach: string)
 	Command.new('REPLDebug')
 		.Bar()
 		.Buffer()
@@ -37,7 +52,7 @@ def REPLDebug(expr: string, exprAttach: string)
 		.Overlay()
 		.NArgs(NArgs.One)
 		.Callback((attr) => {
-			REPLDebugUI.Open(eval(printf(exprAttach, attr.args)))
+			REPLDebugUI.Open(eval(printf(exprAttach, Shell(attr.args))))
 		})
 
 	Command.new('REPLDebugPrev')
@@ -67,5 +82,5 @@ for module in modules
 	Autocmd.new('FileType')
 		.Group(group)
 		.Pattern([ft])
-		.Callback(function(REPLDebug, [$'{m}.Backend.new("%s")', $'{m}.Backend.newAttach("%s")']))
+		.Callback(function(Debug, [$'{m}.Backend.new("%s")', $'{m}.Backend.newAttach("%s")']))
 endfor

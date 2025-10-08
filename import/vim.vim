@@ -86,14 +86,12 @@ export class Ring
 		this._i = (this._i + 1) % this->len()
 	enddef
 
-	def SlideLeft(): Ring
+	def SlideLeft()
 		this._i = (this._i - 1 + this->len()) % this->len()
-		return this
 	enddef
 
-	def SlideRight(): Ring
+	def SlideRight()
 		this._i = (this._i + 1) % this->len()
-		return this
 	enddef
 
 	def ToList<T>(): list<T>
@@ -112,6 +110,10 @@ export class IncID
 
 	def ID(): number
 		this._id += 1
+		return this._id
+	enddef
+
+	def Peek(): number
 		return this._id
 	enddef
 endclass
@@ -166,7 +168,7 @@ export class Coroutine
 					this._ret[this.id] = void
 				endif
 			catch
-				this._ret[this.id] = Exception.new(substitute(v:exception, '^Vim:', '', ''))
+				this._ret[this.id] = Exception.new(substitute(v:exception, '^Vim.*:', '', ''))
 			finally
 				this.status = CoroutineStatus.Dead
 			endtry

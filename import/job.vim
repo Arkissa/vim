@@ -1,10 +1,11 @@
 vim9script
 
 import 'vim.vim'
-import 'quickfix.vim'
+import 'log.vim'
 import 'buffer.vim'
 import 'window.vim'
 import 'autocmd.vim'
+import 'quickfix.vim'
 
 type Autocmd = autocmd.Autocmd
 
@@ -78,11 +79,17 @@ export abstract class Prompt extends Job
 
 	def ExitCb(job: job, code: number)
 		if code != 0
-			echo $'Exit Code {code}'
+			return
 		endif
+
+		this.prompt.Delete()
 	enddef
 
 	def Send(msg: string)
+		if this.Status() == 'dead'
+			this.prompt.Delete()
+			return
+		endif
 		var chan = this.GetChannel()
 		if chan != null_channel
 			ch_sendraw(chan, $"{msg}\n")

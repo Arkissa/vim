@@ -15,7 +15,7 @@ g:dispatch_no_maps = 1
 
 g:REPLDebugConfig = {
 	modules: [
-		('go', 'repldebug/delve'),
+		('go', 'REPLDebug/delve'),
 	],
 }
 
@@ -76,6 +76,7 @@ endif
 :packadd nohlsearch
 :packadd hlyank
 :packadd helptoc
+:packadd matchit
 
 if has('win')
 	:set winaltkeys
