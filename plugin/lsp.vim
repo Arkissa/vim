@@ -1,6 +1,6 @@
 vim9script
 
-import 'lsp.vim' as vim9lsp
+import 'lsp.vim'
 import 'log.vim'
 import 'autocmd.vim'
 import 'keymap.vim'
@@ -63,7 +63,6 @@ Autocmd.new('User')
 	.Group(group)
 	.Pattern(['LspSetup'])
 	.Callback(() => {
-		g:LspOptionsSet(vim9lsp.Option())
-		var m = vim9lsp.Config()
-		g:LspAddServer(m)
+		g:LspOptionsSet(lsp.Option())
+		g:LspAddServer(lsp.Config())
 	})
