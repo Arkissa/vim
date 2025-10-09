@@ -1,132 +1,69 @@
 vim9script
-packadd vim9-lsp
 
-import autoload 'lsp/lsp.vim'
-import autoload 'lsp/buffer.vim'
+import 'lsp.vim' as vim9lsp
+import 'log.vim'
 import 'autocmd.vim'
 import 'keymap.vim'
 
-type Autocmd = autocmd.Autocmd
 type Bind = keymap.Bind
 type Mods = keymap.Mods
+type Autocmd = autocmd.Autocmd
 
-# https://github.com/saccarosium/yegappan-lsp-settings/blob/ca7f3dd4f4390938d9ea18033b7a7729f3e5b162/plugin/lsp_settings.vim#L5
-def LspHas(feature: string): bool
-	return !buffer.CurbufGetServer(feature)->empty()
-enddef
+const group = 'VIM9LSP'
+
+g:LspSetConfig('gopls', {
+		filetype: ['go', 'gomod', 'gohtmltmpl', 'gotexttmpl'],
+		path: 'gopls',
+		workspaceConfig: {
+			gopls: {
+				directoryFilters: [
+					'-**/node_modules',
+					'-3rd/',
+					'-**/bin',
+					'-**/logs',
+					'-app/deploy',
+					'-proto/',
+					'-docs/',
+					# '-tools/',
+					'-common/redisx/',
+				],
+				workspaceFiles: [
+					'app/**',
+				],
+				completionBudget: '50ms',
+				codelenses: {
+					tests: true,
+					tidy: true,
+					upgrade_dependency: true,
+					vendor: true,
+				},
+				usePlaceholders: true,
+				gofumpt: true,
+				analyses: {
+					shadow: false, unusedparams: false, SA5008: false,
+					QF1002: false, QF1003: false, any: false, SA4: false,
+					ST1020: false, ST1003: false, ST1001: false,
+					ST1021: false, ST1022: false,
+					ST1000: false, S1033: false, S1028: false, # temporary
+				},
+				staticcheck: true,
+				hints: {
+					assignVariableTypes: true,
+					compositeLiteralFields: true,
+					constantValues: true,
+					rangeVariableTypes: true,
+					parameterNames: true,
+					functionTypeParameters: true
+				},
+			}
+		}
+})
 
 Autocmd.new('User')
-	.Pattern(['LspAttached'])
+	.Group(group)
+	.Pattern(['LspSetup'])
 	.Callback(() => {
-		if LspHas('documentFormatting')
-			&l:formatexpr = 'lsp.FormatExpr()'
-		endif
-
-		&l:tagfunc = lsp.TagFunc
-
-		Bind.new(Mods.i)
-			.NoRemap()
-			.Silent()
-			.Buffer()
-			.Map('<C-s>', '<CMD>LspShowSignature<CR>')
-
-		Bind.new(Mods.n)
-			.NoRemap()
-			.Silent()
-			.Buffer()
-			.Map('<C-w>d', '<CMD>LspDiagCurrent<CR>')
-			.Map(']e', '<CMD>LspDiagNextWrap<CR>')
-			.Map('[e', '<CMD>LspDiagPrevWrap<CR>')
-			.Map('<C-w>e', '<CMD>LspDiagShow<CR>')
-
-			.When(funcref(LspHas, ['rename']))
-			.Map('<Leader>r', '<CMD>LspRename<CR>')
-
-			.When(funcref(LspHas, ['hover']))
-			.Map('K', '<CMD>LspHover<CR>')
-
-			.When(funcref(LspHas, ['implementation']))
-			.Map('[D', '<CMD>LspPeekImpl<CR>')
-			.Map(']D', '<CMD>LspGotoImpl<CR>')
-
-			.When(funcref(LspHas, ['documentSymbol']))
-			.Map('[I', '<CMD>LspDocumentSymbol<CR>')
-			.Map(']I', '<CMD>LspOutline<CR>')
-
-			.When(funcref(LspHas, ['definition']))
-			.Map('gd', '<CMD>LspGotoDefinition<CR>')
-			.Map('[d', '<CMD>LspPeekDefinition<CR>')
-
-			.When(funcref(LspHas, ['typeDefinition']))
-			.Map('gD', '<CMD>LspGotoTypeDef<CR>')
-			.Map(']d', '<CMD>LspPeekTypeDef<CR>')
-
-			.When(funcref(LspHas, ['codeAction']))
-			.Map('<Leader>a', '<CMD>LspCodeAction<CR>')
-
-			.Map('*', '<CMD>LspShowReferences<CR>')
+		g:LspOptionsSet(vim9lsp.Option())
+		var m = vim9lsp.Config()
+		g:LspAddServer(m)
 	})
-
-g:LspOptionsSet({
-    autoComplete: true,
-    autoHighlight: true,
-    autoHighlightDiags: true,
-    completionMatcher: 'fuzzy',
-	completionTextEdit: true,
-    diagSignErrorText: '✘',
-    diagSignWarningText: '',
-    diagSignHintText: '',
-    diagSignInfoText: '',
-	snippetSupport: true,
-    keepFocusInDiags: true,
-    keepFocusInReferences: true,
-	ignoreMissingServer: false,
-	outlineOnRight: true,
-	outlineWinSize: 50,
-    popupBorder: true,
-    popupBorderHighlight: 'Title',
-    popupBorderHighlightPeek: 'Title',
-    popupBorderSignatureHelp: true,
-    popupHighlight: 'Normal',
-    semanticHighlight: true,
-    showDiagInBalloon: true,
-    showDiagInPopup: true,
-    showDiagWithSign: true,
-    showInlayHints: true,
-    showSignature: true,
-	condensedCompletionMenu: true,
-	filterCompletionDuplicates: true,
-	useBufferCompletion: true,
-    useQuickfixForLocations: true,
-    usePopupInCodeAction: true,
-    bufferCompletionTimeout: 100,
-    customCompletionKinds: true,
-    completionKinds: {
-		Text: '󰦨',
-		Method: '',
-		Function: '󰡱',
-		Constructor: '',
-		Field: '',
-		Variable: '',
-		Class: '',
-		Interface: '',
-		Module: '',
-		Property: '',
-		Unit: '󰊱',
-		Value: '',
-		Enum: '',
-		Keyword: '',
-		Snippet: '',
-		Color: '',
-		File: '',
-		Reference: '',
-		Folder: '󰣞',
-		EnumMember: '',
-		Constant: '',
-		Struct: '',
-		Event: '',
-		Operator: '',
-		TypeParameter: '',
-		Buffer: ''
-    },
-})

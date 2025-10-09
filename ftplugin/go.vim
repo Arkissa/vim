@@ -1,11 +1,5 @@
 vim9script
 
-# import '../autoload/vim.vim'
-# import '../autoload/path.vim'
-# import '../autoload/keymap.vim'
-# import '../autoload/command.vim'
-# import '../autoload/autocmd.vim'
-
 import 'vim.vim'
 import 'path.vim'
 import 'keymap.vim'

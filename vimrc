@@ -1,7 +1,6 @@
 vim9script
 
 import 'vim.vim'
-import 'path.vim'
 import 'keymap.vim'
 
 type Bind = keymap.Bind
@@ -83,6 +82,7 @@ if has('win')
 endif
 
 :set nocompatible
+:set exrc
 :set number
 :set autoindent
 :set smartindent
@@ -104,9 +104,6 @@ endif
 :filetype plugin indent on
 :syntax on
 
-var stateDir = path.OsStateDir()
-&backupdir = stateDir .. '//'
-&undodir   = stateDir .. '//'
 &ttimeoutlen = 50
 &scrolloff = 99
 &pumheight = 15
