@@ -7,6 +7,11 @@ type Autocmd = autocmd.Autocmd
 
 export class Window
 	var winnr: number
+	static var _executeFunction: dict<func()> = {}
+
+	static def ExecuteFunction(id: number): func()
+		return _executeFunction[id]
+	enddef
 
 	def new(pos: string = '', height: number = 0, name: string = '')
 		var buf = buffer.Buffer.newByBufnr(this.GetBufnr())
@@ -22,7 +27,7 @@ export class Window
 		this._New(pos, height, buf.name)
 	enddef
 
-	def newWrap(this.winnr)
+	def newByWinnr(this.winnr)
 		this.winnr = this.winnr < 1000 ? win_getid(this.winnr) : this.winnr
 	enddef
 
@@ -99,6 +104,12 @@ export class Window
 
 	def Execute(cmd: string)
 		win_execute(this.winnr, cmd)
+	enddef
+
+	def ExecuteCallback(F: func())
+		var id = rand()
+		_executeFunction[id] = F
+		win_execute(this.winnr, $'call(Window.ExecuteFunction({id}), [])')
 	enddef
 
 	def FeedKeys(exe: string, mod: string = 'm')
