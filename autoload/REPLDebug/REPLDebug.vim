@@ -92,11 +92,11 @@ endclass # }}}
 
 export abstract class Backend extends jb.Prompt # {{{1
 	var id = debug.ID()
-	var handles: list<func(Context, string)>
 
 	abstract def Prompt(): string
 	abstract def BreakpointCommand(addr: Address): string
 	abstract def ClearBreakpointCommand(breakID: number, addr: Address): string
+	abstract def CallbackHandles(): list<func(Context, string)>
 
 	def Bufname(): string # {{{2
 		return $'{trim(this.Prompt())}-{this.id}'
@@ -156,9 +156,10 @@ export abstract class Backend extends jb.Prompt # {{{1
 	def Callback(_: channel, line: string) # {{{2
 		var i = 0
 		var ctx = Context.new(this.prompt)
+		var handles = this.CallbackHandles()
 
-		while i < len(this.handles)
-			call(this.handles[i], [ctx, line])
+		while i < len(handles)
+			call(handles[i], [ctx, line])
 
 			if ctx.abort
 				break
@@ -167,7 +168,7 @@ export abstract class Backend extends jb.Prompt # {{{1
 			i += 1
 		endwhile
 
-		if i >= len(this.handles)
+		if i >= len(handles)
 			ctx.Write(line)
 		endif
 	enddef # }}}

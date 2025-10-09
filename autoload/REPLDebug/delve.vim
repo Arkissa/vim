@@ -53,84 +53,88 @@ class Delve extends REPLDebugBackend # {{{1
 		return $'clear {breakID}'
 	enddef # }}}
 
-	def HandleSetBreakpoint(ctx: Context, text: string) # {{{2
-		var m = matchlist(text, '^Breakpoint\s\(\d\+\)\sset\sat\s.\{-\}\(.\{,1\}/.*\.go:\d\+\)')
-		if m->len() != 10
-			return
-		endif
+	def CallbackHandles(): list<func(Context, string)> # {{{2
+	   return [
+			this.HandleFocusMe,
+			this.HandleStep,
+			this.HandleSetBreakpoint,
+			this.HandleClearBreakpoint
+		]
+	enddef # }}}
 
-		var path = m[2]->split(':')
+	def ExtractAddress(text: string): Address # {{{2
+		var path = text->split(':')
 		if path->len() < 2
-			return
+			return null_object
 		endif
-		var breakID = m[1]->str2nr()
 
 		var [f, lnum] = path[ : 2]
-		this.RequestUIServer(Server.Breakpoint, Rpc.new('Break', this.id, breakID, Address.new(f, lnum->str2nr())))
+		return Address.new(fnamemodify(f, ':.'), lnum->str2nr())
+	enddef # }}}
+
+	def HandleSetBreakpoint(ctx: Context, text: string) # {{{2
+		var m = matchlist(text, '^Breakpoint\s\(\d\+\)\sset\sat\s.\{-\}\(.\{,1\}/.*\.go:\d\+\)', 0, 1)
+		if m->empty()
+			return
+		endif
+
+		var addr = this.ExtractAddress(m[2])
+		if addr == null_object
+			return
+		endif
+
+		var breakID = m[1]->str2nr()
+
+		this.RequestUIServer(Server.Breakpoint, Rpc.new('Break', this.id, breakID, addr))
 		ctx.Write(text)
 		ctx.Abort()
 	enddef # }}}
 
 	def HandleClearBreakpoint(ctx: Context, text: string) # {{{2
-		var m = matchlist(text, '^Breakpoint\s\d\+\scleared\sat\s.\{-\}\(.\{,1\}/.*\.go:\d\+\)')
-		if m->len() != 10
+		var m = matchlist(text, '^Breakpoint\s\d\+\scleared\sat\s.\{-\}\(.\{,1\}/.*\.go:\d\+\)', 0, 1)
+		if m->empty()
 			return
 		endif
 
-		var path = m[1]->split(':')
-		if path->len() < 2
+		var addr = this.ExtractAddress(m[2])
+		if addr == null_object
 			return
 		endif
 
-		var [f, lnum] = path[ : 2]
-
-		this.RequestUIServer(Server.Breakpoint, Rpc.new('Clear', this.id, Address.new(f, lnum->str2nr())))
+		this.RequestUIServer(Server.Breakpoint, Rpc.new('Clear', this.id, addr))
 		ctx.Write(text)
 		ctx.Abort()
 	enddef # }}}
 
 	def HandleStep(ctx: Context, text: string) # {{{2
 		var m = matchlist(text, '>\s.\{-\}\s\(.\{,1\}/.*\.go:\d\+\)\s', 0, 1)
-		if m->len() != 10
+		if m->empty()
 			return
 		endif
 
-		var path = m[1]->split(':', 1)
-		if path->empty()
+		var addr = this.ExtractAddress(m[2])
+		if addr == null_object
 			return
 		endif
 
-		var [f, lnum] = path
-		this.RequestUIServer(Server.Step, Rpc.new('Set', Address.new(fnamemodify(f, ':.'), lnum->str2nr())))
+		this.RequestUIServer(Server.Step, Rpc.new('Set', addr))
 		ctx.Abort()
 	enddef # }}}
 
 	def HandleFocusMe(ctx: Context, text: string) # {{{2
 		var m = matchlist(text, '>\s\[Breakpoint\s\d\+]\s.\{-\}\s\(.\{,1\}/.*\.go:\d\+\)\s', 0, 1)
-		if m->len() != 10
+		if m->empty()
 			return
 		endif
 
-		var path = m[1]->split(':', 1)
-		if path->len() != 2
+		var addr = this.ExtractAddress(m[2])
+		if addr == null_object
 			return
 		endif
 
-		var [f, lnum] = path
 		this.FocusMe()
-		this.RequestUIServer(Server.Step, Rpc.new('Set', Address.new(fnamemodify(f, ':.'), lnum->str2nr())))
+		this.RequestUIServer(Server.Step, Rpc.new('Set', addr))
 		ctx.Abort()
-	enddef # }}}
-
-	def Run() # {{{2
-		this.handles = [
-			this.HandleFocusMe,
-			this.HandleStep,
-			this.HandleSetBreakpoint,
-			this.HandleClearBreakpoint
-		]
-
-		super.Run()
 	enddef # }}}
 
 	def Send(text: string) # {{{2
