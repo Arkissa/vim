@@ -188,6 +188,10 @@ class MockBackend extends Backend # {{{1
 	def ClearBreakpointCommand(_: number, _: Address): string # {{{2
 	enddef # }}}
 
+	def CallbackHandles(): list<func(Context, string)> # {{{2
+		return null_list
+	enddef # }}}
+
 	def FocusMe() # {{{2
 		def Clear(_: number, addr: Address) # {{{3
 			this.RequestUIServer(Server.Breakpoint, Rpc.new('Clear', this.id, addr))
@@ -410,7 +414,6 @@ class REPLDebugSession extends Ring # {{{1
 		if this._prompt == null_object
 			var promptConf = get(conf, 'prompt', {})
 			this._prompt = Window.new(get(promptConf, 'pos', 'horizontal botright'), get(promptConf, 'height', 0))
-
 			Autocmd.new('WinClosed')
 				.Group(Host.REPLDebugUI.name)
 				.Pattern([this._prompt.winnr->string()])
@@ -424,8 +427,12 @@ class REPLDebugSession extends Ring # {{{1
 
 
 		this._prompt.SetBuffer(prompt)
-		win_gotoid(this._prompt.winnr)
-		execute('startinsert')
+		this._prompt.SetVar('&number', false)
+		this._prompt.SetVar('&relativenumber', false)
+
+		# win_gotoid(this._prompt.winnr)
+		this._prompt.Execute('startinsert')
+		this._prompt.ExecuteCallback(prompt.Keymaps)
 		this.SwitchOf((b) => b.id == id)
 	enddef # }}}
 endclass # }}}

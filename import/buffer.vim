@@ -1,17 +1,25 @@
 vim9script
 
 import 'vim.vim'
+import 'autocmd.vim'
+import 'keymap.vim'
+import 'log.vim'
 
-export class Sign
+type Bind = keymap.Bind
+type Mods = keymap.Mods
+type Zipper = vim.Zipper
+type Autocmd = autocmd.Autocmd
+
+export class Sign # {{{1
 	var id: number
 	var lnum: number
 	var name: string
 
-	def new(this.id, this.lnum, this.name)
-	enddef
-endclass
+	def new(this.id, this.lnum, this.name) # {{{2
+	enddef # }}}
+endclass # }}}
 
-export class BufferInfo
+export class BufferInfo # {{{1
 	var bufnr: number
 	var name: string
 	var changed: bool
@@ -28,7 +36,7 @@ export class BufferInfo
 	const popups: list<number>
 	const signs: list<Sign>
 
-	def new(
+	def new( # {{{2
 			this.bufnr,
 			this.name,
 			this.changed,
@@ -48,27 +56,27 @@ export class BufferInfo
 		if signs != null_list
 			this.signs = signs
 		endif
-	enddef
-endclass
+	enddef # }}}
+endclass # }}}
 
-export class Buffer
+export class Buffer # {{{1
 	var bufnr: number
 	var name: string
 
-	def new(this.name)
+	def new(this.name) # {{{2
 		this.bufnr = bufadd(this.name)
-	enddef
+	enddef # }}}
 
-	def newCurrent()
+	def newCurrent() # {{{2
 		this.bufnr = bufnr()
 		this.name = bufname(this.bufnr)
-	enddef
+	enddef # }}}
 
-	def newByBufnr(this.bufnr)
+	def newByBufnr(this.bufnr) # {{{2
 		this.name = bufname(this.bufnr)
-	enddef
+	enddef # }}}
 
-	def LastCursorPosition(): tuple<number, number>
+	def LastCursorPosition(): tuple<number, number> # {{{2
 		var marks = getmarklist(this.bufnr)->filter((_, m) => m.mark == "'\"")
 		if marks == null_list
 			return (1, 1)
@@ -76,95 +84,95 @@ export class Buffer
 
 		var [_, lnum, col, _] = marks[0].pos
 		return (lnum, col)
-	enddef
+	enddef # }}}
 
-	def GetVar(name: string): any
+	def GetVar(name: string): any # {{{2
 		return getbufvar(this.bufnr, name)
-	enddef
+	enddef # }}}
 
-	def GetOneLine(lnum: number): string
+	def GetOneLine(lnum: number): string # {{{2
 		return getbufoneline(this.bufnr, lnum)
-	enddef
+	enddef # }}}
 
-	def GetLines(lnum: number, end: number): list<string>
+	def GetLines(lnum: number, end: number): list<string> # {{{2
 		return getbufline(lnum, end != -1 ? end : '$')
-	enddef
+	enddef # }}}
 
-	def SetVar(name: string, value: any)
+	def SetVar(name: string, value: any) # {{{2
 		setbufvar(this.bufnr, name, value)
-	enddef
+	enddef # }}}
 
-	def SetLine(text: string, lnum: number)
+	def SetLine(text: string, lnum: number) # {{{2
 		setbufline(this.bufnr, lnum, text)
-	enddef
+	enddef # }}}
 
-	def SetLines(lines: list<string>)
-		setbufline(this.bufnr, lines)
-	enddef
+	def SetLines(lines: list<string>, lnum: number) # {{{2
+		setbufline(this.bufnr, lnum, lines)
+	enddef # }}}
 
-	def Clear()
-		setbufline(this.bufnr, [])
-	enddef
+	def Clear() # {{{2
+		deletebufline(this.bufnr, 1, '$')
+	enddef # }}}
 
-	def AppendLine(text: string, lnum: number = this.LineCount() - 1)
+	def AppendLine(text: string, lnum: number = this.LineCount() - 1) # {{{2
 		appendbufline(this.bufnr, lnum, text)
-	enddef
+	enddef # }}}
 
-	def GetLinePosition(): number
+	def GetLinePosition(): number # {{{2
 		var info = this.GetInfo()
 		if info is null_object
 			return 0
 		endif
 
 		return info.lnum
-	enddef
+	enddef # }}}
 
-	def LineCount(): number
+	def LineCount(): number # {{{2
 		var info = this.GetInfo()
 		if info is null_object
 			return 1
 		endif
 
 		return info.linecount
-	enddef
+	enddef # }}}
 
-	def IsDirectory(): bool
+	def IsDirectory(): bool # {{{2
 		return isdirectory(this.name)
-	enddef
+	enddef # }}}
 
-	def IsLoaded(): bool
+	def IsLoaded(): bool # {{{2
 		return bufloaded(this.bufnr) == 1
-	enddef
+	enddef # }}}
 
-	def IsExists(): bool
+	def IsExists(): bool # {{{2
 		return bufexists(this.bufnr) == 1
-	enddef
+	enddef # }}}
 
-	def Load(): number
+	def Load(): number # {{{2
 		return bufload(this.bufnr)
-	enddef
+	enddef # }}}
 
-	def WinID(): number
+	def WinID(): number # {{{2
 		return bufwinid(this.bufnr)
-	enddef
+	enddef # }}}
 
-	def Winnr(): number
+	def Winnr(): number # {{{2
 		return bufwinnr(this.bufnr)
-	enddef
+	enddef # }}}
 
-	def InPopupWindow(): bool
+	def InPopupWindow(): bool # {{{2
 		return this.GetInfo() isnot null_object && info.popups != null_list
-	enddef
+	enddef # }}}
 
-	def InWindow(): bool
+	def InWindow(): bool # {{{2
 		return this.GetInfo() isnot null_object && info.windows != null_list
-	enddef
+	enddef # }}}
 
-	def Listed(): bool
+	def Listed(): bool # {{{2
 		return buflisted(this.bufnr)
-	enddef
+	enddef # }}}
 
-	def GetInfo(): BufferInfo
+	def GetInfo(): BufferInfo # {{{2
 		if !this.IsExists()
 			return null_object
 		endif
@@ -187,114 +195,209 @@ export class Buffer
 			info.popups,
 			has_key(info, "signs") ? map(info.signs, (_, sign) => Sign.new(sign.id, sign.lnum, sign.name)) : null_list
 		)
-	enddef
+	enddef # }}}
 
-	def Readable(): bool
+	def Readable(): bool # {{{2
 		return filereadable(this.name) == 1
-	enddef
+	enddef # }}}
 
-	def Unload()
+	def Unload() # {{{2
 		execute($'silent bunload! {this.bufnr}')
-	enddef
+	enddef # }}}
 
-	def Delete()
+	def Delete() # {{{2
 		execute($'silent bwipeout! {this.bufnr}')
-	enddef
-endclass
+	enddef # }}}
+endclass # }}}
 
-final promptCount = vim.IncID.new()
+class PromptPanel # {{{1
+	var _history = Zipper.new()
 
-export class Prompt extends Buffer
-	const _count = promptCount.ID()
+	def Keymaps() # {{{2
+		var buffer = Buffer.newCurrent()
+		Bind.new(Mods.i)
+			.Buffer()
+			.ScriptCmd('<C-l>', buffer.Clear)
+			.ScriptCmd('<C-e>', this.ToEnd)
+			.ScriptCmd('<M-d>', this.DeleteAfterWord)
+			.ScriptCmd('<C-w>', this.DeleteBeforeWord)
+			.ScriptCmd('<C-k>', this.DeleteToEnd)
+			.ScriptCmd('<Up>', this.OnUp)
+			.ScriptCmd('<C-p>', this.OnUp)
+			.ScriptCmd('<Down>', this.OnDown)
+			.ScriptCmd('<C-n>', this.OnDown)
+	enddef # }}}
 
-	def new(name: string = this._Name())
-		this.bufnr = bufadd(name)
-		this.name = name
+	def DeleteAfterWord() # {{{2
+		var lnum = line('.')
+		var col = col('.')
+		var buffer = Buffer.newCurrent()
+		var line = buffer.GetOneLine(lnum)
+		var start = line->strcharpart(0, col - 1)
+		buffer.SetLine(start .. substitute(line->strcharpart(col), '^.\{-\}\<\k\+\>', '', ''), lnum)
+	enddef # }}}
+
+	def DeleteBeforeWord() # {{{2
+		var lnum = line('.')
+		var col = col('.')
+		var buffer = Buffer.newCurrent()
+		var line = buffer.GetOneLine(lnum)
+
+		var prompt = prompt_getprompt(buffer.bufnr)
+		var start = trim(line->strcharpart(0, col - 1), prompt)
+		start = substitute(start, '\%(\s*\S\+\|\s\+\)$', '', '')
+		buffer.SetLine($'{prompt}{start}{line->strcharpart(col)}', lnum)
+	enddef # }}}
+
+	def DeleteToEnd() # {{{2
+		var buffer = Buffer.newCurrent()
+		var [_, lnum, col, _] = getcharpos('.')
+		var line = buffer.GetOneLine(lnum)
+		buffer.SetLine(strpart(line, 0, col - 1), lnum)
+	enddef # }}}
+
+	def ToEnd() # {{{2
+		setcursorcharpos(line('.'), col('$'))
+	enddef # }}}
+
+	def OnUp() # {{{2
+		this._history.Right()
+		if this._history.Peek() == null
+			this._history.Left()
+		endif
+
+		var lnum = line('.')
+		var buffer = Buffer.newCurrent()
+		var lines = (this._history.Peek() ?? '')->split("\n")
+		lines = lines ?? ['']
+
+		var prompt = prompt_getprompt(buffer.bufnr)
+		lines[0] = prompt .. lines[0]
+		buffer.SetLines(lines, lnum)
+		setcursorcharpos(lnum, col('$'))
+	enddef # }}}
+
+	def OnDown() # {{{2
+		this._history.Left()
+
+		var lnum = line('.')
+		var buffer = Buffer.newCurrent()
+		var lines = (this._history.Peek() ?? '')->split("\n")
+		lines = lines ?? ['']
+
+		var prompt = prompt_getprompt(buffer.bufnr)
+		lines[0] = prompt .. lines[0]
+		buffer.SetLines(lines, lnum)
+		setcursorcharpos(lnum, col('$'))
+	enddef # }}}
+
+	def History(F: func(string)): func(string) # {{{2
+		def Record(text: string)
+			F(text)
+			if trim(text) != ''
+				this._history.Push(text)
+				this._history.Left()
+			endif
+		enddef
+
+		return Record
+	enddef # }}}
+endclass # }}}
+
+export class Prompt extends Buffer # {{{1
+	var _panel = PromptPanel.new()
+	static final _count = vim.IncID.new()
+
+	static def _Name(name: string = ''): string # {{{2
+		var id = _count.ID()
+		return $'prompt-buffer://{name ?? $'prompt-{id + 1}'}'
+	enddef # }}}
+
+	def new(name: string) # {{{2
+		this.bufnr = bufadd(_Name(name))
 
 		this.SetVar('&buftype', 'prompt')
 		this.SetVar('&bufhidden', 'hide')
-	enddef
+		this.SetVar('&buflisted', false)
+	enddef # }}}
 
-	def newByBufnr(bufnr: number)
+	def newByBufnr(bufnr: number) # {{{2
 		this.bufnr = bufnr
-		this.name = this._Name(bufname(bufnr))
+		this.name = _Name(bufname(bufnr))
 
 		this.SetVar('&buftype', 'prompt')
 		this.SetVar('&bufhidden', 'hidden')
-	enddef
+		this.SetVar('&buflisted', false)
+	enddef # }}}
 
-	def _Name(name: string = ''): string
-		if this._count == 0
-			return name ? '(prompt)' : $'({name})'
-		endif
+	def Keymaps() # {{{2
+		this._panel.Keymaps()
+	enddef # }}}
 
-		return name ? $'(prompt-{this._count})' : $'({name}-{this._count})'
-	enddef
-
-	def GetPrompt(): string
+	def GetPrompt(): string # {{{2
 		return prompt_getprompt(this.bufnr)
-	enddef
+	enddef # }}}
 
-	def SetPrompt(prompt: string)
+	def SetPrompt(prompt: string) # {{{2
 		prompt_setprompt(this.bufnr, prompt)
-	enddef
+	enddef # }}}
 
-	def SetCallback(F: func(string))
-		prompt_setcallback(this.bufnr, F)
-	enddef
+	def SetCallback(F: func(string)) # {{{2
+		prompt_setcallback(this.bufnr, this._panel.History(F))
+	enddef # }}}
 
-	def SetInterrupt(F: func())
+	def SetInterrupt(F: func()) # {{{2
 		prompt_setinterrupt(this.bufnr, F)
-	enddef
-endclass
+	enddef # }}}
+endclass # }}}
 
-export class Terminal extends Buffer
-	def new(cmd: string, opt: dict<any>)
+export class Terminal extends Buffer # {{{1
+	def new(cmd: string, opt: dict<any>) # {{{2
 		opt.hidden = true
 		this.bufnr = term_start(cmd, opt)
 		this.name = bufname(this.bufnr)
 		this.SetVar("&buflisted", false)
 		this.SetVar("&relativenumber", false)
 		this.SetVar("&number", false)
-	enddef
+	enddef # }}}
 
-	def GetJob(): job
+	def GetJob(): job # {{{2
 		return term_getjob(this.bufnr)
-	enddef
+	enddef # }}}
 
-	def GetLine(row: number): string
+	def GetLine(row: number): string # {{{2
 		return term_getline(this.bufnr, row)
-	enddef
+	enddef # }}}
 
-	def GetSize(): number
+	def GetSize(): number # {{{2
 		return term_getsize(this.bufnr)
-	enddef
+	enddef # }}}
 
-	def GetTitle(): string
+	def GetTitle(): string # {{{2
 		return term_gettitle(this.bufnr)
-	enddef
+	enddef # }}}
 
-	def SendKeys(k: string)
+	def SendKeys(k: string) # {{{2
 		term_sendkeys(this.bufnr, k) == 0
-	enddef
+	enddef # }}}
 
-	def SetAPI(s: string)
+	def SetAPI(s: string) # {{{2
 		term_setapi(this.bufnr, s)
-	enddef
+	enddef # }}}
 
-	def SetRestore(c: string)
+	def SetRestore(c: string) # {{{2
 		term_setrestore(this.bufnr, c)
-	enddef
+	enddef # }}}
 
-	def Wait(time: number)
+	def Wait(time: number) # {{{2
 		term_wait(this.bufnr, time)
-	enddef
+	enddef # }}}
 
-	def Status(): string
+	def Status(): string # {{{2
 		return term_getstatus(this.bufnr)
-	enddef
+	enddef # }}}
 
-	def Stop()
+	def Stop() # {{{2
 		job_stop(this.GetJob(), 'kill')
-	enddef
-endclass
+	enddef # }}}
+endclass # }}}

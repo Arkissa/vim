@@ -1,6 +1,6 @@
 vim9script
 
-export enum Mods
+export enum Mods # {{{1
 	n,
 	v,
 	i,
@@ -11,30 +11,31 @@ export enum Mods
 	l,
 	c,
 	t
-endenum
+endenum # }}}
 
-export class Bind
+export class Bind # {{{1
 	const _cmd = 'map'
+
 	var _mods: list<Mods> = []
-	var _args: list<string> = []
-	var _arg: string
-	var _noremap: bool
 	var _When: func(): bool
+	var _noremap: bool
+	var _args: dict<string> = {}
+
 	static var _mapFunction: dict<func> = {}
 
-	static def InternalFunction(name: string): func
-		return _mapFunction[name]
-	enddef
+	static def InternalFunction(id: number): func # {{{2
+		return _mapFunction[id]
+	enddef # }}}
 
-	def new(m: Mods)
+	def new(m: Mods) # {{{2
 		this._mods->add(m)
-	enddef
+	enddef # }}}
 
-	def newMulti(...ms: list<Mods>)
+	def newMulti(...ms: list<Mods>) # {{{2
 		this._mods->extend(ms)
-	enddef
+	enddef # }}}
 
-	def ScriptCmd(lhs: string, Rhs: func): Bind
+	def ScriptCmd(lhs: string, Rhs: func): Bind # {{{2
 		if ['func()', 'func(): string', 'func(): any']->index(typename(Rhs)) == -1
 			throw 'Rhs type must be func() or func(): string or func(): any.'
 		endif
@@ -42,9 +43,7 @@ export class Bind
 			return this
 		endif
 
-		if this._arg == null_string
-			this._arg = this._args->join(' ')
-		endif
+		var arg = this._args->keys()->join()
 
 		var cmd = this._noremap ? $'nore{this._cmd}' : this._cmd
 		var m: string
@@ -55,27 +54,25 @@ export class Bind
 				m = $'{cmd}!'
 			endif
 
-			var name = $'{m}_{rand()}'
-			_mapFunction[name] = Rhs
+			var id = rand()
+			_mapFunction[id] = Rhs
 
-			if this._arg =~# '<expr>'
-				execute($'{m} {this._arg} {lhs} call(Bind.InternalFunction("{name}"), [])')
-			else
-				execute($'{m} {this._arg} {lhs} <ScriptCmd>call(Bind.InternalFunction("{name}"), [])<CR>')
-			endif
+			var keymap = arg =~# '<expr>'
+				? $'{m} {arg} {lhs} call(Bind.InternalFunction({id}), [])'
+				: $'{m} {arg} {lhs} <ScriptCmd>call(Bind.InternalFunction({id}), [])<CR>'
+
+			execute(keymap)
 		endfor
 
 		return this
-	enddef
+	enddef # }}}
 
-	def Map(lhs: string, rhs: string): Bind
+	def Map(lhs: string, rhs: string): Bind # {{{2
 		if this._When != null_function && !call(this._When, [])
 			return this
 		endif
 
-		if this._arg == null_string
-			this._arg = this._args->join(' ')
-		endif
+		var arg = this._args->keys()->join()
 
 		var cmd = this._noremap ? $'nore{this._cmd}' : this._cmd
 		var m: string
@@ -86,54 +83,54 @@ export class Bind
 				m = $'{cmd}!'
 			endif
 
-			execute($'{m} {this._arg} {lhs} {rhs}')
+			execute($'{m} {arg} {lhs} {rhs}')
 		endfor
 
 		return this
-	enddef
+	enddef # }}}
 
-	def Buffer(): Bind
-		this._args->add('<buffer>')
+	def Buffer(): Bind # {{{2
+		this._args['<buffer>'] = null_string
 		return this
-	enddef
+	enddef # }}}
 
-	def NoWait(): Bind
-		this._args->add('<nowait>')
+	def NoWait(): Bind # {{{2
+		this._args['<nowait>'] = null_string
 		return this
-	enddef
+	enddef # }}}
 
-	def Silent(): Bind
-		this._args->add('<silent>')
+	def Silent(): Bind # {{{2
+		this._args['<silent>'] = null_string
 		return this
-	enddef
+	enddef # }}}
 
-	def Special(): Bind
-		this._args->add('<special>')
+	def Special(): Bind # {{{2
+		this._args['<special>'] = null_string
 		return this
-	enddef
+	enddef # }}}
 
-	def Script(): Bind
-		this._args->add('<script>')
+	def Script(): Bind # {{{2
+		this._args['<script>'] = null_string
 		return this
-	enddef
+	enddef # }}}
 
-	def Expr(): Bind
-		this._args->add('<expr>')
+	def Expr(): Bind # {{{2
+		this._args['<expr>'] = null_string
 		return this
-	enddef
+	enddef # }}}
 
-	def Unique(): Bind
-		this._args->add('<unique>')
+	def Unique(): Bind # {{{2
+		this._args['<unique>'] = null_string
 		return this
-	enddef
+	enddef # }}}
 
-	def NoRemap(): Bind
+	def NoRemap(): Bind # {{{2
 		this._noremap = true
 		return this
-	enddef
+	enddef # }}}
 
-	def When(F: func(): bool): Bind
+	def When(F: func(): bool): Bind # {{{2
 		this._When = F
 		return this
-	enddef
-endclass
+	enddef # }}}
+endclass # }}}

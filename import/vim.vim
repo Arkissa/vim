@@ -105,6 +105,103 @@ export class Ring
 	enddef
 endclass
 
+export class List
+	var head: any
+	var tail: List
+
+	def new(this.head, this.tail)
+	enddef
+
+	def len(): number
+		var count = 1
+		var tail = this.tail
+		while tail != null_object
+			count += 1
+			tail = this.tail
+		endwhile
+
+		return count
+	enddef
+
+	def string(): string
+		var str = []
+		var l = this
+		while l != null_object
+			str->add(l.head)
+			l = l.tail
+		endwhile
+
+		return str->string()
+	enddef
+
+	static def Append(list: List, a: any): List
+		if list == null_object
+			return List.new(a, null_object)
+		endif
+
+		var l = list
+		while l.tail != null_object
+			l = l.tail
+		endwhile
+
+		l.tail = List.new(a, null_object)
+		return list
+	enddef
+endclass
+
+export class Zipper
+	var _left: List
+	var _right: List
+
+	def Peek(): any
+		if this._right == null_object
+			return null
+		endif
+
+		return this._right.head
+	enddef
+
+	def Push(a: any)
+		this._right = List.Append(this._right, a)
+	enddef
+
+	def Pop(): any
+		if this._right == null_object && this._left == null_object
+			return null
+		endif
+
+		if this._right == null_object
+			var head = this._left.head
+			this._left = this.left.tail
+			return head
+		endif
+
+		var head = this._right.head
+		this._right = this._right.tail
+		return head
+	enddef
+
+	def Left()
+		if this._right == null_object
+			return
+		endif
+
+		var [right, tail] = (this._right.head, this._right.tail)
+		this._right = tail
+		this._left = List.new(right, this._left)
+	enddef
+
+	def Right()
+		if this._left == null_object
+			return
+		endif
+
+		var [left, tail] = (this._left.head, this._left.tail)
+		this._left = tail
+		this._right = List.new(left, this._right)
+	enddef
+endclass
+
 export class IncID
 	var _id = -1
 

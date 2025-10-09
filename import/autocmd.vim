@@ -1,16 +1,14 @@
 vim9script
 
-import 'buffer.vim'
-
 export class EventArgs
 	var id: number
-	var buf: buffer.Buffer
+	var buf: number
 	var data: any
 	var event: string
 	var group: string
 	var match: string
 
-	def new(this.id, this.event, this.group, this.match, this.buf, data: any = null)
+	def new(this.id, this.buf, this.event, this.group, this.match, data: any = null)
 		this.data = data
 	enddef
 
@@ -47,10 +45,10 @@ class Callback
 			if typename(this._F) != 'func()'
 				args->add(EventArgs.new(
 					this.id,
+					bufnr(),
 					this.event,
 					this.group,
 					expand('<amatch>'),
-					buffer.Buffer.newCurrent(),
 					this._data
 				))
 			endif
@@ -152,7 +150,7 @@ export class Autocmd
 		var group = get(this._autocmd, 'group', '')
 
 		autocmd_add([this._autocmd.event]->flattennew()->mapnew((_, event) => {
-			var id = rand()
+			var id = id(F) ?? rand()
 			enviroment[id] = Callback.new(id, F, event, group)
 			var autocmd = {
 				event: event,

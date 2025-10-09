@@ -106,8 +106,8 @@ export abstract class Prompt extends Job
 		endif
 
 		this.prompt	= buffer.Prompt.new(this.Bufname())
-		this.prompt.SetPrompt(this.Prompt())
 		this.prompt.SetCallback(this.Send)
+		this.prompt.SetPrompt(this.Prompt())
 		this.prompt.SetInterrupt(this.InterruptCb)
 
 		Autocmd.newMulti(['BufWipeout', 'BufDelete'])
