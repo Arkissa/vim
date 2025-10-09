@@ -5,69 +5,69 @@ import 'autocmd.vim'
 
 type Autocmd = autocmd.Autocmd
 
-export class Window
+export class Window # {{{1
 	var winnr: number
 	static var _executeFunction: dict<func()> = {}
 
-	static def ExecuteFunction(id: number): func()
+	static def ExecuteFunction(id: number): func() # {{{2
 		return _executeFunction[id]
-	enddef
+	enddef # }}}
 
-	def new(pos: string = '', height: number = 0, name: string = '')
+	def new(pos: string = '', height: number = 0, name: string = '') # {{{2
 		var buf = buffer.Buffer.newByBufnr(this.GetBufnr())
 		this._New(pos, height, name ?? buf.name)
-	enddef
+	enddef # }}}
 
-	def newByBufnr(bufnr: number, pos: string = '', height: number = 0)
+	def newByBufnr(bufnr: number, pos: string = '', height: number = 0) # {{{2
 		var buf = buffer.Buffer.newByBufnr(bufnr)
 		this._New(pos, height, buf.name)
-	enddef
+	enddef # }}}
 
-	def newByBuffer(buf: buffer.Buffer, pos: string = '', height: number = 0)
+	def newByBuffer(buf: buffer.Buffer, pos: string = '', height: number = 0) # {{{2
 		this._New(pos, height, buf.name)
-	enddef
+	enddef # }}}
 
-	def newByWinnr(this.winnr)
+	def newByWinnr(this.winnr) # {{{2
 		this.winnr = this.winnr < 1000 ? win_getid(this.winnr) : this.winnr
-	enddef
+	enddef # }}}
 
-	def newCurrent()
+	def newCurrent() # {{{2
 		this.winnr = win_getid()
-	enddef
+	enddef # }}}
 
-	def _New(pos: string = '', height: number = 0, name: string = '')
+	def _New(pos: string = '', height: number = 0, name: string = '') # {{{2
 		execute($'silent! {pos} :{height ?? ''}new {name}')
 		this.winnr = win_getid()
 		if name == ''
 			setbufvar(this.GetBufnr(), '&bufhidden', 'wipe')
 		endif
-	enddef
+	enddef # }}}
 
-	def SetCursor(lnum: number, col: number)
+	def SetCursor(lnum: number, col: number) # {{{2
 		this.Execute($"eval cursor({lnum}, {col})")
-	enddef
+	enddef # }}}
 
-	def SetVar(name: string, value: any)
+	def SetVar(name: string, value: any) # {{{2
 		setwinvar(this.winnr, name, value)
-	enddef
+	enddef # }}}
 
-	def GetBuffer(): buffer.Buffer
+	def GetBuffer(): buffer.Buffer # {{{2
 		return buffer.Buffer.newByBufnr(this.GetBufnr())
-	enddef
+	enddef # }}}
 
-	def GetBufnr(): number
+	def GetBufnr(): number # {{{2
 		return winbufnr(this.winnr)
-	enddef
+	enddef # }}}
 
-	def GetVar(name: string): any
+	def GetVar(name: string): any # {{{2
 		return getwinvar(this.winnr, name)
-	enddef
+	enddef # }}}
 
-	def Resize(height: number)
+	def Resize(height: number) # {{{2
 		this.Execute($'silent resize {height}')
-	enddef
+	enddef # }}}
 
-	def SetBuf(bufnr: number)
+	def SetBuf(bufnr: number) # {{{2
 		var winnr = this.winnr->string()
 		if exists($'#BufWinLeave#{winnr}')
 			Autocmd.Do('', 'BufWinLeave', [winnr], this)
@@ -78,68 +78,68 @@ export class Window
 		if exists($'#BufWinEnter#{winnr}')
 			Autocmd.Do('', 'BufWinEnter', [winnr], this)
 		endif
-	enddef
+	enddef # }}}
 
-	def SetBuffer(buf: buffer.Buffer)
+	def SetBuffer(buf: buffer.Buffer) # {{{2
 		this.SetBuf(buf.bufnr)
-	enddef
+	enddef # }}}
 
-	def Close(result: any = null)
+	def Close(result: any = null) # {{{2
 		var win = this.winnr->string()
 		if exists($'#WinClosed#{win}')
 			Autocmd.Do('', 'WinClosed', [win], (this, result ?? this.GetBufnr()))
 		endif
 
 		this.Execute('silent! close!')
-	enddef
+	enddef # }}}
 
-	def GetCursorPos(): tuple<number, number>
+	def GetCursorPos(): tuple<number, number> # {{{2
 		var [_, lnum, col, _, _] = getcurpos(this.winnr)
 		return (lnum, col)
-	enddef
+	enddef # }}}
 
-	def IsOpen(): bool
+	def IsOpen(): bool # {{{2
 		return !this.winnr->getwininfo()->empty()
-	enddef
+	enddef # }}}
 
-	def Execute(cmd: string)
+	def Execute(cmd: string) # {{{2
 		win_execute(this.winnr, cmd)
-	enddef
+	enddef # }}}
 
-	def ExecuteCallback(F: func())
+	def ExecuteCallback(F: func()) # {{{2
 		var id = rand()
 		_executeFunction[id] = F
 		win_execute(this.winnr, $'call(Window.ExecuteFunction({id}), [])')
-	enddef
+	enddef # }}}
 
-	def FeedKeys(exe: string, mod: string = 'm')
+	def FeedKeys(exe: string, mod: string = 'm') # {{{2
 		this.Execute($'feedkeys(''{exe}'', ''{mod}'')')
-	enddef
-endclass
+	enddef # }}}
+endclass # }}}
 
-export class Popup extends Window
+export class Popup extends Window # {{{1
 	var _hidden: bool = false
 
-	def new(bufnr: number, options: dict<any>)
+	def new(bufnr: number, options: dict<any>) # {{{2
 		options.callback = this._CloseCallback
 		this.winnr = popup_create(bufnr, options)
 		this.SetVar("&foldenable", 0)
 		this.SetVar("&foldcolumn", 0)
 		this.SetVar("&foldmethod", "manual")
 		this.SetVar("&signcolumn", "no")
-	enddef
+	enddef # }}}
 
-	def SetFilter(F: func(Popup, string): bool)
+	def SetFilter(F: func(Popup, string): bool) # {{{2
 		this.SetOptions({
 			filter: (_: number, key: string) => F(this, key)
 		})
-	enddef
+	enddef # }}}
 
-	def SetOptions(options: dict<any>)
+	def SetOptions(options: dict<any>) # {{{2
 		popup_setoptions(this.winnr, options)
-	enddef
+	enddef # }}}
 
-	def SetBuf(bufnr: number)
+	def SetBuf(bufnr: number) # {{{2
 		var winnr = this.winnr->string()
 		if exists($'#BufWinLeave#{winnr}')
 			Autocmd.Do('', 'BufWinLeave', [winnr], this)
@@ -150,42 +150,42 @@ export class Popup extends Window
 		if exists($'#BufWinEnter#{winnr}')
 			Autocmd.Do('', 'BufWinEnter', [winnr], this)
 		endif
-	enddef
+	enddef # }}}
 
-	def SetBuffer(buf: buffer.Buffer)
+	def SetBuffer(buf: buffer.Buffer) # {{{2
 		this.SetBuf(buf.bufnr)
-	enddef
+	enddef # }}}
 
-	def SetTitle(title: string)
+	def SetTitle(title: string) # {{{2
 		this.SetOptions({title: title})
-	enddef
+	enddef # }}}
 
-	def GetOptions()
+	def GetOptions() # {{{2
 		return popup_getoptions(this.winnr)
-	enddef
+	enddef # }}}
 
-	def _CloseCallback(id: number, result: any)
+	def _CloseCallback(id: number, result: any) # {{{2
 		var win = this.winnr->string()
 		if exists($'#WinClosed#{win}')
 			Autocmd.Do('', 'WinClosed', [win], (this, result ?? this.GetBufnr()))
 		endif
-	enddef
+	enddef # }}}
 
-	def IsHidden(): bool
+	def IsHidden(): bool # {{{2
 		return this.IsOpen() && this.hidden
-	enddef
+	enddef # }}}
 
-	def Close(result: any = null)
+	def Close(result: any = null) # {{{2
 		popup_close(this.winnr, result)
-	enddef
+	enddef # }}}
 
-	def Hide()
+	def Hide() # {{{2
 		popup_hide(this.winnr)
 		this._hidden = true
-	enddef
+	enddef # }}}
 
-	def Show(): number
+	def Show(): number # {{{2
 		popup_show(this.winnr)
 		this._hidden = false
-	enddef
-endclass
+	enddef # }}}
+endclass # }}}

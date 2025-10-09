@@ -2,6 +2,7 @@ vim9script
 
 import 'job.vim' as jb
 import 'buffer.vim'
+import 'log.vim'
 import autoload './REPLDebug.vim'
 
 type Server = REPLDebug.Server
@@ -11,12 +12,6 @@ type Context = REPLDebug.Context
 type Rpc = REPLDebug.Rpc
 
 class Delve extends REPLDebugBackend # {{{1
-	var _dropRegexps = [
-		'^\s\+\d\+:',
-		'^=>',
-		'^(dlv)\s',
-	]
-
 	var _args: list<string> = ['dlv']
 
 	def new(prg: string) # {{{2
@@ -35,16 +30,6 @@ class Delve extends REPLDebugBackend # {{{1
 		return '(dlv) '
 	enddef # }}}
 
-	def Callback(ch: channel, msg: string) # {{{2
-		for regexp in this._dropRegexps
-			if msg =~# regexp
-				return
-			endif
-		endfor
-
-		super.Callback(ch, msg)
-	enddef # }}}
-
 	def BreakpointCommand(addr: Address): string # {{{2
 		return $'break {addr.FileName}:{addr.Lnum}'
 	enddef # }}}
@@ -56,9 +41,17 @@ class Delve extends REPLDebugBackend # {{{1
 	def CallbackHandles(): list<func(Context, string)> # {{{2
 	   return [
 			this.HandleFocusMe,
-			this.HandleStep,
 			this.HandleSetBreakpoint,
-			this.HandleClearBreakpoint
+			this.HandleClearBreakpoint,
+			this.HandleStep,
+		]
+	enddef # }}}
+
+	def Drop(): list<string> # {{{2
+		return [
+			'^(dlv)\s',
+			'^\s\+\d\+:',
+			'^=>',
 		]
 	enddef # }}}
 
@@ -107,12 +100,12 @@ class Delve extends REPLDebugBackend # {{{1
 	enddef # }}}
 
 	def HandleStep(ctx: Context, text: string) # {{{2
-		var m = matchlist(text, '>\s.\{-\}\s\(.\{,1\}/.*\.go:\d\+\)\s', 0, 1)
+		var m = matchlist(text, '\zs\.\{,1\}/[^[:space:]]*\.go:\d\+', 0, 1)
 		if m->empty()
 			return
 		endif
 
-		var addr = this.ExtractAddress(m[2])
+		var addr = this.ExtractAddress(m[0])
 		if addr == null_object
 			return
 		endif
@@ -121,20 +114,13 @@ class Delve extends REPLDebugBackend # {{{1
 		ctx.Abort()
 	enddef # }}}
 
-	def HandleFocusMe(ctx: Context, text: string) # {{{2
+	def HandleFocusMe(_: Context, text: string) # {{{2
 		var m = matchlist(text, '>\s\[Breakpoint\s\d\+]\s.\{-\}\s\(.\{,1\}/.*\.go:\d\+\)\s', 0, 1)
 		if m->empty()
 			return
 		endif
 
-		var addr = this.ExtractAddress(m[2])
-		if addr == null_object
-			return
-		endif
-
 		this.FocusMe()
-		this.RequestUIServer(Server.Step, Rpc.new('Set', addr))
-		ctx.Abort()
 	enddef # }}}
 
 	def Send(text: string) # {{{2

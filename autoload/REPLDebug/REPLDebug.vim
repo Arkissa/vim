@@ -93,6 +93,7 @@ endclass # }}}
 export abstract class Backend extends jb.Prompt # {{{1
 	var id = debug.ID()
 
+	abstract def Drop(): list<string>
 	abstract def Prompt(): string
 	abstract def BreakpointCommand(addr: Address): string
 	abstract def ClearBreakpointCommand(breakID: number, addr: Address): string
@@ -101,10 +102,6 @@ export abstract class Backend extends jb.Prompt # {{{1
 	def Bufname(): string # {{{2
 		return $'{trim(this.Prompt())}-{this.id}'
 	enddef # }}}
-
-	def GetBreakID(): number
-		return this._breakID.ID()
-	enddef
 
 	def ExitCb(job: job, code: number) # {{{2
 		this.RequestUIServer(Server.Session, Rpc.new('Stop'))
@@ -154,6 +151,10 @@ export abstract class Backend extends jb.Prompt # {{{1
 	enddef # }}}
 
 	def Callback(_: channel, line: string) # {{{2
+		if vim.AnyRegexp(this.Drop(), line)
+			return
+		endif
+
 		var i = 0
 		var ctx = Context.new(this.prompt)
 		var handles = this.CallbackHandles()
@@ -190,6 +191,10 @@ class MockBackend extends Backend # {{{1
 
 	def CallbackHandles(): list<func(Context, string)> # {{{2
 		return null_list
+	enddef # }}}
+
+	def Drop(): list<string> # {{{2
+		return null_string
 	enddef # }}}
 
 	def FocusMe() # {{{2
@@ -376,6 +381,7 @@ class StepUI # {{{1
 			this._sigName,
 			addr.Bufnr,
 			{lnum: addr.Lnum, priority: 110}
+
 		)
 	enddef # }}}
 
