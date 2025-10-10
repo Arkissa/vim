@@ -18,7 +18,6 @@ class SingleVoid extends Void # {{{1
 endclass # }}}
 
 export const void = SingleVoid.new()
-final coroutine = IncID.new()
 
 export class Ring # {{{1
 	var _list: list<any>
@@ -215,6 +214,8 @@ export class IncID # {{{1
 		return this._id
 	enddef # }}}
 endclass # }}}
+
+final coroutine = IncID.new()
 
 export class Exception # {{{1
 	var _exception: string
