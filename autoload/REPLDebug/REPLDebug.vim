@@ -7,12 +7,9 @@ import 'buffer.vim'
 import 'autocmd.vim'
 
 type Ring = vim.Ring
-type Async = vim.Async
 type Window = window.Window
 type Autocmd = autocmd.Autocmd
-type Coroutine = vim.Coroutine
 
-const AsyncIO = vim.AsyncIO
 const group = 'REPLDebug'
 final debug = vim.IncID.new()
 
@@ -119,7 +116,7 @@ class BreakpointUI # {{{1
 		endfor
 	enddef # }}}
 
-	def ClearAll() # {{{2
+	def Clean() # {{{2
 		for breaks in this._breakpoints->values()
 			for break in breaks->values()
 				sign_unplace(this._group, {id: break.sign})
@@ -196,7 +193,7 @@ class StepUI # {{{1
 		)
 	enddef # }}}
 
-	def Clear() # {{{2
+	def Clean() # {{{2
 		if this._id > 0
 			sign_unplace(this._group, {id: this._id})
 		endif
@@ -216,6 +213,8 @@ endclass # }}}
 
 class SessionUI extends Ring # {{{1
 	var prompt: Window
+
+	static const PromptWindowPatter = 'REPLDebugPromptWindow'
 
 	def Stop(id: number) # {{{2
 		var old = this.Peek().id
@@ -244,7 +243,6 @@ class SessionUI extends Ring # {{{1
 	enddef # }}}
 
 	def FocusMe(id: number, prompt: buffer.Prompt) # {{{2
-
 		if this.prompt == null_object
 			var prompt_window = GetConfig('prompt_window')
 			var pos = get(prompt_window, 'pos', 'horizontal botright')
@@ -252,8 +250,8 @@ class SessionUI extends Ring # {{{1
 
 			this.prompt = Window.new(pos, height)
 
-			if exists($'#{group}#WinNew#{group}')
-				Autocmd.Do(group, 'WinNew', [group])
+			if exists($'#{group}#WinNew#{PromptWindowPatter}')
+				Autocmd.Do(group, 'WinNew', [PromptWindowPatter])
 			endif
 		endif
 
@@ -265,6 +263,12 @@ class SessionUI extends Ring # {{{1
 
 		this.SwitchOf((b) => b.id == id)
 	enddef # }}}
+
+	def Clean()
+		this.ForEach((b) => {
+			b.Stop()
+		})
+	enddef
 endclass # }}}
 
 enum REPL # {{{1
@@ -289,6 +293,12 @@ enum REPL # {{{1
 
 		return cutouts
 	enddef # }}}
+
+	static def Clean()
+		for p in REPL.values
+			p.object.Clean()
+		endfor
+	enddef
 endenum # }}}
 
 export class Context # {{{1
@@ -434,7 +444,7 @@ class MockBackend extends Backend # {{{1
 	enddef # }}}
 endclass # }}}
 
-export class REPLDebugUI extends vim.Async # {{{1
+export class REPLDebugUI # {{{1
 	var _code: Window
 
 	def new() # {{{2
@@ -448,22 +458,14 @@ export class REPLDebugUI extends vim.Async # {{{1
 
 		Autocmd.new('WinNew')
 			.Group(group)
-			.Pattern([group])
+			.Pattern([SessionUI.PromptWindowPatter])
 			.Callback(() => {
-				if Session.prompt == null_object
-					return
-				endif
-
 				Autocmd.new('WinClosed')
 					.Group(group)
 					.Pattern([Session.prompt.winnr->string()])
 					.Once()
 					.Callback(() => {
-						Session.ForEach((b) => {
-							b.Stop()
-						})
-						Step.Clear()
-						Breakpoint.ClearAll()
+						REPL.Clean()
 						this.Open(MockBackend.new())
 					})
 			})
