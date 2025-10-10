@@ -2,7 +2,6 @@ vim9script
 
 import 'vim.vim'
 import 'job.vim' as jb
-import 'log.vim'
 import 'window.vim'
 import 'buffer.vim'
 import 'autocmd.vim'
@@ -15,24 +14,12 @@ type Coroutine = vim.Coroutine
 
 const AsyncIO = vim.AsyncIO
 const group = 'REPLDebug'
+final debug = vim.IncID.new()
 
-def GetConfig(name: string): dict<any>
+def GetConfig(name: string): dict<any> # {{{1
 	var conf = get(g:, 'REPLDebugConfig', {})
 	return get(conf, name, {})
-enddef
-
-export class Rpc # {{{1
-	var method: string
-	var args: list<any>
-
-	def new(this.method, ...args: list<any>) # {{{2
-		this.args = args
-	enddef # }}}
-
-	def string(): string # {{{2
-		return $'{this.method}({trim(this.args->string(), '[]')})'
-	enddef # }}}
-endclass # }}}
+enddef # }}}
 
 export class Address # {{{1
 	var FileName: string
@@ -280,10 +267,29 @@ class SessionUI extends Ring # {{{1
 	enddef # }}}
 endclass # }}}
 
-final Step = StepUI.new()
-final debug = vim.IncID.new()
-final Session = SessionUI.new()
-final Breakpoint = BreakpointUI.new()
+enum REPL # {{{1
+	Step(StepUI.new()),
+	Session(SessionUI.new()),
+	Breakpoint(BreakpointUI.new())
+
+	final object: any
+
+	static def _InBlackList(name: string): bool # {{{2
+		return [Session.name]->index(name) != -1
+	enddef # }}}
+
+	static def CutOuts(): dict<any> # {{{2
+		var cutouts = {}
+		for p in REPL.values
+			if !_InBlackList(p.name)
+				var CutOut = eval($'{p.name}CutOut.new')
+				cutouts[p.name] = CutOut(p.object)
+			endif
+		endfor
+
+		return cutouts
+	enddef # }}}
+endenum # }}}
 
 export class Context # {{{1
 	var abort: bool
@@ -303,10 +309,7 @@ endclass # }}}
 
 export abstract class Backend extends jb.Prompt # {{{1
 	var id = debug.ID()
-	const UI = {
-		Step: StepCutOut.new(Step),
-		Breakpoint: BreakpointCutOut.new(Breakpoint)
-	}
+	const UI = REPL.CutOuts()
 
 	abstract def Drop(): list<string>
 	abstract def Prompt(): string
@@ -319,15 +322,12 @@ export abstract class Backend extends jb.Prompt # {{{1
 	enddef # }}}
 
 	def ExitCb(job: job, code: number) # {{{2
-		Session.Stop(this.id)
+		REPL.Session.object.Stop(this.id)
 		super.ExitCb(job, code)
-		if this.prompt.IsExists()
-			this.prompt.Delete()
-		endif
 	enddef # }}}
 
 	def FocusMe() # {{{2
-		Session.FocusMe(this.id, this.prompt)
+		REPL.Session.object.FocusMe(this.id, this.prompt)
 	enddef # }}}
 
 	def Callback(_: channel, line: string) # {{{2
@@ -357,6 +357,31 @@ endclass # }}}
 
 class MockBackend extends Backend # {{{1
 	var _breaks: dict<Address> = {}
+
+	def new()
+		Autocmd.new('User')
+			.Group(jb.Prompt.Group)
+			.Once()
+			.Pattern(['JobRunPre'])
+			.Callback(() => {
+				var Session = REPL.Session.object
+				if !Session->empty() && instanceof(Session.Peek(), MockBackend)
+					Session.Pop()
+				endif
+			})
+			.Pattern(['JobRunPost'])
+			.Callback(() => {
+				var repl = REPL.Session.object.Peek()
+
+				this.Breaks()
+					->mapnew((_, addr) => repl.BreakpointCommand(addr))
+					->foreach((_, cmd) => {
+						repl.Send(cmd)
+					})
+
+				REPL.Breakpoint.object.ClearAllByID(this.id)
+			})
+	enddef
 
 	def Cmd(): string # {{{2
 		return ''
@@ -413,6 +438,10 @@ export class REPLDebugUI extends vim.Async # {{{1
 	var _code: Window
 
 	def new() # {{{2
+		var Step = REPL.Step.object
+		var Breakpoint = REPL.Breakpoint.object
+		var Session = REPL.Session.object
+
 		this._code = Window.newCurrent()
 		Step.code = this._code
 		this.Open(MockBackend.new())
@@ -449,34 +478,17 @@ export class REPLDebugUI extends vim.Async # {{{1
 	def Open(repl: Backend) # {{{2
 		repl.Run()
 		repl.FocusMe()
-
-		if !Session->empty() && instanceof(Session.Peek(), MockBackend)
-			var mock = Session.Pop()
-			# Waiting for backend running.
-			var co = Coroutine.new(() => {
-				mock.Breaks()
-					->mapnew((_, addr) => repl.BreakpointCommand(addr))
-					->foreach((_, cmd) => {
-						echom cmd
-						repl.Send(cmd)
-					})
-
-				Breakpoint.ClearAllByID(mock.id)
-			})
-
-			co.SetDelay(1000)
-			AsyncIO.Run(co)
-		endif
-
-		Session.Push(repl)
+		REPL.Session.object.Push(repl)
 	enddef # }}}
 
 	def Next() # {{{2
+		var Session = REPL.Session.object
 		Session.SlideRight()
 		Session.Peek().FocusMe()
 	enddef # }}}
 
 	def Prev() # {{{2
+		var Session = REPL.Session.object
 		Session.SlideLeft()
 		Session.Peek().FocusMe()
 	enddef # }}}
@@ -496,6 +508,8 @@ export class REPLDebugUI extends vim.Async # {{{1
 		endif
 		var addr = Address.new(buf.name, lnum)
 
+		var Session = REPL.Session.object
+		var Breakpoint = REPL.Breakpoint.object
 		var backend = Session.Peek()
 		var break = Breakpoint.GetBreakpoint(backend.id, addr)
 		var cmd = break == null_object

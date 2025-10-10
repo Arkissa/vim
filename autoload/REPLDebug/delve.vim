@@ -2,7 +2,6 @@ vim9script
 
 import 'job.vim' as jb
 import 'buffer.vim'
-import 'vim.vim'
 import autoload './REPLDebug.vim'
 
 type Address = REPLDebug.Address
