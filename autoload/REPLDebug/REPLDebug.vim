@@ -244,7 +244,6 @@ class SessionUI extends Ring # {{{1
 	enddef # }}}
 
 	def FocusMe(id: number, prompt: buffer.Prompt) # {{{2
-
 		if this.prompt == null_object
 			var prompt_window = GetConfig('prompt_window')
 			var pos = get(prompt_window, 'pos', 'horizontal botright')
