@@ -2,14 +2,12 @@ vim9script
 
 import 'job.vim' as jb
 import 'buffer.vim'
-import 'log.vim'
+import 'vim.vim'
 import autoload './REPLDebug.vim'
 
-type Server = REPLDebug.Server
 type Address = REPLDebug.Address
 type REPLDebugBackend = REPLDebug.Backend
 type Context = REPLDebug.Context
-type Rpc = REPLDebug.Rpc
 
 class Delve extends REPLDebugBackend # {{{1
 	var _args: list<string> = ['dlv']
@@ -55,7 +53,7 @@ class Delve extends REPLDebugBackend # {{{1
 		]
 	enddef # }}}
 
-	def ExtractAddress(text: string): Address # {{{2
+	static def ExtractAddress(text: string): Address # {{{2
 		var path = text->split(':')
 		if path->len() < 2
 			return null_object
@@ -66,56 +64,57 @@ class Delve extends REPLDebugBackend # {{{1
 	enddef # }}}
 
 	def HandleSetBreakpoint(ctx: Context, text: string) # {{{2
-		var m = matchlist(text, '^Breakpoint\s\(\d\+\)\sset\sat\s.\{-\}\(.\{,1\}/.*\.go:\d\+\)', 0, 1)
+		var m = matchlist(text, '^Breakpoint\s\(\d\+\)\sset\sat\s.\{-\}\(\zs\.\{,1\}/[^[:space:]]*\.go:\d\+\)', 0, 1)
 		if m->empty()
 			return
 		endif
 
-		var addr = this.ExtractAddress(m[2])
+		var addr = ExtractAddress(m[2])
 		if addr == null_object
 			return
 		endif
 
 		var breakID = m[1]->str2nr()
 
-		this.RequestUIServer(Server.Breakpoint, Rpc.new('Break', this.id, breakID, addr))
+		this.UI.Breakpoint.Break(this.id, breakID, addr)
 		ctx.Write(text)
 		ctx.Abort()
 	enddef # }}}
 
 	def HandleClearBreakpoint(ctx: Context, text: string) # {{{2
-		var m = matchlist(text, '^Breakpoint\s\d\+\scleared\sat\s.\{-\}\(.\{,1\}/.*\.go:\d\+\)', 0, 1)
+		var m = matchlist(text, '^Breakpoint\s\d\+\scleared\sat\s.\{-\}for\s.\{-\}\s\zs\.\{,1\}/[^[:space:]]*\.go:\d\+$', 0, 1)
 		if m->empty()
 			return
 		endif
 
-		var addr = this.ExtractAddress(m[2])
+		var addr = ExtractAddress(m[0])
 		if addr == null_object
 			return
 		endif
 
-		this.RequestUIServer(Server.Breakpoint, Rpc.new('Clear', this.id, addr))
+		this.UI.Breakpoint.Clear(this.id, addr)
 		ctx.Write(text)
 		ctx.Abort()
 	enddef # }}}
 
 	def HandleStep(ctx: Context, text: string) # {{{2
-		var m = matchlist(text, '\zs\.\{,1\}/[^[:space:]]*\.go:\d\+', 0, 1)
+		var m = matchlist(text, '^\(Frame\|>\s\).\{-\}\zs\(\.\{,1\}/\{,1\}[^[:space:]]*\.go:\d\+\)', 0, 1)
 		if m->empty()
 			return
 		endif
 
-		var addr = this.ExtractAddress(m[0])
+		var addr = ExtractAddress(m[2])
 		if addr == null_object
 			return
 		endif
 
-		this.RequestUIServer(Server.Step, Rpc.new('Set', addr))
+		this.UI.Step.Mark(addr)
+		ctx.Write(text)
 		ctx.Abort()
 	enddef # }}}
 
 	def HandleFocusMe(_: Context, text: string) # {{{2
-		var m = matchlist(text, '>\s\[Breakpoint\s\d\+]\s.\{-\}\s\(.\{,1\}/.*\.go:\d\+\)\s', 0, 1)
+		var m = matchlist(text, '>\s\[Breakpoint\s\d\+]\s.\{-\}\s\.\{,1\}/.*\.go:\d\+\s', 0, 1)
 		if m->empty()
 			return
 		endif
@@ -125,7 +124,7 @@ class Delve extends REPLDebugBackend # {{{1
 
 	def Send(text: string) # {{{2
 		if text == 'clearall'
-			this.RequestUIServer(Server.Breakpoint, Rpc.new('ClearAllByID', this.id))
+			this.UI.Breakpoint.ClearAll(this.id)
 		endif
 
 		super.Send(text)

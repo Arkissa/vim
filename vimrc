@@ -6,7 +6,6 @@ import 'keymap.vim'
 type Bind = keymap.Bind
 type Mods = keymap.Mods
 
-g:LspServers = []
 g:mapleader = ' '
 g:netrw_keepj = 'keepj'
 g:netrw_dirhistmax = 0
@@ -16,6 +15,17 @@ g:REPLDebugConfig = {
 	modules: [
 		('go', 'REPLDebug/delve'),
 	],
+	step: {
+		icon: '=>',
+		linehl: 'CursorLine',
+	},
+	breakpoint: {
+		icon: '●'
+	},
+	prompt_window: {
+		pos: 'horizontal botright',
+		height: 20,
+	}
 }
 
 g:GrepConfig = [

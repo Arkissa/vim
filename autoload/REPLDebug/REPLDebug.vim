@@ -2,6 +2,7 @@ vim9script
 
 import 'vim.vim'
 import 'job.vim' as jb
+import 'log.vim'
 import 'window.vim'
 import 'buffer.vim'
 import 'autocmd.vim'
@@ -13,11 +14,12 @@ type Autocmd = autocmd.Autocmd
 type Coroutine = vim.Coroutine
 
 const AsyncIO = vim.AsyncIO
+const group = 'REPLDebug'
 
-enum Host # {{{1
-	REPLDebugUI,
-	REPLDebugBackend
-endenum # }}}
+def GetConfig(name: string): dict<any>
+	var conf = get(g:, 'REPLDebugConfig', {})
+	return get(conf, name, {})
+enddef
 
 export class Rpc # {{{1
 	var method: string
@@ -31,23 +33,6 @@ export class Rpc # {{{1
 		return $'{this.method}({trim(this.args->string(), '[]')})'
 	enddef # }}}
 endclass # }}}
-
-export enum Server # {{{1
-	Step,
-	Session,
-	Monitor,
-	Breakpoint
-
-	static def Names(): list<string> # {{{2
-		return Server.values->mapnew((_, method) => method.name)
-	enddef # }}}
-
-	static def Request(host: Host, server: Server, ...rpc: list<Rpc>) # {{{2
-		if exists($'#{host.name}#User#{server.name}')
-			Autocmd.Do(host.name, 'User', [server.name], rpc)
-		endif
-	enddef # }}}
-endenum # }}}
 
 export class Address # {{{1
 	var FileName: string
@@ -72,7 +57,233 @@ export class Address # {{{1
 	enddef # }}}
 endclass # }}}
 
+class Bp # {{{1
+	var id: number
+	var sign: number
+	var addr: Address
+
+	def new(this.id, this.sign, this.addr) # {{{2
+	enddef # }}}
+endclass # }}}
+
+class BreakpointUI # {{{1
+	const _sigName = 'REPLDebug-Variable'
+	const _group = 'REPLDebug-Variable'
+
+	var _breakpoints: dict<dict<Bp>> = {}
+
+	def new() # {{{2
+		var breakpoint = GetConfig('breakpoint')
+
+		sign_define(this._sigName, {
+			text: get(breakpoint, 'icon', '●'),
+			texthl: 'REPLDebugBreakpoint',
+			linehl: get(breakpoint, 'linehl', '')
+		})
+	enddef # }}}
+
+	def GetBreakpoint(sessionID: number, addr: Address): Bp # {{{2
+		if !has_key(this._breakpoints, sessionID)
+			return null_object
+		endif
+
+		var key = addr->string()
+		if !has_key(this._breakpoints[sessionID], key)
+			return null_object
+		endif
+
+		return this._breakpoints[sessionID][key]
+	enddef # }}}
+
+	def Break(sessionID: number, breakID: number, addr: Address) # {{{2
+		var signID = sign_place(
+			0,
+			this._group,
+			this._sigName,
+			addr.Bufnr,
+			{lnum: addr.Lnum, priority: 110}
+		)
+
+		if !has_key(this._breakpoints, sessionID)
+			this._breakpoints[sessionID] = {}
+		endif
+
+		this._breakpoints[sessionID][addr->string()] = Bp.new(breakID, signID, addr)
+	enddef # }}}
+
+	def Clear(sessionID: number, addr: Address) # {{{2
+		if !has_key(this._breakpoints, sessionID)
+			return
+		endif
+
+		var breaks = this._breakpoints[sessionID]
+		var break = remove(breaks, addr->string())
+		sign_unplace(this._group, {buffer: addr.Bufnr, id: break.sign})
+	enddef # }}}
+
+	def ClearAllByID(sessionID: number) # {{{2
+		if !has_key(this._breakpoints, sessionID)
+			return
+		endif
+
+		var breaks = this._breakpoints[sessionID]
+		for break in breaks->values()
+			sign_unplace(this._group, {id: break.sign})
+		endfor
+	enddef # }}}
+
+	def ClearAll() # {{{2
+		for breaks in this._breakpoints->values()
+			for break in breaks->values()
+				sign_unplace(this._group, {id: break.sign})
+			endfor
+		endfor
+		this._breakpoints = {}
+	enddef # }}}
+endclass # }}}
+
+class BreakpointCutOut # {{{1
+	final _breakpoint: BreakpointUI
+
+	def new(this._breakpoint) # {{{2
+	enddef # }}}
+
+	def Break(sessionID: number, breakID: number, addr: Address) # {{{2
+		this._breakpoint.Break(sessionID, breakID, addr)
+	enddef # }}}
+
+	def Clear(sessionID: number, addr: Address) # {{{2
+		this._breakpoint.Clear(sessionID, addr)
+	enddef # }}}
+
+	def ClearAll(sessionID: number) # {{{2
+		this._breakpoint.ClearAllByID(sessionID)
+	enddef # }}}
+endclass # }}}
+
+class StepUI # {{{1
+	var _id: number
+	public var code: Window
+
+	const _sigName = 'REPLDebug-Step'
+	const _group = 'REPLDebug-Step'
+
+	def new() # {{{2
+		var step = GetConfig('step')
+
+		sign_define(this._sigName, {
+			text: get(step, 'icon', '=>'),
+			texthl: 'REPLDebugStep',
+			linehl: get(step, 'linehl', 'CursorLine')
+		})
+	enddef # }}}
+
+	def _MoveCursor(addr: Address) # {{{2
+		var buf = this.code.GetBuffer()
+		if buf.bufnr != addr.Bufnr
+			this.code.SetBuf(addr.Bufnr)
+			var ft = this.code.GetBuffer().GetVar('&filetype')
+			if ft == ""
+				this.code.Execute('filetype detect')
+			endif
+		endif
+
+		this.code.SetCursor(addr.Lnum, addr.Col)
+		this.code.Execute('normal! z.')
+	enddef # }}}
+
+	def Mark(addr: Address) # {{{2
+		this._MoveCursor(addr)
+
+		if this._id > 0
+			sign_unplace(this._group, {id: this._id})
+		endif
+
+		this._id = sign_place(
+			0,
+			this._group,
+			this._sigName,
+			addr.Bufnr,
+			{lnum: addr.Lnum, priority: 110}
+
+		)
+	enddef # }}}
+
+	def Clear() # {{{2
+		if this._id > 0
+			sign_unplace(this._group, {id: this._id})
+		endif
+	enddef # }}}
+endclass # }}}
+
+class StepCutOut # {{{1
+	final _step: StepUI
+
+	def new(this._step) # {{{2
+	enddef # }}}
+
+	def Mark(addr: Address) # {{{2
+		this._step.Mark(addr)
+	enddef # }}}
+endclass # }}}
+
+class SessionUI extends Ring # {{{1
+	var prompt: Window
+
+	def Stop(id: number) # {{{2
+		var old = this.Peek().id
+
+		if old != id
+			defer this.SwitchOf((b) => b.id == old)
+		endif
+
+		this.SwitchOf((b) => b.id == id)
+		this.Pop()
+
+		if this.prompt == null_object
+			return
+		endif
+
+		if this.prompt.IsOpen()
+			if !this->empty()
+				this.Peek().FocusMe()
+				return
+			endif
+
+			this.prompt.Close()
+		endif
+
+		this.prompt = null_object
+	enddef # }}}
+
+	def FocusMe(id: number, prompt: buffer.Prompt) # {{{2
+
+		if this.prompt == null_object
+			var prompt_window = GetConfig('prompt_window')
+			var pos = get(prompt_window, 'pos', 'horizontal botright')
+			var height = get(prompt_window, 'height', 0)
+
+			this.prompt = Window.new(pos, height)
+
+			if exists($'#{group}#WinNew#{group}')
+				Autocmd.Do(group, 'WinNew', [group])
+			endif
+		endif
+
+		this.prompt.SetBuffer(prompt)
+		this.prompt.SetVar('&number', false)
+		this.prompt.SetVar('&relativenumber', false)
+		this.prompt.Execute('startinsert')
+		this.prompt.ExecuteCallback(prompt.Keymaps)
+
+		this.SwitchOf((b) => b.id == id)
+	enddef # }}}
+endclass # }}}
+
+final Step = StepUI.new()
 final debug = vim.IncID.new()
+final Session = SessionUI.new()
+final Breakpoint = BreakpointUI.new()
 
 export class Context # {{{1
 	var abort: bool
@@ -92,6 +303,10 @@ endclass # }}}
 
 export abstract class Backend extends jb.Prompt # {{{1
 	var id = debug.ID()
+	const UI = {
+		Step: StepCutOut.new(Step),
+		Breakpoint: BreakpointCutOut.new(Breakpoint)
+	}
 
 	abstract def Drop(): list<string>
 	abstract def Prompt(): string
@@ -104,50 +319,15 @@ export abstract class Backend extends jb.Prompt # {{{1
 	enddef # }}}
 
 	def ExitCb(job: job, code: number) # {{{2
-		this.RequestUIServer(Server.Session, Rpc.new('Stop'))
+		Session.Stop(this.id)
 		super.ExitCb(job, code)
 		if this.prompt.IsExists()
 			this.prompt.Delete()
 		endif
 	enddef # }}}
 
-	def RequestUIServer(server: Server, ...rpcs: list<Rpc>) # {{{2
-		call(function(Server.Request, [Host.REPLDebugUI, server]), rpcs)
-	enddef # }}}
-
 	def FocusMe() # {{{2
-		def Break(addrs: list<Address>) # {{{3
-			for addr in addrs
-				this.Send(this.BreakpointCommand(addr))
-			endfor
-		enddef # }}}
-
-		def Clear(breakID: number, addr: Address) # {{{3
-			this.Send(this.ClearBreakpointCommand(breakID, addr))
-		enddef # }}}
-
-		def Brkpit(opt: autocmd.EventArgs) # {{{3
-			if opt.data == null
-				return
-			endif
-
-			var rpcs: list<Rpc> = opt.data
-			for rpc in rpcs
-				if rpc.args->empty()
-					continue
-				endif
-
-				call(rpc.method == 'Break' ? Break : Clear, rpc.args)
-			endfor
-		enddef # }}}
-
-		Autocmd.new('User')
-			.Group(Host.REPLDebugBackend.name)
-			.Pattern([Server.Breakpoint.name])
-			.Replace()
-			.Callback(Brkpit)
-
-		this.RequestUIServer(Server.Session, Rpc.new('FocusMe', this.id, this.prompt))
+		Session.FocusMe(this.id, this.prompt)
 	enddef # }}}
 
 	def Callback(_: channel, line: string) # {{{2
@@ -182,11 +362,15 @@ class MockBackend extends Backend # {{{1
 		return ''
 	enddef # }}}
 
-	def BreakpointCommand(_: Address): string # {{{2
+	def BreakpointCommand(addr: Address): string # {{{2
+		this.UI.Breakpoint.Break(this.id, rand(), addr)
+		this._breaks[addr->string()] = addr
 		return ''
 	enddef # }}}
 
-	def ClearBreakpointCommand(_: number, _: Address): string # {{{2
+	def ClearBreakpointCommand(_: number, addr: Address): string # {{{2
+		this.UI.Breakpoint.Clear(this.id, addr)
+		return ''
 	enddef # }}}
 
 	def CallbackHandles(): list<func(Context, string)> # {{{2
@@ -198,33 +382,6 @@ class MockBackend extends Backend # {{{1
 	enddef # }}}
 
 	def FocusMe() # {{{2
-		def Clear(_: number, addr: Address) # {{{3
-			this.RequestUIServer(Server.Breakpoint, Rpc.new('Clear', this.id, addr))
-			remove(this._breaks, addr->string())
-		enddef # }}}
-
-		def Break(addrs: list<Address>) # {{{3
-			for addr in addrs
-				this.RequestUIServer(Server.Breakpoint, Rpc.new('Break', this.id, this.id, addr))
-				this._breaks[addr->string()] = addr
-			endfor
-		enddef # }}}
-
-		Autocmd.new('User')
-			.Group(Host.REPLDebugBackend.name)
-			.Pattern([Server.Breakpoint.name])
-			.Replace()
-			.Callback((opt) => {
-				if opt.data == null
-					return
-				endif
-
-				var rpcs: list<Rpc> = opt.data
-
-				for rpc in rpcs
-					call(rpc.method == 'Break' ? Break : Clear, rpc.args)
-				endfor
-			})
 	enddef # }}}
 
 	def Prompt(): string # {{{2
@@ -239,15 +396,10 @@ class MockBackend extends Backend # {{{1
 	enddef # }}}
 
 	def InterruptCb() # {{{2
-		var breaks = this._breaks->values()
-		this._breaks = {}
-		var co = Coroutine.new(() => {
-			Server.Request(Host.REPLDebugBackend, Server.Breakpoint, Rpc.new('Break', breaks))
-			this.RequestUIServer(Server.Breakpoint, Rpc.new('ClearAllByID', this.id))
-		})
+	enddef # }}}
 
-		co.SetDelay(1000) # Wait for REPL running.
-		AsyncIO.Run(co)
+	def Breaks(): list<Address> # {{{2
+		return this._breaks->values()
 	enddef # }}}
 
 	def Send(_: string) # {{{2
@@ -257,196 +409,6 @@ class MockBackend extends Backend # {{{1
 	enddef # }}}
 endclass # }}}
 
-class Bp # {{{1
-	var id: number
-	var sign: number
-	var addr: Address
-
-	def new(this.id, this.sign, this.addr) # {{{2
-	enddef # }}}
-endclass # }}}
-
-class BreakpointUI # {{{1
-	const _sigName = 'REPLDebug-Variable'
-	const _group = 'REPLDebug-Variable'
-
-	var _breakpoints: dict<dict<Bp>> = {}
-
-	def new() # {{{2
-		sign_define(this._sigName, {
-			text: '●',
-			texthl: 'REPLDebugBreakpoint',
-		})
-	enddef # }}}
-
-	def GetBreakpoint(sessionID: number, addr: Address): Bp # {{{2
-		if !has_key(this._breakpoints, sessionID)
-			return null_object
-		endif
-
-		var key = addr->string()
-		if !has_key(this._breakpoints[sessionID], key)
-			return null_object
-		endif
-
-		return this._breakpoints[sessionID][key]
-	enddef # }}}
-
-	def RpcBreak(sessionID: number, breakID: number, addr: Address) # {{{2
-		var signID = sign_place(
-			0,
-			this._group,
-			this._sigName,
-			addr.Bufnr,
-			{lnum: addr.Lnum, priority: 110}
-		)
-
-		if !has_key(this._breakpoints, sessionID)
-			this._breakpoints[sessionID] = {}
-		endif
-
-		this._breakpoints[sessionID][addr->string()] = Bp.new(breakID, signID, addr)
-	enddef # }}}
-
-	def RpcClear(sessionID: number, addr: Address) # {{{2
-		if !has_key(this._breakpoints, sessionID)
-			return
-		endif
-
-		var breaks = this._breakpoints[sessionID]
-		var break = remove(breaks, addr->string())
-		sign_unplace(this._group, {buffer: addr.Bufnr, id: break.sign})
-	enddef # }}}
-
-	def RpcClearAllByID(sessionID: number) # {{{2
-		if !has_key(this._breakpoints, sessionID)
-			return
-		endif
-
-		var breaks = this._breakpoints[sessionID]
-		for break in breaks->values()
-			sign_unplace(this._group, {id: break.sign})
-		endfor
-	enddef # }}}
-
-	def ClearAll() # {{{2
-		for breaks in this._breakpoints->values()
-			for break in breaks->values()
-				sign_unplace(this._group, {id: break.sign})
-			endfor
-		endfor
-		this._breakpoints = {}
-	enddef # }}}
-endclass # }}}
-
-class StepUI # {{{1
-	var _id: number
-	public var code: Window
-
-	const _sigName = 'REPLDebug-Step'
-	const _group = 'REPLDebug-Step'
-
-	def new() # {{{2
-		sign_define(this._sigName, {
-			text: '=>',
-			texthl: 'REPLDebugStep',
-			linehl: 'CursorLine'
-		})
-	enddef # }}}
-
-	def _MoveCursor(addr: Address) # {{{2
-		var buf = this.code.GetBuffer()
-		if buf.bufnr != addr.Bufnr
-			this.code.SetBuf(addr.Bufnr)
-			var ft = this.code.GetBuffer().GetVar('&filetype')
-			if ft == ""
-				this.code.Execute('filetype detect')
-			endif
-		endif
-
-		this.code.SetCursor(addr.Lnum, addr.Col)
-		this.code.Execute('normal! z.')
-	enddef # }}}
-
-	def RpcSet(addr: Address) # {{{2
-		this._MoveCursor(addr)
-
-		if this._id > 0
-			sign_unplace(this._group, {id: this._id})
-		endif
-
-		this._id = sign_place(
-			0,
-			this._group,
-			this._sigName,
-			addr.Bufnr,
-			{lnum: addr.Lnum, priority: 110}
-
-		)
-	enddef # }}}
-
-	def Clear() # {{{2
-		if this._id > 0
-			sign_unplace(this._group, {id: this._id})
-		endif
-	enddef # }}}
-endclass # }}}
-
-class REPLDebugSession extends Ring # {{{1
-	var _prompt: Window
-
-	def RpcStop() # {{{2
-		this.Pop()
-
-		if this._prompt == null_object
-			return
-		endif
-
-		if this._prompt.IsOpen()
-			if !this->empty()
-				this.Peek().FocusMe()
-				return
-			endif
-
-			this._prompt.Close()
-		endif
-
-		this._prompt = null_object
-	enddef # }}}
-
-	def RpcFocusMe(id: number, prompt: buffer.Prompt) # {{{2
-		var conf = get(g:, 'REPLDebugConfig', {})
-
-		if this._prompt == null_object
-			var promptConf = get(conf, 'prompt', {})
-			this._prompt = Window.new(get(promptConf, 'pos', 'horizontal botright'), get(promptConf, 'height', 0))
-			Autocmd.new('WinClosed')
-				.Group(Host.REPLDebugUI.name)
-				.Pattern([this._prompt.winnr->string()])
-				.Once()
-				.Callback(() => {
-					this.ForEach((backend) => {
-						backend.Stop()
-					})
-				})
-		endif
-
-
-		this._prompt.SetBuffer(prompt)
-		this._prompt.SetVar('&number', false)
-		this._prompt.SetVar('&relativenumber', false)
-
-		# win_gotoid(this._prompt.winnr)
-		this._prompt.Execute('startinsert')
-		this._prompt.ExecuteCallback(prompt.Keymaps)
-		this.SwitchOf((b) => b.id == id)
-	enddef # }}}
-endclass # }}}
-
-final Step = StepUI.new()
-final Session = REPLDebugSession.new()
-final Breakpoint = BreakpointUI.new()
-
 export class REPLDebugUI extends vim.Async # {{{1
 	var _code: Window
 
@@ -455,16 +417,33 @@ export class REPLDebugUI extends vim.Async # {{{1
 		Step.code = this._code
 		this.Open(MockBackend.new())
 
+		Autocmd.new('WinNew')
+			.Group(group)
+			.Pattern([group])
+			.Callback(() => {
+				if Session.prompt == null_object
+					return
+				endif
+
+				Autocmd.new('WinClosed')
+					.Group(group)
+					.Pattern([Session.prompt.winnr->string()])
+					.Once()
+					.Callback(() => {
+						Session.ForEach((b) => {
+							b.Stop()
+						})
+						Step.Clear()
+						Breakpoint.ClearAll()
+						this.Open(MockBackend.new())
+					})
+			})
+
 		hlset([
 			{name: 'REPLDebugBreakpoint', ctermfg: 'red', guifg: 'red', term: {reverse: true}},
 			{name: 'REPLDebugStep', default: true, linksto: 'Function'}
 		])
 
-		Autocmd.new('User')
-			.Group(Host.REPLDebugUI.name)
-			.Pattern(Server.Names())
-			.Replace()
-			.Callback(this._Dispatch)
 	enddef # }}}
 
 	def Open(repl: Backend) # {{{2
@@ -472,48 +451,24 @@ export class REPLDebugUI extends vim.Async # {{{1
 		repl.FocusMe()
 
 		if !Session->empty() && instanceof(Session.Peek(), MockBackend)
-			Session.Pop().InterruptCb()
+			var mock = Session.Pop()
+			# Waiting for backend running.
+			var co = Coroutine.new(() => {
+				mock.Breaks()
+					->mapnew((_, addr) => repl.BreakpointCommand(addr))
+					->foreach((_, cmd) => {
+						echom cmd
+						repl.Send(cmd)
+					})
+
+				Breakpoint.ClearAllByID(mock.id)
+			})
+
+			co.SetDelay(1000)
+			AsyncIO.Run(co)
 		endif
 
 		Session.Push(repl)
-	enddef # }}}
-
-	def _RpcCall(F: func, args: list<any>): Coroutine # {{{2
-		return call(function(Coroutine.new, [F]), args)
-	enddef # }}}
-
-	def _Dispatch(opt: autocmd.EventArgs) # {{{2
-		def Dispatch(rpcs: list<Rpc>, server: string): Coroutine # {{{3
-			return Coroutine.new(() => {
-				for rpc in rpcs
-					var co: Coroutine
-					if server == Server.Session.name && rpc.method == 'Stop'
-						co = this._SessionStop()
-					else
-						co = this._RpcCall(eval($'{server}.Rpc{rpc.method}'), rpc.args)
-					endif
-
-					this.Await<vim.Void>(co)
-				endfor
-			})
-		enddef # }}}
-
-		this.Await<vim.Void>(Dispatch(opt.data, opt.match))
-	enddef # }}}
-
-	def _Finish() # {{{2
-		Step.Clear()
-		Breakpoint.ClearAll()
-	enddef # }}}
-
-	def _SessionStop(): Coroutine # {{{2
-		return Coroutine.new(() => {
-			Session.RpcStop()
-			if Session->empty()
-				this.Open(MockBackend.new())
-				this._Finish()
-			endif
-		})
 	enddef # }}}
 
 	def Next() # {{{2
@@ -543,10 +498,10 @@ export class REPLDebugUI extends vim.Async # {{{1
 
 		var backend = Session.Peek()
 		var break = Breakpoint.GetBreakpoint(backend.id, addr)
-		if break == null_object
-			Server.Request(Host.REPLDebugBackend, Server.Breakpoint, Rpc.new('Break', [addr]))
-		else
-			Server.Request(Host.REPLDebugBackend, Server.Breakpoint, Rpc.new('Clear', break.id, break.addr))
-		endif
+		var cmd = break == null_object
+			? backend.BreakpointCommand(addr)
+			: backend.ClearBreakpointCommand(break.id, break.addr)
+
+		backend.Send(cmd)
 	enddef # }}}
 endclass # }}}
