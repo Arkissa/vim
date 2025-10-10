@@ -23,7 +23,7 @@ class Cgrep extends command.ErrorFormat
 	enddef
 
 	def Cmd(): string
-		return join(this._command, ' ')
+		return this.Expandcmd(this._command->join())
 	enddef
 
 	def Efm(): string

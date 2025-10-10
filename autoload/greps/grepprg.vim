@@ -15,7 +15,7 @@ class Grepprg extends command.ErrorFormat
 			endif
 		endfor
 
-		return substitute(&grepprg, '\$\*', $'{vim.Cmd(args)} $*', '')
+		return this.Expandcmd(substitute(&grepprg, '\$\*', $'{vim.Cmd(args)} $*', ''))
 	enddef
 
 	def Efm(): string

@@ -18,6 +18,7 @@ class SingleVoid extends Void # {{{1
 endclass # }}}
 
 export const void = SingleVoid.new()
+final coroutine = IncID.new()
 
 export class Ring # {{{1
 	var _list: list<any>
@@ -243,8 +244,6 @@ export enum CoroutineStatus # {{{1
 	Suspended,
 	Dead
 endenum # }}}
-
-final coroutine = IncID.new()
 
 export class Coroutine # {{{1
 	var id = coroutine.ID()
