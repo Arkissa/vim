@@ -352,7 +352,6 @@ export abstract class Execute extends jb.Quickfixer
 
 	def Expandcmd(cmd: string): string
 		var param = expandcmd(this._attr.args)
-		var cmd = this.Cmd()
 		var sep = '\$\*'
 
 		var expandedCmd: string
@@ -362,7 +361,7 @@ export abstract class Execute extends jb.Quickfixer
 			expandedCmd = $'{trim(cmd)} {param}'
 		endif
 
-		return expandCmd
+		return expandedCmd
 	enddef
 endclass
 

@@ -71,3 +71,7 @@ g:SimpleSession = {
 g:helptoc = {
 	shell_prompt: '^\$\s'
 }
+
+:colorscheme catppuccin
+:filetype plugin indent on
+:syntax on

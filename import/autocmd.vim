@@ -117,7 +117,7 @@ export class Autocmd
 		return this
 	enddef
 
-	def Bufnr(bufnr: number): Autocmd
+	def Bufnr(bufnr: number = bufnr()): Autocmd
 		this._autocmd.bufnr = bufnr
 		return this
 	enddef

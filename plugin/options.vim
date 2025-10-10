@@ -40,10 +40,6 @@ endif
 :set spelllang+=cjk
 :set dir-=.
 
-:colorscheme catppuccin
-:filetype plugin indent on
-:syntax on
-
 &ttimeoutlen = 50
 &scrolloff = 99
 &pumheight = 15
