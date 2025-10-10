@@ -81,7 +81,7 @@ export def Config(): list<dict<any>>
 			[workspace]: {}
 		})
 
-		lspConfig[workspace].workspaceConfig = extend(workspaceConfig, g:LspWorkspace[workspace], 'force')
+		lspConfig[workspace].workspaceConfig = extend(workspaceConfig, g:LspWorkspace, 'force')
 	endfor
 
 	return lspConfig->values()
