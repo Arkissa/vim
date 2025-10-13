@@ -270,7 +270,7 @@ export class Zipper # {{{1
 
 		var [right, tail] = (List.Head(this._right), List.Tail(this._right))
 		this._right = tail
-		this._left = (left, this._right)
+		this._left = (right, this._left)
 	enddef # }}}
 endclass # }}}
 
