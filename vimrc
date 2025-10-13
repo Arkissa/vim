@@ -28,6 +28,16 @@ g:REPLDebugConfig = {
 	}
 }
 
+g:QuickfixPreviewerConfig = {
+	highlight: "Cursor",
+	number: true,
+	cursorline: true,
+	padding: [1, 1, 1, 1],
+	border: [1, 1, 1, 1],
+	borderchars: ['─', '│', '─', '│', '╭', '╮', '╯', '╰'],
+	borderhighlight: ["Title", "Title", "Title", "Title"],
+}
+
 g:GrepConfig = [
 	{
 		module: 'greps/grepprg',
