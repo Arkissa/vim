@@ -7,8 +7,8 @@ type Quickfix = quickfix.Quickfix
 type Quickfixer = quickfix.Quickfixer
 type QuickfixItem = quickfix.QuickfixItem
 
-class Text
-	static def GetLnum(item: QuickfixItem): string
+class Text # {{{1
+	static def GetLnum(item: QuickfixItem): string # {{{2
 		var str = ""
 
 		if item.lnum > 0
@@ -28,27 +28,27 @@ class Text
 		endif
 
 		return str
-	enddef
+	enddef # }}}
 
-	static def GetFname(bufname: string, limit: number): string
+	static def GetFname(bufname: string, limit: number): string # {{{2
 		var len = bufname->strdisplaywidth()
 		if len <= limit
 			return bufname
 		endif
 
 		return $"…{bufname[len - limit + 1 : ]}"
-	enddef
+	enddef # }}}
 
-	static def GetText(text: string, limit: number): string
+	static def GetText(text: string, limit: number): string # {{{2
 		var len = text->strdisplaywidth()
 		if len <= limit
 			return text
 		endif
 
 		return $"{text}…"
-	enddef
+	enddef # }}}
 
-	static def Func(info: dict<any>): list<string>
+	static def Func(info: dict<any>): list<string> # {{{2
 		var qf: Quickfixer = info.quickfix == 1 ? Quickfix.new({id: info.id}) : Location.new(info.winid, {id: info.id})
 
 		var qflist = qf.GetList({id: info.id, items: 1})
@@ -73,7 +73,7 @@ class Text
 				var line = $"%-{max_type}s%-{maxFnameWidth}s │%{max_row}s│%{min([99, item.text->strdisplaywidth() + 1])}s"
 				return printf(line, item.type.Value, fname, Text.GetLnum(item), Text.GetText(item.text, 99))
 			})
-	enddef
-endclass
+	enddef # }}}
+endclass # }}}
 
 export const Func = Text.Func

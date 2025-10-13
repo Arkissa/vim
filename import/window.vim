@@ -1,30 +1,68 @@
 vim9script
 
-import 'buffer.vim'
+import 'buffer.vim' as bf
 import 'autocmd.vim'
 
 type Autocmd = autocmd.Autocmd
 
+const hasQuickfix = has('quickfix')
+const hasTerminal = has('terminal')
+
+export class WinInfo # {{{1
+	var botline: number
+	var buffer: bf.Buffer
+	var height: number
+	var leftcol: number
+	var loclist: bool
+	var quickfix: bool
+	var terminal: bool
+	var tabnr: number
+	var topline: number
+	var variables: dict<any>
+	var width: number
+	var winbar: bool
+	var wincol: number
+	var textoff: number
+	var winid: number
+	var winnr: number
+	var winrow: number
+
+	def new( # {{{2
+		this.botline
+		this.buffer
+		this.height
+		this.leftcol
+		this.loclist
+		this.quickfix
+		this.terminal
+		this.tabnr
+		this.topline
+		this.variables
+		this.width
+		this.winbar
+		this.wincol
+		this.textoff
+		this.winid
+		this.winnr
+		this.winrow
+	)
+	enddef # }}}
+endclass # }}}
+
 export class Window # {{{1
 	var winnr: number
+	const _pos: string
+	const _height: number
+
 	static var _executeFunction: dict<func()> = {}
 
 	static def ExecuteFunction(id: number): func() # {{{2
 		return _executeFunction[id]
 	enddef # }}}
 
-	def new(pos: string = '', height: number = 0, name: string = '') # {{{2
-		var buf = buffer.Buffer.newByBufnr(this.GetBufnr())
-		this._New(pos, height, name ?? buf.name)
-	enddef # }}}
-
-	def newByBufnr(bufnr: number, pos: string = '', height: number = 0) # {{{2
-		var buf = buffer.Buffer.newByBufnr(bufnr)
-		this._New(pos, height, buf.name)
-	enddef # }}}
-
-	def newByBuffer(buf: buffer.Buffer, pos: string = '', height: number = 0) # {{{2
-		this._New(pos, height, buf.name)
+	def new(pos: string = '', height: number = 0) # {{{2
+		this._pos = pos
+		this._height = height
 	enddef # }}}
 
 	def newByWinnr(this.winnr) # {{{2
@@ -35,11 +73,11 @@ export class Window # {{{1
 		this.winnr = win_getid()
 	enddef # }}}
 
-	def _New(pos: string = '', height: number = 0, name: string = '') # {{{2
-		execute($'silent! {pos} :{height ?? ''}new {name}')
+	def Open(fname: string = '') # {{{2
+		execute($'silent! {this._pos} :{this._height ?? ''}new {fname}')
 		this.winnr = win_getid()
-		if name == ''
-			setbufvar(this.GetBufnr(), '&bufhidden', 'wipe')
+		if fname == ''
+			this.GetBuffer().SetVar('&bufhidden', 'wipe')
 		endif
 	enddef # }}}
 
@@ -51,8 +89,12 @@ export class Window # {{{1
 		setwinvar(this.winnr, name, value)
 	enddef # }}}
 
-	def GetBuffer(): buffer.Buffer # {{{2
-		return buffer.Buffer.newByBufnr(this.GetBufnr())
+	def GetBuffer(): bf.Buffer # {{{2
+		return bf.Buffer.newByBufnr(this.GetBufnr())
+	enddef # }}}
+
+	def GetWinType(): string # {{{2
+		return win_gettype(this.winnr)
 	enddef # }}}
 
 	def GetBufnr(): number # {{{2
@@ -80,7 +122,7 @@ export class Window # {{{1
 		endif
 	enddef # }}}
 
-	def SetBuffer(buf: buffer.Buffer) # {{{2
+	def SetBuffer(buf: bf.Buffer) # {{{2
 		this.SetBuf(buf.bufnr)
 	enddef # }}}
 
@@ -99,7 +141,37 @@ export class Window # {{{1
 	enddef # }}}
 
 	def IsOpen(): bool # {{{2
-		return !this.winnr->getwininfo()->empty()
+		return this.GetInfo() != null_object
+	enddef # }}}
+
+	def GetInfo(): WinInfo # {{{2
+		var wins = getwininfo(this.winnr)
+
+		if wins->empty()
+			return null_object
+		endif
+
+		var info = wins[0]
+
+		return WinInfo.new(
+			info.botline,
+			bf.Buffer.newByBufnr(info.bufnr),
+			info.height,
+			info.leftcol,
+			hasQuickfix && info.loclist,
+			hasQuickfix && info.quickfix,
+			hasTerminal && info.terminal,
+			info.tabnr,
+			info.topline,
+			info.variables,
+			info.width,
+			info.winbar,
+			info.wincol,
+			info.textoff,
+			info.winid,
+			info.winnr,
+			info.winrow,
+		)
 	enddef # }}}
 
 	def Execute(cmd: string) # {{{2
@@ -119,14 +191,22 @@ endclass # }}}
 
 export class Popup extends Window # {{{1
 	var _hidden: bool = false
+	var _options: dict<any>
 
-	def new(bufnr: number, options: dict<any>) # {{{2
-		options.callback = this._CloseCallback
-		this.winnr = popup_create(bufnr, options)
+	def new(this._options) # {{{2
+		this._options.callback = function(this._CloseCallback, [get(this._options, 'callback', null_function)])
+	enddef # }}}
+
+	def Open(fname: string = '') # {{{2
+		var buf = fname == ''
+			? bf.Buffer.newCurrent()
+			: bf.Buffer.new(fname)
+		this.winnr = popup_create(buf.bufnr, this._options)
 		this.SetVar("&foldenable", 0)
 		this.SetVar("&foldcolumn", 0)
 		this.SetVar("&foldmethod", "manual")
 		this.SetVar("&signcolumn", "no")
+		this.SetVar('&tabline', '')
 	enddef # }}}
 
 	def SetFilter(F: func(Popup, string): bool) # {{{2
@@ -152,7 +232,7 @@ export class Popup extends Window # {{{1
 		endif
 	enddef # }}}
 
-	def SetBuffer(buf: buffer.Buffer) # {{{2
+	def SetBuffer(buf: bf.Buffer) # {{{2
 		this.SetBuf(buf.bufnr)
 	enddef # }}}
 
@@ -164,10 +244,14 @@ export class Popup extends Window # {{{1
 		return popup_getoptions(this.winnr)
 	enddef # }}}
 
-	def _CloseCallback(id: number, result: any) # {{{2
+	def _CloseCallback(F: func(number, any), id: number, result: any) # {{{2
 		var win = this.winnr->string()
 		if exists($'#WinClosed#{win}')
 			Autocmd.Do('', 'WinClosed', [win], (this, result ?? this.GetBufnr()))
+		endif
+
+		if F != null_function
+			F(id, result)
 		endif
 	enddef # }}}
 

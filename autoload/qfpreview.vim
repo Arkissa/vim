@@ -15,37 +15,37 @@ type Quickfixer = quickfix.Quickfixer
 const AsyncIO = vim.AsyncIO
 
 # peek quickfix buffer with popup window.
-class Previewer
+class Previewer # {{{1
 	static var _prop_name = "quickfix.Previewer"
 	static var _qf: Quickfixer
 	static var _window: window.Popup
 
-	static def _Filter(win: window.Popup, key: string): bool
+	static def _Filter(win: window.Popup, key: string): bool # {{{2
 		if ["\<C-u>", "\<C-d>"]->index(key) != -1
 			win.FeedKeys(key, "mx")
 			return true
 		endif
 
 		return false
-	enddef
+	enddef # }}}
 
-	static def _WinOption(opt: autocmd.EventArgs)
+	static def _WinOption(opt: autocmd.EventArgs) # {{{2
 		var win: window.Popup = opt.data
 		win.SetVar("&number", true)
 		win.SetVar("&cursorline", true)
 		win.SetVar("&relativenumber", false)
-	enddef
+	enddef # }}}
 
-	static def _DetectFiletype(opt: autocmd.EventArgs)
+	static def _DetectFiletype(opt: autocmd.EventArgs) # {{{2
 		AsyncIO.Run(Coroutine.new((win) => {
 			var ft = win.GetVar('&filetype')
 			if ft == ""
 				win.Execute("filetype detect")
 			endif
 		}, opt.data))
-	enddef
+	enddef # }}}
 
-	static def _AddHightlightText(opt: autocmd.EventArgs)
+	static def _AddHightlightText(opt: autocmd.EventArgs) # {{{2
 		var win: window.Popup = opt.data
 		var item = _qf.GetItemUnderTheCursor()
 		if item == null_object
@@ -60,17 +60,17 @@ class Previewer
 			end_col: item.end_col ?? col,
 			bufnr: win.GetBufnr(),
 		})
-	enddef
+	enddef # }}}
 
-	static def _RemoveHightlightText(opt: autocmd.EventArgs)
+	static def _RemoveHightlightText(opt: autocmd.EventArgs) # {{{2
 		var win: window.Popup = opt.data
 		prop_remove({
 			type: _prop_name,
 			bufnr: win.GetBufnr()
 		})
-	enddef
+	enddef # }}}
 
-	static def _DeleteHightlightName(opt: autocmd.EventArgs)
+	static def _DeleteHightlightName(opt: autocmd.EventArgs) # {{{2
 		var data: tuple<window.Popup, any> = opt.data
 		var [win, _] = data
 		prop_remove({
@@ -78,11 +78,11 @@ class Previewer
 			bufnr: win.GetBufnr()
 		})
 		prop_type_delete(_prop_name)
-	enddef
+	enddef # }}}
 
-	static def Open()
-		var winId = win_getid()
-		var wt = win_gettype(winId)
+	static def Open() # {{{2
+		var win = window.Window.newCurrent()
+		var wt = win.GetWinType()
 		if ["quickfix", "loclist"]->index(wt) == -1
 			return
 		endif
@@ -101,28 +101,14 @@ class Previewer
 			priority: 100,
 		})
 
-		var wininfo = getwininfo(winId)[0]
-		var lines = float2nr(getwinvar(winId, "&lines") * 0.5)
-		_window = window.Popup.new(wininfo.bufnr, {
-			pos: "botleft",
-			padding: [1, 1, 1, 1],
-			border: [1, 1, 1, 1],
-			borderchars: ['─', '│', '─', '│', '╭', '╮', '╯', '╰'],
-			borderhighlight: ["Title", "Title", "Title", "Title"],
-			maxheight: lines,
-			minheight: wininfo.width - 5,
-			minwidth: wininfo.width - 5,
-			maxwidth: wininfo.width - 5,
-			col: wininfo.wincol,
-			line: wininfo.winrow - 2,
-		})
+		_window.Open()
 
 		_window.SetFilter(_Filter)
-		_CreateAutocmd(_window, winbufnr(winId))
+		_CreateAutocmd(_window, win.GetBufnr())
 		_SetCursorUnderBuff()
-	enddef
+	enddef # }}}
 
-	static def _CreateAutocmd(win: window.Popup, bufnr: number)
+	static def _CreateAutocmd(win: window.Popup, bufnr: number) # {{{2
 		var group = "Quickfix.Previewer"
 		Autocmd.new('BufWinLeave')
 			.Group(group)
@@ -153,14 +139,9 @@ class Previewer
 			.Group(group)
 			.Bufnr(bufnr)
 			.Callback(Close)
-	enddef
+	enddef # }}}
 
-	static def _SetCursorUnderBuff()
-		if _window == null_object || _qf == null_object || !_window.IsOpen()
-			log.Error("Unable to set the qfitem buffer under cursor line for preview window.")
-			return
-		endif
-
+	static def _SetCursorUnderBuff() # {{{2
 		var item = _qf.GetItemUnderTheCursor()
 		if item == null_object
 			return
@@ -171,21 +152,36 @@ class Previewer
 		_window.SetTitle($" [{item.lnum}/{bufinfo.linecount}] buffer {item.buffer.bufnr}: {fnamemodify(bufinfo.name, ":~:.")} {bufinfo.changed ? "[+]" : ""}")
 		_window.SetCursor(item.lnum, item.col)
 		_window.FeedKeys("z.", "mx")
-	enddef
+	enddef # }}}
 
-	static def Toggle()
-		if _window != null_object && _window.IsOpen()
+	static def Toggle() # {{{2
+		if _window == null_object
+			var info = window.Window.newCurrent().GetInfo()
+			_window = window.Popup.new({
+				pos: "botleft",
+				padding: [1, 1, 1, 1],
+				border: [1, 1, 1, 1],
+				borderchars: ['─', '│', '─', '│', '╭', '╮', '╯', '╰'],
+				borderhighlight: ["Title", "Title", "Title", "Title"],
+				maxheight: float2nr(&lines * 0.5),
+				minheight: info.width - 5,
+				minwidth: info.width - 5,
+				maxwidth: info.width - 5,
+				col: info.wincol,
+				line: info.winrow - 2,
+			})
+		endif
+
+		if _window.IsOpen()
 			Close()
 		else
 			Open()
 		endif
-	enddef
+	enddef # }}}
 
-	static def Close()
-		if _window != null_object && _window.IsOpen()
-			_window.Close()
-		endif
-	enddef
-endclass
+	static def Close() # {{{2
+		_window.Close()
+	enddef # }}}
+endclass # }}}
 
 export const Toggle = Previewer.Toggle
