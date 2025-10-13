@@ -125,11 +125,9 @@ export class List # {{{1
 			return ()
 		endif
 
-		if type(list[1]) == type(null_tuple) && list->len() == 2
-			return list[1]
-		endif
-
-		return list[1 : ]
+		return list->len() == 2 && type(list[1]) == type(null_tuple)
+			? list[1]
+			: list[1 : ]
 	enddef # }}}
 
 	static def Foldl(F: func(any, any): any, init: any, list: TupleList): any # {{{2
