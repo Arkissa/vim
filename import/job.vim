@@ -3,64 +3,68 @@ vim9script
 import 'vim.vim'
 import 'log.vim'
 import 'timer.vim'
+import 'expect.vim'
 import 'buffer.vim'
 import 'window.vim'
 import 'autocmd.vim'
 import 'quickfix.vim'
 
-type Autocmd = autocmd.Autocmd
 type Timer = timer.Timer
+type State = expect.State
+type Expect = expect.Expect
+type Autocmd = autocmd.Autocmd
 
 export class Job
 	var _job: job
 	var _cmd: string
-	var _opt: dict<any>
+	var _opt: dict<any> = {}
+	var _expect: Expect
 
 	def new(this._cmd, this._opt)
+	enddef
+
+	def _JobRunPost()
+		var t = Timer.new(500, (_t) => {
+			Autocmd.Do('', 'User', ['JobRunPost'])
+
+			_t.Stop()
+		})
+
+		def Cb(name: string, ch: channel, text: string)
+			if !t.Stoped()
+				t.Reset()
+			endif
+
+			call(this._opt[name], [ch, text])
+		enddef
+
+		this._opt.err_cb = get(this._opt, 'err_cb', funcref(Cb, ['err_cb']))
+		this._opt.out_cb = get(this._opt, 'out_cb', funcref(Cb, ['out_cb']))
+		this._opt.callback = get(this._opt, 'callback', funcref(Cb, ['callback']))
+	enddef
+
+	def _Expect()
+		this._opt.err_mode = 'raw'
+		this._expect = Expect.new()
+
+		def Cb(ch: channel, text: string)
+			this._expect.Handle(text)
+		enddef
+
+		this._opt.err_cb = get(this._opt, 'err_cb', Cb)
+		this._opt.out_cb = get(this._opt, 'out_cb', Cb)
+		this._opt.callback = get(this._opt, 'callback', Cb)
 	enddef
 
 	def Run()
 		this.Stop()
 
 		if exists('#User#JobRunPost')
-			var t = Timer.new(500, (_t) => {
-				Autocmd.Do('', 'User', ['JobRunPost'])
+			this._JobRunPost()
+		endif
 
-				_t.Stop()
-			})
-
-			if has_key(this._opt, 'callback')
-				var C = this._opt.callback
-				this._opt.callback = (ch, text) => {
-					if !t.Stoped()
-						t.Reset()
-					endif
-
-					C(ch, text)
-				}
-			endif
-
-			if has_key(this._opt, 'err_cb')
-				var E = this._opt.err_cb
-				this._opt.err_cb = (ch, text) => {
-					if !t.Stoped()
-						t.Reset()
-					endif
-
-					E(ch, text)
-				}
-			endif
-
-			if has_key(this._opt, 'out_cb')
-				var O = this._opt.out_cb
-				this._opt.out_cb = (ch, text) => {
-					if !t.Stoped()
-						t.Reset()
-					endif
-
-					O(ch, text)
-				}
-			endif
+		if get(this._opt, 'out_mode', 'raw') == 'raw'
+			this._Expect()
 		endif
 
 		if exists('#User#JobRunPre')
@@ -163,12 +167,12 @@ export abstract class Prompt extends Job
 			.Callback(this.Stop)
 
 		this._cmd = this.Cmd()
-		this._opt = {
+		this._opt->extend({
 			pty: true,
 			cwd: getcwd(),
 			exit_cb: this.ExitCb,
 			callback: this.Callback,
-		}
+		}, 'keep')
 
 		super.Run()
 	enddef
