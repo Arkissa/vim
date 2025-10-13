@@ -296,7 +296,7 @@ class PromptPanel # {{{1
 			F(text)
 			if trim(text) != ''
 				this._history.Push(text)
-				this._history.Left()
+				this._history.Right()
 			endif
 		enddef
 
