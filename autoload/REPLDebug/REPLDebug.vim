@@ -216,6 +216,14 @@ class SessionUI extends Ring # {{{1
 
 	static const PromptWindowPatter = 'REPLDebugPromptWindow'
 
+	def new()
+		var prompt_window = GetConfig('prompt_window')
+		var pos = get(prompt_window, 'pos', 'horizontal botright')
+		var height = get(prompt_window, 'height', 0)
+
+		this.prompt = Window.new(pos, height)
+	enddef
+
 	def Stop(id: number) # {{{2
 		var old = this.Peek().id
 
@@ -243,12 +251,8 @@ class SessionUI extends Ring # {{{1
 	enddef # }}}
 
 	def FocusMe(id: number, prompt: buffer.Prompt) # {{{2
-		if this.prompt == null_object
-			var prompt_window = GetConfig('prompt_window')
-			var pos = get(prompt_window, 'pos', 'horizontal botright')
-			var height = get(prompt_window, 'height', 0)
-
-			this.prompt = Window.new(pos, height)
+		if !this.prompt.IsOpen()
+			this.prompt.Open()
 
 			if exists($'#{group}#WinNew#{PromptWindowPatter}')
 				Autocmd.Do(group, 'WinNew', [PromptWindowPatter])
