@@ -14,6 +14,15 @@ type Quickfixer = quickfix.Quickfixer
 
 const AsyncIO = vim.AsyncIO
 
+const conf = get(g:, 'QuickfixPreviewerConfig', {
+	highlight: "Cursor",
+	cursorline: false,
+	padding: [],
+	border: [],
+	borderchars: [],
+	borderhighlight: [],
+})
+
 # peek quickfix buffer with popup window.
 class Previewer # {{{1
 	static var _prop_name = "quickfix.Previewer"
@@ -31,8 +40,8 @@ class Previewer # {{{1
 
 	static def _WinOption(opt: autocmd.EventArgs) # {{{2
 		var win: window.Popup = opt.data
-		win.SetVar("&number", true)
-		win.SetVar("&cursorline", true)
+		win.SetVar("&number", get(conf, 'number', false))
+		win.SetVar("&cursorline", get(conf, 'cursorline', false))
 		win.SetVar("&relativenumber", false)
 	enddef # }}}
 
@@ -96,7 +105,7 @@ class Previewer # {{{1
 		endif
 
 		prop_type_add(_prop_name, {
-			highlight: "Cursor",
+			highlight: get(conf, 'hightlight', 'Cursor'),
 			override: true,
 			priority: 100,
 		})
@@ -159,10 +168,10 @@ class Previewer # {{{1
 			var info = window.Window.newCurrent().GetInfo()
 			_window = window.Popup.new({
 				pos: "botleft",
-				padding: [1, 1, 1, 1],
-				border: [1, 1, 1, 1],
-				borderchars: ['─', '│', '─', '│', '╭', '╮', '╯', '╰'],
-				borderhighlight: ["Title", "Title", "Title", "Title"],
+				padding: get(conf, 'padding', []),
+				border: get(conf, 'border', []),
+				borderchars: get(conf, 'borderchars', []),
+				borderhighlight: get(conf, 'borderhighlight', []),
 				maxheight: float2nr(&lines * 0.5),
 				minheight: info.width - 5,
 				minwidth: info.width - 5,
