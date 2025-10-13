@@ -108,15 +108,15 @@ endclass # }}}
 export type TupleList = tuple<...list<any>>
 
 export class List # {{{1
-	static def Head(list: TupleList): any
+	static def Head(list: TupleList): any # {{{2
 		if list->empty()
 			throw 'empty list'
 		endif
 
 		return list[0]
-	enddef
+	enddef # }}}
 
-	static def Tail(list: TupleList): TupleList
+	static def Tail(list: TupleList): TupleList # {{{2
 		if list->empty()
 			throw 'empty list'
 		endif
@@ -130,9 +130,9 @@ export class List # {{{1
 		endif
 
 		return list[1 : ]
-	enddef
+	enddef # }}}
 
-	static def Foldl(F: func(any, any): any, init: any, list: TupleList): any
+	static def Foldl(F: func(any, any): any, init: any, list: TupleList): any # {{{2
 		var i = init
 		var l = list
 
@@ -142,33 +142,33 @@ export class List # {{{1
 		endwhile
 
 		return i
-	enddef
+	enddef # }}}
 
-	static def Foldr(F: func(any, any): any, init: any, list: TupleList): any
+	static def Foldr(F: func(any, any): any, init: any, list: TupleList): any # {{{2
 		if list->empty()
 			return init
 		endif
 
 		return Foldr(F, F(Head(list), init), Tail(list))
-	enddef
+	enddef # }}}
 
-	static def Reverse(p: TupleList): TupleList
+	static def Reverse(p: TupleList): TupleList # {{{2
 		return Foldl((a, b) => (a, b), (), p)
-	enddef
+	enddef # }}}
 
-	static def Concat(l1: TupleList, l2: TupleList): TupleList
+	static def Concat(l1: TupleList, l2: TupleList): TupleList # {{{2
 		return Foldl((a, b) => (a, b), l2, Reverse(l1))
-	enddef
+	enddef # }}}
 
-	static def Append(list: TupleList, a: any): TupleList
+	static def Append(list: TupleList, a: any): TupleList # {{{2
 		return Concat(list, (a,))
-	enddef
+	enddef # }}}
 
-	static def Map(F: func(any): any, list: TupleList): TupleList
+	static def Map(F: func(any): any, list: TupleList): TupleList # {{{2
 		return Foldl((a, b) => (F(a), b), (), Reverse(list))
-	enddef
+	enddef # }}}
 
-	static def Filter(F: func(any): bool, list: TupleList): TupleList
+	static def Filter(F: func(any): bool, list: TupleList): TupleList # {{{2
 		var l = list
 
 		var new = ()
@@ -181,9 +181,9 @@ export class List # {{{1
 		endwhile
 
 		return Reverse(new)
-	enddef
+	enddef # }}}
 
-	static def Show(list: TupleList): string
+	static def Show(list: TupleList): string # {{{2
 		if list->empty()
 			return ''
 		endif
@@ -192,20 +192,18 @@ export class List # {{{1
 		var l = list
 		while !l->empty()
 			var h = Head(l)
-			echom h->typename()
-			if type(h) == type(null_tuple)
-				buf->add(Show(h))
-			else
-				buf->add(Head(l)->string())
-			endif
+
+			buf->add(type(h) == type(null_tuple)
+				? Show(h)
+				: h->string())
 
 			l = Tail(l)
 		endwhile
 
 		return $'({buf->join(', ')})'
-	enddef
+	enddef # }}}
 
-	static def ToVimList(list: TupleList): list<any>
+	static def ToVimList(list: TupleList): list<any> # {{{2
 		if list->empty()
 			return []
 		endif
@@ -218,11 +216,11 @@ export class List # {{{1
 		endwhile
 
 		return buf
-	enddef
+	enddef # }}}
 
-	static def FromVimList(list: list<any>): TupleList
+	static def FromVimList(list: list<any>): TupleList # {{{2
 		return list->list2tuple()
-	enddef
+	enddef # }}}
 endclass # }}}
 
 export class Zipper # {{{1
