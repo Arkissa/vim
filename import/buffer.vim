@@ -210,13 +210,12 @@ export class Buffer # {{{1
 	enddef # }}}
 endclass # }}}
 
-class PromptPanel # {{{1
+class BashStyle # {{{1
 	var _history = Zipper.new()
 
-	def Keymaps() # {{{2
-		var buffer = Buffer.newCurrent()
+	def Keymaps(buffer: Buffer) # {{{2
 		Bind.new(Mods.i)
-			.Buffer()
+			.Buffer(buffer.bufnr)
 			.ScriptCmd('<C-l>', buffer.Clear)
 			.ScriptCmd('<C-e>', this.ToEnd)
 			.ScriptCmd('<M-d>', this.DeleteAfterWord)
@@ -305,7 +304,7 @@ class PromptPanel # {{{1
 endclass # }}}
 
 export class Prompt extends Buffer # {{{1
-	var _panel = PromptPanel.new()
+	var _bash = BashStyle.new()
 	static final _count = vim.IncID.new()
 
 	static def _Name(name: string = ''): string # {{{2
@@ -331,8 +330,8 @@ export class Prompt extends Buffer # {{{1
 		this.SetVar('&buflisted', false)
 	enddef # }}}
 
-	def Keymaps() # {{{2
-		this._panel.Keymaps()
+	def BashStyleKeymaps() # {{{2
+		this._bash.Keymaps(this)
 	enddef # }}}
 
 	def GetPrompt(): string # {{{2
@@ -344,7 +343,7 @@ export class Prompt extends Buffer # {{{1
 	enddef # }}}
 
 	def SetCallback(F: func(string)) # {{{2
-		prompt_setcallback(this.bufnr, this._panel.History(F))
+		prompt_setcallback(this.bufnr, this._bash.History(F))
 	enddef # }}}
 
 	def SetInterrupt(F: func()) # {{{2
