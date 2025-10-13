@@ -30,17 +30,25 @@ export class Job
 			_t.Stop()
 		})
 
-		def Cb(name: string, ch: channel, text: string)
+		def Cb(F: func(channel, string), ch: channel, text: string)
 			if !t.Stoped()
 				t.Reset()
 			endif
 
-			call(this._opt[name], [ch, text])
+			call(F, [ch, text])
 		enddef
 
-		this._opt.err_cb = get(this._opt, 'err_cb', funcref(Cb, ['err_cb']))
-		this._opt.out_cb = get(this._opt, 'out_cb', funcref(Cb, ['out_cb']))
-		this._opt.callback = get(this._opt, 'callback', funcref(Cb, ['callback']))
+		if has_key(this._opt, 'err_cb')
+			this._opt.err_cb = funcref(Cb, [this._opt.err_cb])
+		endif
+
+		if has_key(this._opt, 'out_cb')
+			this._opt.out_cb = funcref(Cb, [this._opt.out_cb])
+		endif
+
+		if has_key(this._opt, 'callback')
+			this._opt.callback = funcref(Cb, [this._opt.callback])
+		endif
 	enddef
 
 	def _Expect()
@@ -51,9 +59,17 @@ export class Job
 			this._expect.Handle(text)
 		enddef
 
-		this._opt.err_cb = get(this._opt, 'err_cb', Cb)
-		this._opt.out_cb = get(this._opt, 'out_cb', Cb)
-		this._opt.callback = get(this._opt, 'callback', Cb)
+		if has_key(this._opt, 'err_cb')
+			this._opt.err_cb = Cb
+		endif
+
+		if has_key(this._opt, 'out_cb')
+			this._opt.out_cb = Cb
+		endif
+
+		if has_key(this._opt, 'callback')
+			this._opt.callback = Cb
+		endif
 	enddef
 
 	def Run()
@@ -63,7 +79,7 @@ export class Job
 			this._JobRunPost()
 		endif
 
-		if get(this._opt, 'out_mode', 'raw') == 'raw'
+		if get(this._opt, 'out_mode', '') == 'raw'
 			this._Expect()
 		endif
 

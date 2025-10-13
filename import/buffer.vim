@@ -261,7 +261,7 @@ class PromptPanel # {{{1
 	enddef # }}}
 
 	def OnUp() # {{{2
-		this._history.Right()
+		this._history.Left()
 		if this._history.Peek() == null
 			this._history.Left()
 		endif
@@ -278,7 +278,7 @@ class PromptPanel # {{{1
 	enddef # }}}
 
 	def OnDown() # {{{2
-		this._history.Left()
+		this._history.Right()
 
 		var lnum = line('.')
 		var buffer = Buffer.newCurrent()
@@ -314,7 +314,8 @@ export class Prompt extends Buffer # {{{1
 	enddef # }}}
 
 	def new(name: string) # {{{2
-		this.bufnr = bufadd(_Name(name))
+		this.name = _Name(name)
+		this.bufnr = bufadd(this.name)
 
 		this.SetVar('&buftype', 'prompt')
 		this.SetVar('&bufhidden', 'hide')
