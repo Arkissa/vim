@@ -105,60 +105,136 @@ export class Ring # {{{1
 	enddef # }}}
 endclass # }}}
 
+export type TupleList = tuple<...list<any>>
+
 export class List # {{{1
-	var head: any
-	var tail: List
-
-	def new(this.head, this.tail) # {{{2
-	enddef # }}}
-
-	def len(): number # {{{2
-		var count = 1
-		var tail = this.tail
-		while tail != null_object
-			count += 1
-			tail = this.tail
-		endwhile
-
-		return count
-	enddef # }}}
-
-	def string(): string # {{{2
-		var str = []
-		var l = this
-		while l != null_object
-			str->add(l.head)
-			l = l.tail
-		endwhile
-
-		return str->string()
-	enddef # }}}
-
-	static def Append(list: List, a: any): List # {{{2
-		if list == null_object
-			return List.new(a, null_object)
+	static def Head(list: TupleList): any
+		if list->empty()
+			throw 'empty list'
 		endif
 
+		return list[0]
+	enddef
+
+	static def Tail(list: TupleList): TupleList
+		if list->empty()
+			throw 'empty list'
+		endif
+
+		if list->len() == 1
+			return ()
+		endif
+
+		if type(list[1]) == type(null_tuple) && list->len() == 2
+			return list[1]
+		endif
+
+		return list[1 : ]
+	enddef
+
+	static def Foldl(F: func(any, any): any, init: any, list: TupleList): any
+		var i = init
 		var l = list
-		while l.tail != null_object
-			l = l.tail
+
+		while !l->empty()
+			i = F(Head(l), i)
+			l = Tail(l)
 		endwhile
 
-		l.tail = List.new(a, null_object)
-		return list
-	enddef # }}}
+		return i
+	enddef
+
+	static def Foldr(F: func(any, any): any, init: any, list: TupleList): any
+		if list->empty()
+			return init
+		endif
+
+		return Foldr(F, F(Head(list), init), Tail(list))
+	enddef
+
+	static def Reverse(p: TupleList): TupleList
+		return Foldl((a, b) => (a, b), (), p)
+	enddef
+
+	static def Concat(l1: TupleList, l2: TupleList): TupleList
+		return Foldl((a, b) => (a, b), l2, Reverse(l1))
+	enddef
+
+	static def Append(list: TupleList, a: any): TupleList
+		return Concat(list, (a,))
+	enddef
+
+	static def Map(F: func(any): any, list: TupleList): TupleList
+		return Foldl((a, b) => (F(a), b), (), Reverse(list))
+	enddef
+
+	static def Filter(F: func(any): bool, list: TupleList): TupleList
+		var l = list
+
+		var new = ()
+		while !l->empty()
+			if F(Head(l))
+				new = (Head(l), new)
+			endif
+
+			l = Tail(l)
+		endwhile
+
+		return Reverse(new)
+	enddef
+
+	static def Show(list: TupleList): string
+		if list->empty()
+			return ''
+		endif
+
+		var buf = []
+		var l = list
+		while !l->empty()
+			var h = Head(l)
+			echom h->typename()
+			if type(h) == type(null_tuple)
+				buf->add(Show(h))
+			else
+				buf->add(Head(l)->string())
+			endif
+
+			l = Tail(l)
+		endwhile
+
+		return $'({buf->join(', ')})'
+	enddef
+
+	static def ToVimList(list: TupleList): list<any>
+		if list->empty()
+			return []
+		endif
+
+		var buf = []
+		var l = list
+		while !l->empty()
+			buf->add(Head(l))
+			l = Tail(l)
+		endwhile
+
+		return buf
+	enddef
+
+	static def FromVimList(list: list<any>): TupleList
+		return list->list2tuple()
+	enddef
 endclass # }}}
 
 export class Zipper # {{{1
-	var _left: List
-	var _right: List
+	var _left: TupleList = ()
+	var _right: TupleList = ()
 
 	def Peek(): any # {{{2
-		if this._right == null_object
+		if this._right->empty()
 			return null
 		endif
 
-		return this._right.head
+		return List.Head(this._right)
 	enddef # }}}
 
 	def Push(a: any) # {{{2
@@ -166,39 +242,39 @@ export class Zipper # {{{1
 	enddef # }}}
 
 	def Pop(): any # {{{2
-		if this._right == null_object && this._left == null_object
-			return null
-		endif
-
-		if this._right == null_object
-			var head = this._left.head
-			this._left = this.left.tail
+		if this._right->empty()
+			var head = List.Head(this._left)
+			this._left = List.Tail(this.left)
 			return head
 		endif
 
-		var head = this._right.head
-		this._right = this._right.tail
-		return head
+		if this._left->empty()
+			var head = List.Head(this._right)
+			this._right = List.Tail(this.right)
+			return head
+		endif
+
+		return null
 	enddef # }}}
 
 	def Left() # {{{2
-		if this._right == null_object
+		if this._left->empty()
 			return
 		endif
 
-		var [right, tail] = (this._right.head, this._right.tail)
-		this._right = tail
-		this._left = List.new(right, this._left)
+		var [left, tail] = (List.Head(this._left), List.Tail(this._left))
+		this._left = tail
+		this._right = (left, this._right)
 	enddef # }}}
 
 	def Right() # {{{2
-		if this._left == null_object
+		if this._left->empty()
 			return
 		endif
 
-		var [left, tail] = (this._left.head, this._left.tail)
-		this._left = tail
-		this._right = List.new(left, this._right)
+		var [right, tail] = (List.Head(this._right), List.Tail(this._right))
+		this._right = tail
+		this._left = (left, this._right)
 	enddef # }}}
 endclass # }}}
 
