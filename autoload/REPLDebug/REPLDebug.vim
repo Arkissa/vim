@@ -259,16 +259,15 @@ class SessionUI extends Ring # {{{1
 		this.prompt.SetVar('&number', false)
 		this.prompt.SetVar('&relativenumber', false)
 		this.prompt.Execute('startinsert')
-		this.prompt.ExecuteCallback(prompt.Keymaps)
 
 		this.SwitchOf((b) => b.id == id)
 	enddef # }}}
 
-	def Clean()
+	def Clean() # {{{2
 		this.ForEach((b) => {
 			b.Stop()
 		})
-	enddef
+	enddef # }}}
 endclass # }}}
 
 enum REPL # {{{1
@@ -337,6 +336,7 @@ export abstract class Backend extends jb.Prompt # {{{1
 	enddef # }}}
 
 	def FocusMe() # {{{2
+		this.prompt.BashStyleKeymaps()
 		REPL.Session.object.FocusMe(this.id, this.prompt)
 	enddef # }}}
 
