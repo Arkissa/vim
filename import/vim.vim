@@ -264,7 +264,7 @@ export class Zipper # {{{1
 	enddef # }}}
 
 	def Right() # {{{2
-		if this._left->empty()
+		if this._right->empty()
 			return
 		endif
 
