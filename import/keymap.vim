@@ -34,7 +34,7 @@ export class Bind # {{{1
 		return _mapFunction[id]
 	enddef # }}}
 
-	def _Execute(keymap: string)
+	def _Execute(keymap: string) # {{{2
 		if this._bufnr == -1
 			execute(keymap)
 		else
@@ -46,7 +46,7 @@ export class Bind # {{{1
 					execute(keymap)
 				})
 		endif
-	enddef
+	enddef # }}}
 
 	def new(m: Mods) # {{{2
 		this._mods->add(m)
