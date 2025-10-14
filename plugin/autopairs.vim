@@ -37,14 +37,14 @@ enddef
 var bind = Bind.new(Mods.i)
 	.NoRemap()
 	.Expr()
-	.ScriptCmd("\<BS>", Del)
-	.ScriptCmd("", Del)
+	.Callback("\<BS>", Del)
+	.Callback("", Del)
 
 for [open, close] in pairs->items()
 	var opening = open
 	var closing = close
 
-	bind.ScriptCmd(opening, (): string => {
+	bind.Callback(opening, (): string => {
 		return $"{opening}{closing}\<Left>"
 	})
 endfor

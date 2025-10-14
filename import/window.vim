@@ -5,6 +5,7 @@ import 'autocmd.vim'
 
 type Autocmd = autocmd.Autocmd
 
+const group = 'PopupWindow'
 const hasQuickfix = has('quickfix')
 const hasTerminal = has('terminal')
 
@@ -202,11 +203,8 @@ export class Popup extends Window # {{{1
 			? bf.Buffer.newCurrent()
 			: bf.Buffer.new(fname)
 		this.winnr = popup_create(buf.bufnr, this._options)
-		this.SetVar("&foldenable", 0)
-		this.SetVar("&foldcolumn", 0)
-		this.SetVar("&foldmethod", "manual")
+
 		this.SetVar("&signcolumn", "no")
-		this.SetVar('&tabline', '')
 	enddef # }}}
 
 	def SetFilter(F: func(Popup, string): bool) # {{{2
@@ -240,7 +238,7 @@ export class Popup extends Window # {{{1
 		this.SetOptions({title: title})
 	enddef # }}}
 
-	def GetOptions() # {{{2
+	def GetOptions(): dict<any> # {{{2
 		return popup_getoptions(this.winnr)
 	enddef # }}}
 

@@ -166,16 +166,18 @@ class Previewer # {{{1
 	static def Toggle() # {{{2
 		if _window == null_object
 			var info = window.Window.newCurrent().GetInfo()
+			var height = float2nr(&lines * 0.5)
+			var width = info.width - 5
 			_window = window.Popup.new({
 				pos: "botleft",
 				padding: get(conf, 'padding', []),
 				border: get(conf, 'border', []),
 				borderchars: get(conf, 'borderchars', []),
 				borderhighlight: get(conf, 'borderhighlight', []),
-				maxheight: float2nr(&lines * 0.5),
-				minheight: info.width - 5,
-				minwidth: info.width - 5,
-				maxwidth: info.width - 5,
+				maxheight: height,
+				minheight: height,
+				minwidth: width,
+				maxwidth: width,
 				col: info.wincol,
 				line: info.winrow - 2,
 			})
@@ -189,7 +191,9 @@ class Previewer # {{{1
 	enddef # }}}
 
 	static def Close() # {{{2
-		_window.Close()
+		if _window.IsOpen()
+			_window.Close()
+		endif
 	enddef # }}}
 endclass # }}}
 

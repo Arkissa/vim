@@ -216,15 +216,15 @@ class BashStyle # {{{1
 	def Keymaps(buffer: Buffer) # {{{2
 		Bind.new(Mods.i)
 			.Buffer(buffer.bufnr)
-			.ScriptCmd('<C-l>', buffer.Clear)
-			.ScriptCmd('<C-e>', this.ToEnd)
-			.ScriptCmd('<M-d>', this.DeleteAfterWord)
-			.ScriptCmd('<C-w>', this.DeleteBeforeWord)
-			.ScriptCmd('<C-k>', this.DeleteToEnd)
-			.ScriptCmd('<Up>', this.OnUp)
-			.ScriptCmd('<C-p>', this.OnUp)
-			.ScriptCmd('<Down>', this.OnDown)
-			.ScriptCmd('<C-n>', this.OnDown)
+			.Callback('<C-l>', buffer.Clear)
+			.Callback('<C-e>', this.ToEnd)
+			.Callback('<M-d>', this.DeleteAfterWord)
+			.Callback('<C-w>', this.DeleteBeforeWord)
+			.Callback('<C-k>', this.DeleteToEnd)
+			.Callback('<Up>', this.OnUp)
+			.Callback('<C-p>', this.OnUp)
+			.Callback('<Down>', this.OnDown)
+			.Callback('<C-n>', this.OnDown)
 	enddef # }}}
 
 	def DeleteAfterWord() # {{{2
