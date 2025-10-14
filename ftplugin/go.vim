@@ -46,10 +46,10 @@ Autocmd.new('User')
 		Bind.new(Mods.n)
 			.NoRemap()
 			.Buffer()
-			.ScriptCmd('yil', () => {
+			.Callback('yil', () => {
 				setreg('+', $"{path.UnderPath(function(RealPath))}:{line('.')}")
 			})
-			.ScriptCmd('yal', () => {
+			.Callback('yal', () => {
 				setreg('+', $"{expand("%:p")}:{line('.')}")
 			})
 	})
@@ -74,4 +74,4 @@ Command.new("Go")
 Bind.new(Mods.n)
 	.Silent()
 	.Buffer()
-	.Map('\g', '<CMD>vertical leftabove 100Term gemini<CR>')
+	.Map('\g', Bind.Cmd('vertical leftabove 100Term gemini'))

@@ -34,6 +34,22 @@ export class Bind # {{{1
 		return _mapFunction[id]
 	enddef # }}}
 
+	static def Cmd(cmd: string): string
+		return $'<Cmd>{cmd}<CR>'
+	enddef
+
+	static def Plug(cmd: string): string
+		return $'<Plug>({cmd})'
+	enddef
+
+	static def SID(cmd: string): string
+		return $'<SID>{cmd}'
+	enddef
+
+	static def ScriptCmd(cmd: string): string
+		return $'<ScriptCmd>{cmd}<CR>'
+	enddef
+
 	def _Execute(keymap: string) # {{{2
 		if this._bufnr == -1
 			execute(keymap)
@@ -41,7 +57,7 @@ export class Bind # {{{1
 			Autocmd.new('BufEnter')
 				.Group(group)
 				.Once()
-				.Pattern([bufname(this._bufnr)])
+				.Bufnr(this._bufnr)
 				.Callback(() => {
 					execute(keymap)
 				})
@@ -56,7 +72,7 @@ export class Bind # {{{1
 		this._mods->extend(ms)
 	enddef # }}}
 
-	def ScriptCmd(lhs: string, Rhs: func): Bind # {{{2
+	def Callback(lhs: string, Rhs: func): Bind # {{{2
 		if ['func()', 'func(): string', 'func(): any']->index(typename(Rhs)) == -1
 			throw 'Rhs type must be func() or func(): string or func(): any.'
 		endif

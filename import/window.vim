@@ -5,6 +5,7 @@ import 'autocmd.vim'
 
 type Autocmd = autocmd.Autocmd
 
+const group = 'PopupWindow'
 const hasQuickfix = has('quickfix')
 const hasTerminal = has('terminal')
 
@@ -51,8 +52,8 @@ endclass # }}}
 
 export class Window # {{{1
 	var winnr: number
-	const _pos: string
-	const _height: number
+	var _pos: string
+	var _height: number
 
 	static var _executeFunction: dict<func()> = {}
 
@@ -106,7 +107,15 @@ export class Window # {{{1
 	enddef # }}}
 
 	def Resize(height: number) # {{{2
-		this.Execute($'silent resize {height}')
+		if this.IsOpen()
+			this.Execute($'silent resize {height}')
+		endif
+
+		this._height = height
+	enddef # }}}
+
+	def SetPos(pos: string) # {{{2
+		this._pos = pos
 	enddef # }}}
 
 	def SetBuf(bufnr: number) # {{{2
@@ -202,11 +211,8 @@ export class Popup extends Window # {{{1
 			? bf.Buffer.newCurrent()
 			: bf.Buffer.new(fname)
 		this.winnr = popup_create(buf.bufnr, this._options)
-		this.SetVar("&foldenable", 0)
-		this.SetVar("&foldcolumn", 0)
-		this.SetVar("&foldmethod", "manual")
+
 		this.SetVar("&signcolumn", "no")
-		this.SetVar('&tabline', '')
 	enddef # }}}
 
 	def SetFilter(F: func(Popup, string): bool) # {{{2
@@ -240,7 +246,7 @@ export class Popup extends Window # {{{1
 		this.SetOptions({title: title})
 	enddef # }}}
 
-	def GetOptions() # {{{2
+	def GetOptions(): dict<any> # {{{2
 		return popup_getoptions(this.winnr)
 	enddef # }}}
 

@@ -26,7 +26,7 @@ var cache: dict<command.Execute> = {
 def RegisterKeymap(bind: Bind, kvs: dict<any>)
 	for [k, v] in kvs->items()
 		if type(v) == type(null_function)
-			bind.ScriptCmd(k, v)
+			bind.Callback(k, v)
 		else
 			bind.Map(k, v)
 		endif

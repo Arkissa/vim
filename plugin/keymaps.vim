@@ -8,15 +8,15 @@ type Mods = keymap.Mods
 Bind.new(Mods.n)
 	.Silent()
 	.NoWait()
-	.Map('gp', '<CMD>put "<CR>')
-	.Map('gP', '<CMD>-1put "<CR>')
+	.Map('gp', Bind.Cmd('put "'))
+	.Map('gP', Bind.Cmd('-1put "'))
 	.Map('[P', 'i ')
 	.Map(']P', 'a ')
-	.Map('[l', '<CMD>lprevious<CR>')
-	.Map(']l', '<CMD>lnext<CR>')
-	.Map('[q', '<CMD>cprevious<CR>')
-	.Map(']q', '<CMD>cnext<CR>')
-	.Map('<C-l>', '<CMD>nohlsearch<CR>')
+	.Map('[l', Bind.Cmd('lprevious'))
+	.Map(']l', Bind.Cmd('lnext'))
+	.Map('[q', Bind.Cmd('cprevious'))
+	.Map(']q', Bind.Cmd('cnext'))
+	.Map('<C-l>', Bind.Cmd('nohlsearch'))
 
 Bind.new(Mods.t)
 	.Map('', '<C-\><C-n>')
@@ -30,20 +30,20 @@ Bind.new(Mods.n)
 	.Silent()
 	.Map('\\', '@@')
 
-	.ScriptCmd('<Leader>[', () => {
+	.Callback('<Leader>[', () => {
 		appendbufline(bufnr(), line('.') - 1, '')
 	})
 
-	.ScriptCmd('<Leader>]', () => {
+	.Callback('<Leader>]', () => {
 		appendbufline(bufnr(), line('.'), '')
 	})
 
 Bind.new(Mods.c)
 	.NoWait()
-	.ScriptCmd('<C-k>', () => {
+	.Callback('<C-k>', () => {
 		setcmdline(strpart(getcmdline(), 0, getcmdpos() - 1))
 	})
-	.ScriptCmd('<M-d>', () => {
+	.Callback('<M-d>', () => {
 		var line = getcmdline()
 		var pos = getcmdpos() - 1
 		var start = line->slice(0, pos)

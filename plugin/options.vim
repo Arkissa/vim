@@ -22,7 +22,6 @@ if has('win')
 endif
 
 :set nocompatible
-:set exrc
 :set number
 :set autoindent
 :set smartindent

@@ -32,7 +32,7 @@ g:QuickfixPreviewerConfig = {
 	highlight: "Cursor",
 	number: true,
 	cursorline: true,
-	padding: [1, 1, 1, 1],
+	padding: [0, 0, 0, 0],
 	border: [1, 1, 1, 1],
 	borderchars: ['─', '│', '─', '│', '╭', '╮', '╯', '╰'],
 	borderhighlight: ["Title", "Title", "Title", "Title"],
@@ -85,3 +85,4 @@ g:helptoc = {
 :colorscheme catppuccin
 :filetype plugin indent on
 :syntax on
+:set exrc
