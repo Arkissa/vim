@@ -52,8 +52,8 @@ endclass # }}}
 
 export class Window # {{{1
 	var winnr: number
-	const _pos: string
-	const _height: number
+	var _pos: string
+	var _height: number
 
 	static var _executeFunction: dict<func()> = {}
 
@@ -107,7 +107,15 @@ export class Window # {{{1
 	enddef # }}}
 
 	def Resize(height: number) # {{{2
-		this.Execute($'silent resize {height}')
+		if this.IsOpen()
+			this.Execute($'silent resize {height}')
+		endif
+
+		this._height = height
+	enddef # }}}
+
+	def SetPos(pos: string) # {{{2
+		this._pos = pos
 	enddef # }}}
 
 	def SetBuf(bufnr: number) # {{{2

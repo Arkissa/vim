@@ -1,10 +1,5 @@
 vim9script
 
-# import autoload 'vim.vim'
-# import autoload 'window.vim'
-# import autoload 'buffer.vim'
-# import autoload 'autocmd.vim'
-
 import 'vim.vim'
 import 'window.vim'
 import 'buffer.vim'
@@ -17,23 +12,27 @@ type Ring = vim.Ring
 export class Manager # {{{1
 	static const group = 'TerminalManager'
 	static var _terms: Ring
-	static var _win: window.Window # {{{2
+	static var _win: window.Window = window.Window.new()
+	static var _pos: string
+	static var _count: number
 
-	static const _statuslineterms = 'StatusLineTerminals' # {{{2
-	static const _NameLimit = 15 # {{{2
+	static const _statuslineterms = 'StatusLineTerminals'
+	static const _NameLimit = 15
 
-	static def _OnClose(_) # {{{2
+	static def _OnClose(job: job, code: number) # {{{2
 		if !_terms->empty()
-			_terms.Pop()
+			var term = _terms.Pop()
+			SlideRight()
+			if term.IsExists()
+				term.Delete()
+			endif
+		else
+			_CloseWindow()
 		endif
 	enddef # }}}
 
-	static def _IsOpen(): bool # {{{2
-		return _win != null_object && _win.IsOpen()
-	enddef # }}}
-
 	static def ToggleWindow(cmd: string = '', pos: string = '', count: number = 0) # {{{2
-		if _IsOpen()
+		if _win.IsOpen()
 			_win.Close()
 		else
 			NewTerminal(cmd, pos, count)
@@ -67,10 +66,9 @@ export class Manager # {{{1
 
 	static def _NewTerm(cmd: string): Terminal
 		return Terminal.new(cmd ?? $SHELL, {
-				hidden: true,
-				term_kill: 'term',
-				term_finish: 'close',
-				close_cb: _OnClose,
+			hidden: true,
+			term_kill: 'term',
+			exit_cb: _OnClose,
 		})
 	enddef
 
@@ -79,49 +77,70 @@ export class Manager # {{{1
 			_terms = Ring.new(_NewTerm(cmd))
 		endif
 
-		if _IsOpen()
+		if _win.IsOpen()
 			_terms.Push(_NewTerm(cmd))
 		else
-			_win = window.Window.new(pos, count)
+			_pos = pos ?? _pos
+			_count = count ?? _count
+			_win.SetPos(_pos)
+			_win.Resize(_count)
+			_win.Open()
+
+			Autocmd.new('WinClosed')
+				.Group(group)
+				.Pattern([_win.winnr->string()])
+				.Once()
+				.Callback(() => {
+					autocmd_delete([{group: Manager.group}])
+				})
 
 			Autocmd.new('BufWinEnter')
 				.Group(group)
-				.Pattern([string(_win.winnr)])
+				.Pattern([_win.winnr->string()])
 				.Callback((opt: autocmd.EventArgs) => {
 					var w = opt.data
-					w.SetVar('&statusline', '%{%plugin#terminal#Manager.StatusLineTerminals()%}')
+					w.SetVar('&statusline', '%{%terminal#Manager.StatusLineTerminals()%}')
 					w.SetVar('&number', false)
 					w.SetVar('&signcolumn', 'no')
 					w.SetVar('&winfixheight', true)
 					w.SetVar('&relativenumber', false)
 					w.SetVar('&hidden', false)
 				})
+
 		endif
 
 		_win.SetBuf(_terms.Peek().bufnr)
+		_win.Execute('startinsert')
 	enddef # }}}
 
 	static def SlideRight() # {{{2
 		_terms.SlideRight()
+		if !_terms->empty()
+			_win.SetBuf(_terms.Peek().bufnr)
+			_win.Execute('startinsert')
+		endif
 	enddef # }}}
 
 	static def SlideLeft() # {{{2
 	  	_terms.SlideLeft()
+		if !_terms->empty()
+			_win.SetBuf(_terms.Peek().bufnr)
+			_win.Execute('startinsert')
+		endif
 	enddef # }}}
 
 	static def KillCurrentTerminal() # {{{2
-		if _terms->len() != 1
+		if !_terms->empty()
 			_terms.Peek().Stop()
-		else
-			_terms.Peek().Delete()
-			_CloseWindow()
 		endif
 	enddef # }}}
 
 	static def KillAllTerminals() # {{{2
 		if !_terms->empty()
 			_terms.ForEach((term) => {
-				term.Delete()
+				if term.IsExists()
+					term.Delete()
+				endif
 			})
 
 			_CloseWindow()
@@ -129,7 +148,7 @@ export class Manager # {{{1
 	enddef # }}}
 
 	static def _CloseWindow() # {{{2
-		if _IsOpen()
+		if _win.IsOpen()
 			_win.Close()
 		endif
 	enddef # }}}

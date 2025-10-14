@@ -87,11 +87,15 @@ export class Ring # {{{1
 	enddef # }}}
 
 	def SlideLeft() # {{{2
-		this._i = (this._i - 1 + this->len()) % this->len()
+		if !this->empty()
+			this._i = (this._i - 1 + this->len()) % this->len()
+		endif
 	enddef # }}}
 
 	def SlideRight() # {{{2
-		this._i = (this._i + 1) % this->len()
+		if !this->empty()
+			this._i = (this._i + 1) % this->len()
+		endif
 	enddef # }}}
 
 	def ToList<T>(): list<T> # {{{2

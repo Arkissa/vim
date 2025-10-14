@@ -85,3 +85,4 @@ g:helptoc = {
 :colorscheme catppuccin
 :filetype plugin indent on
 :syntax on
+:set exrc
