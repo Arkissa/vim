@@ -88,6 +88,9 @@ export class Job
 		endif
 
 		this._job = job_start(this._cmd, this._opt)
+
+		:redraw
+		echo $":!{this._cmd}"
 	enddef
 
 	def Status(): string
@@ -121,20 +124,21 @@ export abstract class Quickfixer extends Job
 	var _location: bool
 
 	abstract def Cmd(): string
-	abstract def Callback(qf: quickfix.Quickfixer, chan: channel, msg: string)
-	abstract def CloseCb(qf: quickfix.Quickfixer, chan: channel)
 	abstract def ExitCb(qf: quickfix.Quickfixer, job: job, code: number)
+	abstract def CloseCb(qf: quickfix.Quickfixer, chan: channel)
+	abstract def Callback(qf: quickfix.Quickfixer, chan: channel, msg: string)
 
 	def Run()
-		var qf = !this._location ? quickfix.Quickfix.new() : quickfix.Location.new(winnr())
+		var qf = !this._location
+			? quickfix.Quickfix.new()
+			: quickfix.Location.new(winnr())
 
 		this._cmd = this.Cmd()
-		this._opt = {
+		this._opt->extend({
 			callback: function(this.Callback, [qf]),
 			close_cb: function(this.CloseCb, [qf]),
 			exit_cb: function(this.ExitCb, [qf]),
-			in_io: 'null'
-		}
+		}, 'force')
 
 		super.Run()
 	enddef
@@ -188,7 +192,7 @@ export abstract class Prompt extends Job
 			cwd: getcwd(),
 			exit_cb: this.ExitCb,
 			callback: this.Callback,
-		}, 'keep')
+		}, 'force')
 
 		super.Run()
 	enddef
