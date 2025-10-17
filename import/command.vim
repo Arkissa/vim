@@ -344,9 +344,19 @@ export abstract class Execute extends jb.Quickfixer
 			endif
 		}))
 
+		var info = this.Info()
 		if !this._attr.mods.silent
+			var lable: string
+			if code > 0
+				lable = 'Failure:'
+			elseif code == 0
+				lable = 'Success:'
+			else
+				lable = 'Complete:'
+			endif
+
 			:redraw
-			:echo $'Job ({this.Info().process}) Exit Code: {code}'
+			echo $'{lable} !{info.cmd->join(' ')} (job/{info.process})'
 		endif
 	enddef
 
@@ -380,7 +390,34 @@ export abstract class ErrorFormat extends Execute
 		qf.SetList([], quickfix.Action.A, {
 			efm: this.Efm(),
 			lines: [msg],
+			title: info == null_dict ? info.cmd->join(' ') : this.Cmd()
+		})
+	enddef
+endclass
+
+export abstract class JsonFormat extends Execute
+	abstract def Cmd(): string
+	abstract def Decode(text: string): quickfix.QuickfixItem
+
+	def Callback(qf: quickfix.Quickfixer, chan: channel, msg: string)
+		if this.Status() == 'fail'
+			log.Error('Error: Job is failed on output callback.')
+			return
+		endif
+
+		var info = this.Info()
+
+		qf.SetList([this.Decode(msg)], quickfix.Action.A, {
 			title: info == null_dict ? info.cmd : this.Cmd()
 		})
+	enddef
+
+	def Run()
+		this._opt->extend({
+			out_mode: 'json',
+			err_mode: 'json',
+		}, 'force')
+
+		super.Run()
 	enddef
 endclass

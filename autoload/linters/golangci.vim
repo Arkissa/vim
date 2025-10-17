@@ -5,7 +5,7 @@ import 'command.vim'
 
 class GolangCiLint extends command.ErrorFormat
 	def Cmd(): string
-		return "golangci-lint run"
+		return this.Expandcmd('golangci-lint run $*')
 	enddef
 
 	def Efm(): string
