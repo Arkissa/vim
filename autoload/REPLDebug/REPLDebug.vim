@@ -255,7 +255,7 @@ class SessionUI extends Ring # {{{1
 			this.prompt.Open()
 
 			if exists($'#{group}#WinNew#{PromptWindowPatter}')
-				Autocmd.Do(group, 'WinNew', [PromptWindowPatter])
+				Autocmd.Do(group, 'WinNew', PromptWindowPatter)
 			endif
 		endif
 

@@ -81,7 +81,7 @@ export class Autocmd
 		return _enviroment[id]
 	enddef
 
-	static def Do(group: string, event: string, pattern: list<string>, data: any = null)
+	static def Do(group: string, event: string, pattern: string, data: any = null)
 		_enviroment
 			->copy()
 			->filter((_, c) => c.event =~# event)
@@ -89,7 +89,7 @@ export class Autocmd
 				c.SetData(data)
 			})
 
-		execute(['doautocmd', '<nomodeline>', group, event, pattern->join(',')]->join(' '))
+		execute(['doautocmd', '<nomodeline>', group, event, pattern]->join())
 	enddef
 
 	def When(F: func(): bool): Autocmd

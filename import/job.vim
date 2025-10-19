@@ -25,7 +25,7 @@ export class Job
 
 	def _JobRunPost()
 		var t = Timer.new(500, (_t) => {
-			Autocmd.Do('', 'User', ['JobRunPost'])
+			Autocmd.Do('', 'User', 'JobRunPost')
 
 			_t.Stop()
 		})
@@ -84,7 +84,7 @@ export class Job
 		endif
 
 		if exists('#User#JobRunPre')
-			Autocmd.Do('', 'User', ['JobRunPre'])
+			Autocmd.Do('', 'User', 'JobRunPre')
 		endif
 
 		this._job = job_start(this._cmd, this._opt)
@@ -124,7 +124,6 @@ export abstract class Quickfixer extends Job
 	var _location: bool
 
 	abstract def Cmd(): string
-	abstract def ExitCb(qf: quickfix.Quickfixer, job: job, code: number)
 	abstract def CloseCb(qf: quickfix.Quickfixer, chan: channel)
 	abstract def Callback(qf: quickfix.Quickfixer, chan: channel, msg: string)
 
