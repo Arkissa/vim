@@ -3,8 +3,10 @@ vim9script
 import 'log.vim'
 import 'job.vim' as jb
 import 'vim.vim'
+import 'autocmd.vim'
 import 'quickfix.vim'
 
+type Autocmd = autocmd.Autocmd
 type Coroutine = vim.Coroutine
 
 export enum NArgs
@@ -322,7 +324,6 @@ export abstract class Execute extends jb.Quickfixer
 	abstract def Callback(qf: quickfix.Quickfixer, chan: channel, msg: string)
 
 	def CloseCb(qf: quickfix.Quickfixer, chan: channel)
-		qf.Close() # Prevent quickfix typographical errors
 	enddef
 
 	def Attr(attr: Attr, location: bool = false): Execute
@@ -337,12 +338,13 @@ export abstract class Execute extends jb.Quickfixer
 			return
 		endif
 
-		vim.AsyncIO.Run(Coroutine.new(() => {
-			qf.Window()
-			if this._attr.bang
-				qf.JumpFirst()
-			endif
-		}))
+		if this._attr.bang
+			qf.JumpFirst()
+		endif
+
+		if this._attr != null_object && exists($'#QuickFixPost#{this._attr.name}')
+			Autocmd.Do('', 'QuickFixPost', this._attr.name)
+		endif
 
 		var info = this.Info()
 		if !this._attr.mods.silent
@@ -372,6 +374,14 @@ export abstract class Execute extends jb.Quickfixer
 		endif
 
 		return expandedCmd
+	enddef
+
+	def Run()
+		if this._attr != null_object && exists($'#QuickFixPre#{this._attr.name}')
+			Autocmd.Do('', 'QuickFixPre', this._attr.name)
+		endif
+
+		super.Run()
 	enddef
 endclass
 

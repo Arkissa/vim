@@ -121,13 +121,13 @@ export class Window # {{{1
 	def SetBuf(bufnr: number) # {{{2
 		var winnr = this.winnr->string()
 		if exists($'#BufWinLeave#{winnr}')
-			Autocmd.Do('', 'BufWinLeave', [winnr], this)
+			Autocmd.Do('', 'BufWinLeave', winnr, this)
 		endif
 
 		this.Execute($'silent! buffer! {bufnr}')
 
 		if exists($'#BufWinEnter#{winnr}')
-			Autocmd.Do('', 'BufWinEnter', [winnr], this)
+			Autocmd.Do('', 'BufWinEnter', winnr, this)
 		endif
 	enddef # }}}
 
@@ -138,7 +138,7 @@ export class Window # {{{1
 	def Close(result: any = null) # {{{2
 		var win = this.winnr->string()
 		if exists($'#WinClosed#{win}')
-			Autocmd.Do('', 'WinClosed', [win], (this, result ?? this.GetBufnr()))
+			Autocmd.Do('', 'WinClosed', win, (this, result ?? this.GetBufnr()))
 		endif
 
 		this.Execute('silent! close!')
@@ -228,13 +228,13 @@ export class Popup extends Window # {{{1
 	def SetBuf(bufnr: number) # {{{2
 		var winnr = this.winnr->string()
 		if exists($'#BufWinLeave#{winnr}')
-			Autocmd.Do('', 'BufWinLeave', [winnr], this)
+			Autocmd.Do('', 'BufWinLeave', winnr, this)
 		endif
 
 		popup_setbuf(this.winnr, bufnr)
 
 		if exists($'#BufWinEnter#{winnr}')
-			Autocmd.Do('', 'BufWinEnter', [winnr], this)
+			Autocmd.Do('', 'BufWinEnter', winnr, this)
 		endif
 	enddef # }}}
 
@@ -253,7 +253,7 @@ export class Popup extends Window # {{{1
 	def _CloseCallback(F: func(number, any), id: number, result: any) # {{{2
 		var win = this.winnr->string()
 		if exists($'#WinClosed#{win}')
-			Autocmd.Do('', 'WinClosed', [win], (this, result ?? this.GetBufnr()))
+			Autocmd.Do('', 'WinClosed', win, (this, result ?? this.GetBufnr()))
 		endif
 
 		if F != null_function
