@@ -1,4 +1,20 @@
-vim9script
+vim9script noclear
+
+if exists('b:did_ftplugin')
+	finish
+endif
+
+b:did_ftplugin = 1
+b:undo_ftplugin = 'setlocal list< wrap< formatprg<'
+
+g:go_highlight_types = 1
+g:go_highlight_fields = 1
+g:go_highlight_functions = 1
+g:go_highlight_function_calls = 1
+g:go_highlight_operators = 1
+g:go_highlight_extra_types = 1
+g:go_highlight_build_constraints = 1
+g:go_highlight_generate_tags = 1
 
 import 'vim.vim'
 import 'path.vim'
