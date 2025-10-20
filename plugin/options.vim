@@ -21,6 +21,7 @@ if has('win')
 	:set winaltkeys
 endif
 
+:set autocomplete
 :set nocompatible
 :set number
 :set autoindent
@@ -39,6 +40,7 @@ endif
 :set spelllang+=cjk
 :set dir-=.
 
+&complete = 'F,o'
 &ttimeoutlen = 50
 &scrolloff = 99
 &pumheight = 15

@@ -2,10 +2,13 @@ vim9script
 
 import 'vim.vim'
 import 'buffer.vim'
+import 'quickfix.vim'
 import autoload 'lsp/diag.vim'
 
 type Buffer = buffer.Buffer
 type Coroutine = vim.Coroutine
+type Quickfix = quickfix.Quickfix
+type Location = quickfix.Location
 
 class Git
 	var _cache: dict<string>
@@ -104,21 +107,35 @@ export abstract class StatusLine
 		var errCount = diag.DiagsGetErrorCount(Buffer.newCurrent().bufnr)
 		var str = []
 
-		if errCount.Hint > 0
-			str->add($'H:{errCount.Hint}')
+		var type = {
+			'E': errCount.Error,
+			'W': errCount.Warn,
+			'I': errCount.Info,
+			'N': errCount.Hint,
+		}
+
+		var typeItems = []
+		var qf = Quickfix.newCurrent()
+		if !qf.Empty()
+			typeItems->extend(qf.GetList())
 		endif
 
-		if errCount.Info > 0
-			str->add($'I:{errCount.Info}')
+		var locl = Location.newCurrent()
+		if !locl.Empty()
+			typeItems->extend(locl.GetList())
 		endif
 
-		if errCount.Warn > 0
-			str->add($'W:{errCount.Warn}')
-		endif
+		for item in typeItems
+			if item.type.Value != ''
+				type[item.type.Value] += 1
+			endif
+		endfor
 
-		if errCount.Error > 0
-			str->add($'E:{errCount.Error}')
-		endif
+		for [t, n] in type->items()
+			if n > 0
+				str->add($'{t}:{n}')
+			endif
+		endfor
 
 		this._Append(str->join(' '))
 
