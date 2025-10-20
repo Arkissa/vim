@@ -12,8 +12,26 @@ type Autocmd = autocmd.Autocmd
 const SimpleSession = get(g:, 'SimpleSession', {})
 const group = "Sesssion"
 
+def IsTemp(): bool
+	if exists('+shellslash')
+		def Recover(saved: any)
+			&shellslash = saved
+		enddef
+
+		defer Recover(&shellslash)
+		&shellslash = true
+	endif
+
+	var dir = expand('%:p:h')
+	return dir =~# '\(^/\|^[A-Z]:/\)tmp'
+enddef
+
 Command.new('SessionSave')
 	.Callback((attr) => {
+		if IsTemp()
+			return
+		endif
+
 		var dir = get(SimpleSession, "dir", "")
 		session.Session.Save(dir, fnamemodify(getcwd(), ':t'), attr.mods.silent)
 	})
@@ -27,6 +45,10 @@ Command.new('SessionLoad')
 		})
 	})
 	.Callback((attr) => {
+		if IsTemp()
+			return
+		endif
+
 		var dir = get(SimpleSession, "dir", "")
 		session.Session.Load(dir, attr.args, attr.mods.silent)
 	})
