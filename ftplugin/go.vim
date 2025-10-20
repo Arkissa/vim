@@ -1,12 +1,5 @@
 vim9script
 
-if exists('b:did_ftplugin')
-	finish
-endif
-
-b:did_ftplugin = 1
-b:undo_ftplugin = 'setlocal list< wrap< formatprg<'
-
 g:go_highlight_types = 1
 g:go_highlight_fields = 1
 g:go_highlight_functions = 1
@@ -33,6 +26,7 @@ type Command = command.Command
 &l:formatprg = 'golangci-lint fmt --stdin'
 
 const group = "Go"
+:compiler go
 
 def RealPath(pt: string): string
 	if exists_compiled("+clipboard")

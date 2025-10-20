@@ -61,4 +61,4 @@ Autocmd.newMulti(['WinLeave', 'BufLeave'])
 
 Autocmd.new('VimEnter')
 	.Group(group)
-	.Command('set statusline=%{%g:statusline.Cut().Mode().BufName().Right().Git().FileType().Dir().Role().Build()%}')
+	.Command('set statusline=%{%g:statusline.Cut().Mode().BufName().Diags().Right().Git().FileType().Dir().Role().Build()%}')

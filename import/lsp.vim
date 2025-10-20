@@ -3,7 +3,6 @@ vim9script
 final lspConfig = {}
 
 const option = {
-    autoComplete: true,
     autoHighlight: true,
     autoHighlightDiags: true,
     completionMatcher: 'fuzzy',
@@ -31,10 +30,8 @@ const option = {
     showSignature: true,
 	condensedCompletionMenu: true,
 	filterCompletionDuplicates: true,
-	useBufferCompletion: true,
     useQuickfixForLocations: true,
     usePopupInCodeAction: true,
-    bufferCompletionTimeout: 100,
     customCompletionKinds: true,
     completionKinds: {
 		Text: '󰦨',

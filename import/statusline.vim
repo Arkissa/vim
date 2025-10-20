@@ -107,29 +107,35 @@ export abstract class StatusLine
 		var errCount = diag.DiagsGetErrorCount(Buffer.newCurrent().bufnr)
 		var str = []
 
-		var hint = errCount.Hint
-		var info = errCount.Info
-		var warn = errCount.Warn
-		var error = errCount.Error
+		var type = {
+			'E': errCount.Error,
+			'W': errCount.Warn,
+			'I': errCount.Info,
+			'N': errCount.Hint,
+		}
 
+		var typeItems = []
 		var qf = Quickfix.newCurrent()
-		qf.GetList()
-
-		if hint > 0
-			str->add($'H:{errCount.Hint}')
+		if !qf.Empty()
+			typeItems->extend(qf.GetList())
 		endif
 
-		if info > 0
-			str->add($'I:{errCount.Info}')
+		var locl = Location.newCurrent()
+		if !locl.Empty()
+			typeItems->extend(locl.GetList())
 		endif
 
-		if warn > 0
-			str->add($'W:{errCount.Warn}')
-		endif
+		for item in typeItems
+			if item.type.Value != ''
+				type[item.type.Value] += 1
+			endif
+		endfor
 
-		if error > 0
-			str->add($'E:{errCount.Error}')
-		endif
+		for [t, n] in type->items()
+			if n > 0
+				str->add($'{t}:{n}')
+			endif
+		endfor
 
 		this._Append(str->join(' '))
 

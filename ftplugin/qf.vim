@@ -1,12 +1,5 @@
 vim9script
 
-if exists('b:did_ftplugin')
-	finish
-endif
-
-b:did_ftplugin = 1
-b:undo_ftplugin = 'setlocal list< wrap< bufhidden< buflisted< relativenumber<'
-
 import '../autoload/qfpreview.vim'
 
 import 'keymap.vim'
