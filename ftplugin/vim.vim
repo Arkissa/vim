@@ -1,4 +1,4 @@
-vim9script noclear
+vim9script
 
 if exists('b:did_ftplugin')
 	finish
