@@ -342,8 +342,8 @@ export abstract class Execute extends jb.Quickfixer
 			qf.JumpFirst()
 		endif
 
-		if this._attr != null_object && exists($'#QuickFixPost#{this._attr.name}')
-			Autocmd.Do('', 'QuickFixPost', this._attr.name)
+		if this._attr != null_object && exists($'#QuickFixCmdPost#{this._attr.name}')
+			Autocmd.Do('', 'QuickFixCmdPost', this._attr.name, qf)
 		endif
 
 		var info = this.Info()
@@ -377,8 +377,8 @@ export abstract class Execute extends jb.Quickfixer
 	enddef
 
 	def Run()
-		if this._attr != null_object && exists($'#QuickFixPre#{this._attr.name}')
-			Autocmd.Do('', 'QuickFixPre', this._attr.name)
+		if this._attr != null_object && exists($'#QuickFixCmdPre#{this._attr.name}')
+			Autocmd.Do('', 'QuickFixCmdPre', this._attr.name)
 		endif
 
 		super.Run()

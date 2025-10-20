@@ -50,6 +50,17 @@ def Lint(lint: command.Execute, onSaveCmd: string)
 		})
 enddef
 
+if has_key(g:LinterConfig, 'autoOpen') && remove(g:LinterConfig, 'autoOpen')
+	def AutoOpen(attr: any)
+		attr.data.Window()
+	enddef
+
+	Autocmd.new('QuickFixCmdPost')
+		.Group(group)
+		.Pattern(['Lint', 'LLint'])
+		.Callback(AutoOpen)
+endif
+
 for [ft, conf] in g:LinterConfig->items()
 	import autoload $'{conf.module}.vim'
 
