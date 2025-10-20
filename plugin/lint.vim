@@ -54,7 +54,7 @@ enddef
 
 if has_key(linterConfig, 'autoOpen') && remove(linterConfig, 'autoOpen')
 	def AutoOpen(attr: any)
-		attr.data.Window()
+		attr.qf.Window()
 	enddef
 
 	Autocmd.new('QuickFixCmdPost')

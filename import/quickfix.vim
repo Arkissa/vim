@@ -1,6 +1,7 @@
 vim9script
 
 import 'buffer.vim'
+import 'window.vim'
 
 type Buffer = buffer.Buffer
 
@@ -103,15 +104,16 @@ export class QuickfixItem
 endclass
 
 export interface Quickfixer
-	def SetList(entry: list<QuickfixItem>, action: Action, what: dict<any>): bool
+	def SetList(entry: list<QuickfixItem>, action: Action, what: dict<any> = null_dict): bool
 	def GetList(what: dict<any> = null_dict): any
 	def GetItemUnderTheCursor(): QuickfixItem
-	def JumpFirst(nr: number = 1)
+	def Jump(nr: number = 1)
 	def Open(height: number = 0)
 	def Close()
 	def Window(height: number = 0)
 	def IsLocation(): bool
 	def Empty(): bool
+	def IsOpen(): bool
 endinterface
 
 export class Quickfix implements Quickfixer
@@ -170,7 +172,7 @@ export class Quickfix implements Quickfixer
 		return item
 	enddef
 
-	def JumpFirst(nr: number = 1)
+	def Jump(nr: number = 1)
 		execute($'silent cc {nr}')
 	enddef
 
@@ -201,23 +203,34 @@ export class Quickfix implements Quickfixer
 	def Empty(): bool
 		return this.GetList() == null_list
 	enddef
+
+	def IsOpen(): bool
+		var items = this.GetList({id: this.id, winid: 1})
+		if items->empty()
+			return false
+		endif
+
+		return window.Window.newByWinnr(items.winid).IsOpen()
+	enddef
 endclass
 
 export class Location implements Quickfixer
-	var winnr: number
 	var id: number
+	var winnr: number
 
-	def new(this.winnr, what: dict<any> = null_dict)
+	def new(winnr: number, what: dict<any> = null_dict)
 		if what == null_dict
 			setloclist(this.winnr, [], ' ')
-			this.id = getloclist(this.winnr, {all: 1}).id
+			var item = getloclist(winnr, {all: 1})
+			this.winnr = item.winid
+			this.id = item.id
 		else
 			this.id = what.id
 		endif
 	enddef
 
 	def newCurrent()
-		this.id = getloclist(winnr(), {all: 1}).id
+		this.id = getloclist(win_getid(), {all: 1}).id
 	enddef
 
 	def SetList(entry: list<QuickfixItem>, action: Action, what: dict<any> = null_dict): bool
@@ -260,7 +273,7 @@ export class Location implements Quickfixer
 		return item
 	enddef
 
-	def JumpFirst(nr: number = 1)
+	def Jump(nr: number = 1)
 		exe $"silent ll {nr}"
 	enddef
 
@@ -290,5 +303,9 @@ export class Location implements Quickfixer
 
 	def Empty(): bool
 		return this.GetList() == null_list
+	enddef
+
+	def IsOpen(): bool
+		return window.Window.newByWinnr(this.winnr).IsOpen()
 	enddef
 endclass
