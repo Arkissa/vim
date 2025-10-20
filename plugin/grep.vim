@@ -5,7 +5,8 @@ if !exists("g:GrepConfig") || g:GrepConfig->empty()
 endif
 
 # type check
-var grepConfig: list<dict<any>> = g:GrepConfig
+var grepConfig: dict<any> = copy(g:GrepConfig)
+var greps: list<dict<any>> = get(grepConfig, 'greps', [])
 
 import 'command.vim'
 import 'autocmd.vim'
@@ -24,27 +25,42 @@ var cache: dict<command.Execute> = {
 }
 
 def RegisterKeymap(bind: Bind, kvs: dict<any>)
+	var Map: func
 	for [k, v] in kvs->items()
-		if type(v) == type(null_function)
-			bind.Callback(k, v)
-		else
-			bind.Map(k, v)
-		endif
+		Map = type(v) == v:t_func
+			? bind.Callback
+			: bind.Map
+
+		Map(k, v)
 	endfor
 enddef
 
-for conf in g:GrepConfig
+if has_key(grepConfig, 'autoOpen') && remove(grepConfig, 'autoOpen')
+	def AutoOpen(attr: any)
+		attr.data.Window()
+	enddef
+
+	Autocmd.new('QuickFixCmdPost')
+		.Group(group)
+		.Pattern(['Grep'])
+		.Callback(AutoOpen)
+endif
+
+for conf in greps
 	import autoload $'{conf.module}.vim'
 
-	if has_key(conf, 'Init') && type(conf['Init']) == type(null_function)
+	if has_key(conf, 'Init') && type(conf['Init']) == v:t_func
 		call(conf.Init, [])
 	endif
 
-	var obj: command.Execute = eval($'{fnamemodify(conf.module, ':t:r')}.Grep.{has_key(conf, 'args') ? 'new(conf.args)' : 'new()'}')
+	var Constructor = eval($'{fnamemodify(conf.module, ':t:r')}.Grep.new')
+	var obj: command.Execute = has_key(conf, 'args')
+		? Constructor(conf.args)
+		: Constructor()
 
 	var fts = ['*']
 	if has_key(conf, 'ft')
-		fts = type(conf.ft) == type(null_string) ? [conf.ft] : (conf.ft ?? fts)
+		fts = type(conf.ft) == v:t_string ? [conf.ft] : (conf.ft ?? fts)
 	endif
 
 	uniq(fts)
@@ -84,18 +100,18 @@ Command.new("Grep")
 Command.new('GrepChange')
 	.NArgs(command.NArgs.One)
 	.Complete(Complete.CustomList, (A, L, P): list<string> => {
-		return grepConfig->mapnew((_, conf) => fnamemodify(conf.module, ':t:r'))
+		return greps->mapnew((_, conf) => fnamemodify(conf.module, ':t:r'))
 	})
 	.Callback((attr) => {
-		var i = grepConfig->indexof((_, conf) => fnamemodify(conf.module, ':t:r') == attr.args)
+		var i = greps->indexof((_, conf) => fnamemodify(conf.module, ':t:r') == attr.args)
 		if i == -1
 			echoerr $'unknown Grep {attr.args}'
 		endif
 
-		var conf = grepConfig[i]
+		var conf = greps[i]
 		var ft = '*'
 		if has_key(conf, 'ft')
-			ft = type(conf.ft) == type(null_string) ? conf.ft : conf.ft[0]
+			ft = type(conf.ft) == v:t_string ? conf.ft : conf.ft[0]
 		endif
 
 		cache.current = cache[ft]

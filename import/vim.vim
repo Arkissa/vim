@@ -129,7 +129,7 @@ export class List # {{{1
 			return ()
 		endif
 
-		return list->len() == 2 && type(list[1]) == type(null_tuple)
+		return list->len() == 2 && type(list[1]) == v:t_tuple
 			? list[1]
 			: list[1 : ]
 	enddef # }}}
@@ -195,7 +195,7 @@ export class List # {{{1
 		while !l->empty()
 			var h = Head(l)
 
-			buf->add(type(h) == type(null_tuple)
+			buf->add(type(h) == v:t_tuple
 				? Show(h)
 				: h->string())
 
@@ -383,7 +383,7 @@ export abstract class Async # {{{1
 		timer_stop(timer)
 
 		var val = ret[co.id]
-		if type(val) == type(null_object) && instanceof(val, Exception)
+		if type(val) == v:t_object && instanceof(val, Exception)
 			throw val->string()
 		endif
 
