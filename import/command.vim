@@ -6,8 +6,8 @@ import 'vim.vim'
 import 'autocmd.vim'
 import 'quickfix.vim'
 
+type Action = quickfix.Action
 type Autocmd = autocmd.Autocmd
-type Coroutine = vim.Coroutine
 
 export enum NArgs
 	Zero('0'),
@@ -324,6 +324,17 @@ export abstract class Execute extends jb.Quickfixer
 	abstract def Callback(qf: quickfix.Quickfixer, chan: channel, msg: string)
 
 	def CloseCb(qf: quickfix.Quickfixer, chan: channel)
+		if !qf.IsOpen()
+			return
+		endif
+
+		var items = qf.GetList()
+		if items->empty()
+			qf.Close()
+			return
+		endif
+
+		qf.SetList(items, Action.R)
 	enddef
 
 	def Attr(attr: Attr, location: bool = false): Execute
@@ -339,7 +350,7 @@ export abstract class Execute extends jb.Quickfixer
 		endif
 
 		if this._attr.bang
-			qf.JumpFirst()
+			qf.Jump()
 		endif
 
 		if this._attr != null_object && exists($'#QuickFixCmdPost#{this._attr.name}')

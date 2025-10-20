@@ -1,9 +1,41 @@
 vim9script
 
 import 'keymap.vim'
+import 'quickfix.vim'
 
 type Bind = keymap.Bind
 type Mods = keymap.Mods
+
+def QuickfixRingIdx(locl: bool, pre: bool)
+	var qf: quickfix.Quickfixer
+	if locl
+		qf = quickfix.Location.newCurrent()
+	else
+		qf = quickfix.Quickfix.newCurrent()
+	endif
+
+	if qf.Empty()
+		echoerr 'E553: No more items'
+		return
+	endif
+
+	var items = qf.GetList({idx: 0, size: 1})
+	var idx = items.idx
+
+	if pre
+		idx -= 1
+		if idx < 1
+			idx = items.size
+		endif
+	else
+		idx += 1
+		if idx > items.size
+			idx = 1
+		endif
+	endif
+
+	qf.Jump(idx)
+enddef
 
 Bind.new(Mods.n)
 	.Silent()
@@ -12,11 +44,10 @@ Bind.new(Mods.n)
 	.Map('gP', Bind.Cmd('-1put "'))
 	.Map('[P', 'i ')
 	.Map(']P', 'a ')
-	.Map('[l', Bind.Cmd('lprevious'))
-	.Map(']l', Bind.Cmd('lnext'))
-	.Map('[q', Bind.Cmd('cprevious'))
-	.Map(']q', Bind.Cmd('cnext'))
-	.Map('<C-l>', Bind.Cmd('nohlsearch'))
+	.Callback('[l', funcref(QuickfixRingIdx, [true, true]))
+	.Callback(']l', funcref(QuickfixRingIdx, [true, false]))
+	.Callback('[q', funcref(QuickfixRingIdx, [false, true]))
+	.Callback(']q', funcref(QuickfixRingIdx, [false, false]))
 
 Bind.new(Mods.t)
 	.Map('', '<C-\><C-n>')

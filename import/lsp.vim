@@ -3,6 +3,8 @@ vim9script
 final lspConfig = {}
 
 const option = {
+	autoComplete: false,
+	omniComplete: true,
     autoHighlight: true,
     autoHighlightDiags: true,
     completionMatcher: 'fuzzy',
