@@ -38,34 +38,37 @@ g:QuickfixPreviewerConfig = {
 	borderhighlight: ["Title", "Title", "Title", "Title"],
 }
 
-g:GrepConfig = [
-	{
-		module: 'greps/grepprg',
-		Init: () => {
-			&grepprg = vim.Cmd(['grep', '-r', '-n', '$*'])
+g:GrepConfig = {
+	greps: [
+		{
+			module: 'greps/grepprg',
+			Init: () => {
+				&grepprg = vim.Cmd(['grep', '-r', '-n', '$*'])
+			},
+			keymaps: {
+				bind: Bind.new(Mods.n).Buffer().NoRemap(),
+				['\w']: ':Grep ',
+			}
 		},
-		keymaps: {
-			bind: Bind.new(Mods.n).Buffer().NoRemap(),
-			['\w']: ':Grep ',
+		{
+			module: 'greps/cgrep',
+			ft: 'go',
+			keymaps: {
+				bind: Bind.new(Mods.n).Buffer().NoRemap(),
+				['\w']: ':Grep ',
+				['\s']: ':Grep --string ',
+				['\r']: ':Grep -G ',
+				['\d']: ':Grep --name <C-r><C-w>',
+			},
+			args: {
+				types: ["Go"],
+				pruneDirs: ["proto", "3rd", "bin", "node_modules", "dist-newstyle", ".git"],
+				kind: ["Language"]
+			}
 		}
-	},
-	{
-		module: 'greps/cgrep',
-		ft: 'go',
-		keymaps: {
-			bind: Bind.new(Mods.n).Buffer().NoRemap(),
-			['\w']: ':Grep ',
-			['\s']: ':Grep --string ',
-			['\r']: ':Grep -G ',
-			['\d']: ':Grep --name <C-r><C-w>',
-		},
-		args: {
-			types: ["Go"],
-			pruneDirs: ["proto", "3rd", "bin", "node_modules", "dist-newstyle", ".git"],
-			kind: ["Language"]
-		}
-	}
-]
+	],
+	autoOpen: true
+}
 
 g:LinterConfig = {
 	go: {

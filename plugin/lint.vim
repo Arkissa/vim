@@ -12,6 +12,8 @@ type Autocmd = autocmd.Autocmd
 
 const group = "Linter"
 
+var linterConfig: dict<any> = copy(g:LinterConfig)
+
 def Lint(lint: command.Execute, onSaveCmd: string)
 	if onSaveCmd != null_string
 		Autocmd.new('BufWritePost')
@@ -50,7 +52,7 @@ def Lint(lint: command.Execute, onSaveCmd: string)
 		})
 enddef
 
-if has_key(g:LinterConfig, 'autoOpen') && remove(g:LinterConfig, 'autoOpen')
+if has_key(linterConfig, 'autoOpen') && remove(linterConfig, 'autoOpen')
 	def AutoOpen(attr: any)
 		attr.data.Window()
 	enddef
@@ -61,7 +63,7 @@ if has_key(g:LinterConfig, 'autoOpen') && remove(g:LinterConfig, 'autoOpen')
 		.Callback(AutoOpen)
 endif
 
-for [ft, conf] in g:LinterConfig->items()
+for [ft, conf] in linterConfig->items()
 	import autoload $'{conf.module}.vim'
 
 	Autocmd.new('FileType')
