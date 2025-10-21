@@ -114,7 +114,48 @@ export interface Quickfixer
 	def IsLocation(): bool
 	def Empty(): bool
 	def IsOpen(): bool
+	def GetItemsWithType(): list<QuickfixItem>
+	def NextValidIdx(ring: bool): number
+	def PrevValidIdx(ring: bool): number
 endinterface
+
+def NextIdx(qf: Quickfixer, id: number, ring: bool, prev: bool): number
+	var what = qf.GetList({id: id, items: 1, idx: 0, size: 1})
+	var size = what.size
+
+	if size == 0
+		return 0
+	endif
+
+	var items: any = what.items
+		->map((i, item) => (i, item))
+		->filter((_, i) => i[1].valid)
+
+	if items->empty()
+		return 0
+	endif
+
+	def Ok(i: number, idx: number): bool
+		if prev
+			return i < idx
+		else
+			return i > idx
+		endif
+	enddef
+
+	if prev
+		items = reverse(items)
+	endif
+
+	var idx = what.idx
+	for [i, item] in items
+		if Ok(i + 1, idx)
+			return i + 1
+		endif
+	endfor
+
+	return ring ? items[0][0] + 1 : idx
+enddef
 
 export class Quickfix implements Quickfixer
 	var id: number
@@ -158,6 +199,10 @@ export class Quickfix implements Quickfixer
 		return qf
 	enddef
 
+	def GetItemsWithType(): list<QuickfixItem>
+		return this.GetList({id: this.id, items: 1})->filter((_, item) => item.type != Type.Empty)
+	enddef
+
 	def GetItemUnderTheCursor(): QuickfixItem
 		if this.Empty()
 			return null_object
@@ -177,11 +222,12 @@ export class Quickfix implements Quickfixer
 	enddef
 
 	def Open(height: number = 0)
-		if height != 0
-			execute($'copen {height}')
-		else
-			:copen
+		var cmd = 'copen'
+		if height > 0
+			cmd ..=  $' {hieght}'
 		endif
+
+		execute(cmd)
 	enddef
 
 	def Close()
@@ -189,11 +235,12 @@ export class Quickfix implements Quickfixer
 	enddef
 
 	def Window(height: number = 0)
-		if height != 0
-			execute($'cwindow {height}')
-		else
-			:cwindow
+		var cmd = 'cwindow'
+		if height > 0
+			cmd ..=  $' {hieght}'
 		endif
+
+		execute(cmd)
 	enddef
 
 	def IsLocation(): bool
@@ -211,6 +258,14 @@ export class Quickfix implements Quickfixer
 		endif
 
 		return window.Window.newByWinnr(items.winid).IsOpen()
+	enddef
+
+	def NextValidIdx(ring: bool): number
+		return NextIdx(this, this.id, ring, false)
+	enddef
+
+	def PrevValidIdx(ring: bool): number
+		return NextIdx(this, this.id, ring, true)
 	enddef
 endclass
 
@@ -274,27 +329,29 @@ export class Location implements Quickfixer
 	enddef
 
 	def Jump(nr: number = 1)
-		exe $"silent ll {nr}"
+		execute($'silent ll {nr}')
 	enddef
 
 	def Open(height: number = 0)
-		if height != 0
-			exe $"lopen {height}"
-		else
-			:lopen
+		var cmd = 'lopen'
+		if height > 0
+			cmd ..=  $' {hieght}'
 		endif
+
+		execute(cmd)
 	enddef
 
 	def Close()
-		:lclose
+		execute('lclose')
 	enddef
 
 	def Window(height: number = 0)
-		if height != 0
-			exe $"lwindow  {height}"
-		else
-			:lwindow
+		var cmd = 'lwindow'
+		if height > 0
+			cmd ..=  $' {hieght}'
 		endif
+
+		execute(cmd)
 	enddef
 
 	def IsLocation(): bool
@@ -307,5 +364,17 @@ export class Location implements Quickfixer
 
 	def IsOpen(): bool
 		return window.Window.newByWinnr(this.winnr).IsOpen()
+	enddef
+
+	def GetItemsWithType(): list<QuickfixItem>
+		return this.GetList({id: this.id, items: 1}).items->filter((_, item) => item.type != Type.Empty)
+	enddef
+
+	def NextValidIdx(ring: bool): number
+		return NextIdx(this, this.id, ring, false)
+	enddef
+
+	def PrevValidIdx(ring: bool): number
+		return NextIdx(this, this.id, ring, true)
 	enddef
 endclass

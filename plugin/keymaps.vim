@@ -6,7 +6,7 @@ import 'quickfix.vim'
 type Bind = keymap.Bind
 type Mods = keymap.Mods
 
-def QuickfixRingIdx(locl: bool, pre: bool)
+def QuickfixRingIdx(locl: bool, prev: bool)
 	var qf: quickfix.Quickfixer
 	if locl
 		qf = quickfix.Location.newCurrent()
@@ -19,22 +19,30 @@ def QuickfixRingIdx(locl: bool, pre: bool)
 		return
 	endif
 
-	var items = qf.GetList({idx: 0, size: 1})
-	var idx = items.idx
-
-	if pre
-		idx -= 1
-		if idx < 1
-			idx = items.size
-		endif
-	else
-		idx += 1
-		if idx > items.size
-			idx = 1
-		endif
-	endif
+	var idx = prev
+		? qf.PrevValidIdx(true)
+		: qf.NextValidIdx(true)
 
 	qf.Jump(idx)
+	var what = qf.GetList({idx: idx, size: 1, items: 1})
+
+	var item = what.items[0]
+
+	var type: string
+	if item.type == quickfix.Type.E
+		type = ' error:'
+	elseif item.type == quickfix.Type.W
+		type = ' warning:'
+	elseif item.type == quickfix.Type.I
+		type = ' info:'
+	elseif item.type == quickfix.Type.N
+		type = ' hint:'
+	else
+		type = ''
+	endif
+
+	:redraw
+	echo $'({idx} of {what.size}){type} {item.text}'
 enddef
 
 Bind.new(Mods.n)
