@@ -164,10 +164,10 @@ class Previewer # {{{1
 	enddef # }}}
 
 	static def Toggle() # {{{2
-		if _window == null_object
+		if _window == null_object || !_window.IsOpen()
 			var info = window.Window.newCurrent().GetInfo()
 			var height = float2nr(&lines * 0.5)
-			var width = info.width - 5
+			var width = info.width
 			_window = window.Popup.new({
 				pos: "botleft",
 				padding: get(conf, 'padding', []),
@@ -181,12 +181,9 @@ class Previewer # {{{1
 				col: info.wincol,
 				line: info.winrow - 2,
 			})
-		endif
-
-		if _window.IsOpen()
-			Close()
-		else
 			Open()
+		else
+			Close()
 		endif
 	enddef # }}}
 

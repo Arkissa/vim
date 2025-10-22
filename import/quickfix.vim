@@ -224,7 +224,7 @@ export class Quickfix implements Quickfixer
 	def Open(height: number = 0)
 		var cmd = 'copen'
 		if height > 0
-			cmd ..=  $' {hieght}'
+			cmd ..=  $' {height}'
 		endif
 
 		execute(cmd)
@@ -237,7 +237,7 @@ export class Quickfix implements Quickfixer
 	def Window(height: number = 0)
 		var cmd = 'cwindow'
 		if height > 0
-			cmd ..=  $' {hieght}'
+			cmd ..=  $' {height}'
 		endif
 
 		execute(cmd)
@@ -335,7 +335,7 @@ export class Location implements Quickfixer
 	def Open(height: number = 0)
 		var cmd = 'lopen'
 		if height > 0
-			cmd ..=  $' {hieght}'
+			cmd ..=  $' {height}'
 		endif
 
 		execute(cmd)
@@ -348,7 +348,7 @@ export class Location implements Quickfixer
 	def Window(height: number = 0)
 		var cmd = 'lwindow'
 		if height > 0
-			cmd ..=  $' {hieght}'
+			cmd ..=  $' {height}'
 		endif
 
 		execute(cmd)

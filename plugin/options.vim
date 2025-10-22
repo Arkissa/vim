@@ -40,9 +40,10 @@ endif
 :set spelllang+=cjk
 :set dir-=.
 
+&autocompletedelay = 300 # 0 is so many noisy.
 &complete = 'F,o'
 &ttimeoutlen = 50
-&scrolloff = 99
+&scrolloff = 10
 &pumheight = 15
 &shiftwidth = 4
 &softtabstop = 4

@@ -1,6 +1,7 @@
 vim9script
 
 import 'keymap.vim'
+import 'log.vim'
 import 'quickfix.vim'
 
 type Bind = keymap.Bind
@@ -15,7 +16,7 @@ def QuickfixRingIdx(locl: bool, prev: bool)
 	endif
 
 	if qf.Empty()
-		echoerr 'E553: No more items'
+		log.Error('E553: No more items')
 		return
 	endif
 
