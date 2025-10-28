@@ -95,7 +95,7 @@ export class Buffer # {{{1
 	enddef # }}}
 
 	def GetLines(lnum: number, end: number): list<string> # {{{2
-		return getbufline(lnum, end != -1 ? end : '$')
+		return getbufline(this.bufnr, lnum, end != -1 ? end : '$')
 	enddef # }}}
 
 	def SetVar(name: string, value: any) # {{{2
@@ -111,7 +111,11 @@ export class Buffer # {{{1
 	enddef # }}}
 
 	def Clear() # {{{2
-		deletebufline(this.bufnr, 1, '$')
+		this.DeleteLine(1, '$')
+	enddef # }}}
+
+	def DeleteLine(start: number, end: any = start) # {{{2
+		deletebufline(this.bufnr, start, end)
 	enddef # }}}
 
 	def AppendLine(text: string, lnum: number = this.LineCount() - 1) # {{{2
@@ -207,6 +211,15 @@ export class Buffer # {{{1
 
 	def Delete() # {{{2
 		execute($'silent bwipeout! {this.bufnr}')
+	enddef # }}}
+
+	def WriteFile(fname: string = expand('%:p'), flag: string = null_string) # {{{2
+		var lines = this.GetLines(1, -1)
+		if flag == null_string
+			writefile(lines, fname)
+		else
+			writefile(lines, fname, flag)
+		endif
 	enddef # }}}
 endclass # }}}
 

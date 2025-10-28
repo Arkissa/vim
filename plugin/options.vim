@@ -39,6 +39,8 @@ endif
 :set shortmess+=c
 :set spelllang+=cjk
 :set dir-=.
+:set backup
+:set nowritebackup
 
 &autocompletedelay = 300 # 0 is so many noisy.
 &complete = 'F,o'
