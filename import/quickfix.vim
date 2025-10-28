@@ -127,9 +127,15 @@ def NextIdx(qf: Quickfixer, id: number, ring: bool, prev: bool): number
 		return 0
 	endif
 
+	def IsValid(_: number, d: tuple<number, QuickfixItem>): bool
+		var item = d[1]
+
+		return item.valid && item.buffer.Readable()
+	enddef
+
 	var items: any = what.items
 		->map((i, item) => (i, item))
-		->filter((_, i) => i[1].valid)
+		->filter(IsValid)
 
 	if items->empty()
 		return 0
@@ -218,7 +224,7 @@ export class Quickfix implements Quickfixer
 	enddef
 
 	def Jump(nr: number = 1)
-		execute($'silent cc {nr}')
+		execute($'silent! cc {nr}')
 	enddef
 
 	def Open(height: number = 0)
@@ -329,7 +335,7 @@ export class Location implements Quickfixer
 	enddef
 
 	def Jump(nr: number = 1)
-		execute($'silent ll {nr}')
+		execute($'silent! ll {nr}')
 	enddef
 
 	def Open(height: number = 0)
