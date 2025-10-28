@@ -22,7 +22,6 @@ type Autocmd = autocmd.Autocmd
 type Command = command.Command
 
 &l:list = false
-&l:wrap = false
 &l:formatprg = 'golangci-lint fmt --stdin'
 
 const group = "Go"
@@ -75,4 +74,4 @@ Command.new("Go")
 Bind.new(Mods.n)
 	.Silent()
 	.Buffer()
-	.Map('\g', Bind.Cmd('vertical leftabove 100Term copilot --model gpt-5 --continue'))
+	.Map('\g', Bind.Cmd('vertical leftabove 100Term opencode --model grok-code-fast-1 --continue'))

@@ -32,8 +32,6 @@ const option = {
     showSignature: true,
 	condensedCompletionMenu: true,
 	filterCompletionDuplicates: true,
-	useBufferCompletion: true,
-	bufferCompletionTimeout: 100,
     useQuickfixForLocations: true,
     usePopupInCodeAction: true,
     customCompletionKinds: true,
