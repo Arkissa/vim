@@ -32,22 +32,32 @@ def DiffOrig()
 
 	execute('diffthis')
 	var currentWin = Window.newCurrent()
-	var win = Window.new("vertical topleft")
+	var win = Window.new("vertical botright")
 	win.Open()
+
+	Autocmd.new('BufWriteCmd')
+		.Group(group)
+		.Once()
+		.Replace()
+		.Bufnr(current.bufnr)
+		.Callback(() => {
+			current.WriteFile()
+			execute('edit')
+			execute('write')
+		})
 
 	Autocmd.new('WinClosed')
 		.Group(group)
 		.Once()
 		.Pattern([win.winnr->string()])
 		.Callback(() => {
-			current.WriteFile()
+			currentWin.Execute('diffoff')
 		})
 
 	win.ExecuteCallback(() => {
-		execute($'read {current.name}')
+		execute($'0read {current.name}')
 
 		var buf = Buffer.newCurrent()
-		buf.DeleteLine(1)
 		buf.SetVar('&filetype', ft)
 		buf.SetVar('&buftype', 'nofile')
 		buf.SetVar('&bufhidden', 'wipe')
@@ -56,7 +66,6 @@ def DiffOrig()
 
 		execute('diffthis')
 	})
-	win_gotoid(currentWin.winnr)
 enddef
 
 Command.new('DiffOrig').Callback(DiffOrig)
