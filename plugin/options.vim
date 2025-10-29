@@ -59,6 +59,10 @@ endif
 &fillchars = 'eob: '
 &signcolumn = 'yes'
 &display = 'lastline'
+&diffopt = vim.Option([
+	'internal', 'filler', 'closeoff',
+	'indent-heuristic', 'algorithm:histogram',
+])
 &sessionoptions = vim.Option([
 	'buffers', 'tabpages', 'winsize',
 	'winpos', 'resize', 'terminal', 'folds', 'help',
