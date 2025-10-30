@@ -43,7 +43,7 @@ def DiffOrig()
 		.Callback(() => {
 			current.WriteFile()
 			execute('edit')
-			execute('write')
+			execute('write!')
 		})
 
 	Autocmd.new('WinClosed')
@@ -55,9 +55,11 @@ def DiffOrig()
 		})
 
 	win.ExecuteCallback(() => {
-		execute($'0read {current.name}')
+		execute($'read {current.name}')
 
 		var buf = Buffer.newCurrent()
+		buf.DeleteLine(1)
+		buf.SetVar('&filetype', ft)
 		buf.SetVar('&filetype', ft)
 		buf.SetVar('&buftype', 'nofile')
 		buf.SetVar('&bufhidden', 'wipe')
