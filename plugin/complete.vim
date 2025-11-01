@@ -9,7 +9,7 @@ const group = 'CompleteAutoComplete'
 Autocmd.new('InsertCharPre')
 	.Group('CompleteAutoComplete')
 	.Callback((): void => {
-		if pumvisible() == 1 && v:char != '/'
+		if pumvisible() == 1 || v:char != '/'
 			return
 		endif
 
