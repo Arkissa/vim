@@ -74,12 +74,6 @@ hlset([
     {name: "ModeMsg", guisp: "NONE", guifg: text, guibg: "NONE", gui: {bold: true}, cterm: {bold: true}},
     {name: "MoreMsg", guisp: "NONE", guifg: blue, guibg: "NONE", gui: {}, cterm: {}},
     {name: "NonText", guisp: "NONE", guifg: overlay0, guibg: "NONE", gui: {}, cterm: {}},
-    {name: "Pmenu", guisp: "NONE", guifg: "NONE", guibg: "NONE", ctermfg: "NONE", ctermbg: "NONE", gui: {}, cterm: {}},
-    {name: "PmenuSel", guisp: "NONE", guifg: text, guibg: surface1, gui: {bold: true}, cterm: {bold: true}},
-    {name: "PmenuMatch", guisp: "NONE", guifg: lavender, guibg: "NONE", ctermfg: "NONE", ctermbg: "NONE", gui: {}, cterm: {bold: true}},
-    {name: "PmenuMatchSel", guisp: "NONE", guifg: lavender, guibg: surface1, ctermfg: "NONE", ctermbg: "NONE", gui: {}, cterm: {bold: true}},
-    {name: "PmenuSbar", guisp: "NONE", guifg: "NONE", guibg: surface1, gui: {}, cterm: {}},
-    {name: "PmenuThumb", guisp: "NONE", guifg: "NONE", guibg: overlay0, gui: {}, cterm: {}},
     {name: "Question", guisp: "NONE", guifg: blue, guibg: "NONE", gui: {}, cterm: {}},
     {name: "QuickFixLine", guisp: "NONE", guifg: "NONE", guibg: surface1, gui: {bold: true}, cterm: {bold: true}},
     {name: "Search", guisp: "NONE", guifg: "#CDD6F5", guibg: "#3e5768", gui: {bold: true}, cterm: {bold: true}},
@@ -140,11 +134,22 @@ hlset([
     {name: "StatusLineTermNC", default: true, linksto: "StatusLineNC"},
     {name: "Terminal", default: true, linksto: "Normal"},
     {name: "Ignore", default: true, linksto: "Comment"},
+
+	# LSP
 	{name: "LspTextRef", default: true, linksto: "Visual"},
     {name: "LspDiagSignErrorText", guifg: "#f38ba9"},
     {name: "LspDiagSignWarningText", guifg: "#f9e2b0"},
     {name: "LspDiagSignInfoText", guifg: "#89dcec"},
     {name: "LspDiagSignHintText", guifg: "#94e2d6"},
     {name: "LspInlayHintsType", guifg: "#6c7087"},
-    {name: "LspInlayHintsParam", guifg: "#6c7087"}
+    {name: "LspInlayHintsParam", guifg: "#6c7087"},
+
+	# Pmenu
+    {name: "Pmenu", guisp: "NONE", guifg: "NONE", guibg: "NONE", ctermfg: "NONE", ctermbg: "NONE", gui: {}, cterm: {}},
+    {name: "PmenuSel", guisp: "NONE", guifg: text, guibg: surface1, gui: {bold: true}, cterm: {bold: true}},
+    {name: "PmenuMatch", guisp: "NONE", guifg: lavender, guibg: "NONE", ctermfg: "NONE", ctermbg: "NONE", gui: {}, cterm: {bold: true}},
+    {name: "PmenuBorder", default: true, linksto: "Title"},
+    {name: "PmenuMatchSel", guisp: "NONE", guifg: lavender, guibg: surface1, ctermfg: "NONE", ctermbg: "NONE", gui: {}, cterm: {bold: true}},
+    {name: "PmenuSbar", guisp: "NONE", guifg: "NONE", guibg: surface1, gui: {}, cterm: {}},
+    {name: "PmenuThumb", guisp: "NONE", guifg: "NONE", guibg: overlay0, gui: {}, cterm: {}},
 ])
