@@ -69,15 +69,15 @@ class LockWindowSize # {{{1
 		Autocmd.new(event)
 			.Group(group)
 			.Pattern([winnr->string()])
-			.Command($':{winnr}resize {height} | vertical :{winnr}resize {widht}')
+			.Callback(() => {
+				win_execute(winnr, $"resize {height} | vertical resize {widht}")
+			})
 
 		Autocmd.new('WinClosed')
 			.Group(group)
 			.Once()
 			.Pattern([winnr->string()])
-			.Callback(() => {
-				LockWindowSize.Unlock(winnr)
-			})
+			.Callback(function(LockWindowSize.Unlock, [winnr]))
 	enddef # }}}
 
 	static def Unlock(winnr: number) # {{{2
@@ -249,6 +249,7 @@ export class Window # {{{1
 			return
 		endif
 
+		echom $'{this.Height()} {this.Width()}'
 		LockWindowSize.Lock(this.winnr, this.Height(), this.Width())
 	enddef # }}}
 
