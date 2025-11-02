@@ -50,6 +50,45 @@ export class WinInfo # {{{1
 	enddef # }}}
 endclass # }}}
 
+class LockWindowSize # {{{1
+	static const group = 'LockWindowSize'
+	static const event = 'WinResized'
+	static const _autocmd = autocmd_add([{group: LockWindowSize.group}])
+
+	static def IsLocked(winnr: number): bool # {{{2
+		var opts = {
+			group: group,
+			event: event,
+			pattern: winnr->string(),
+		}
+
+		return !autocmd_get(opts)->empty()
+	enddef # }}}
+
+	static def Lock(winnr: number, height: number, widht: number) # {{{2
+		Autocmd.new(event)
+			.Group(group)
+			.Pattern([winnr->string()])
+			.Command($':{winnr}resize {height} | vertical :{winnr}resize {widht}')
+
+		Autocmd.new('WinClosed')
+			.Group(group)
+			.Once()
+			.Pattern([winnr->string()])
+			.Callback(() => {
+				LockWindowSize.Unlock(winnr)
+			})
+	enddef # }}}
+
+	static def Unlock(winnr: number) # {{{2
+		autocmd_delete([{
+			group: group,
+			event: event,
+			pattern: winnr->string(),
+		}])
+	enddef # }}}
+endclass # }}}
+
 export class Window # {{{1
 	var winnr: number
 	var _pos: string
@@ -75,11 +114,19 @@ export class Window # {{{1
 	enddef # }}}
 
 	def Open(fname: string = '') # {{{2
-		execute($'silent! {this._pos} :{this._height ?? ''}new {fname}')
+		execute($'{this._pos} :{this._height ?? ''}new {fname}', 'silent! ')
 		this.winnr = win_getid()
 		if fname == ''
 			this.GetBuffer().SetVar('&bufhidden', 'wipe')
 		endif
+	enddef # }}}
+
+	def Width(): number # {{{2
+		return winwidth(this.winnr)
+	enddef # }}}
+
+	def Height(): number #{{{2
+		return winheight(this.winnr)
 	enddef # }}}
 
 	def SetCursor(lnum: number, col: number) # {{{2
@@ -195,6 +242,18 @@ export class Window # {{{1
 
 	def FeedKeys(exe: string, mod: string = 'm') # {{{2
 		this.Execute($'feedkeys(''{exe}'', ''{mod}'')')
+	enddef # }}}
+
+	def LockSize() # {{{2
+		if LockWindowSize.IsLocked(this.winnr)
+			return
+		endif
+
+		LockWindowSize.Lock(this.winnr, this.Height(), this.Width())
+	enddef # }}}
+
+	def UnlockSize() # {{{2
+		LockWindowSize.Unlock(this.winnr)
 	enddef # }}}
 endclass # }}}
 
