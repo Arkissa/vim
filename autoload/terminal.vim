@@ -5,8 +5,8 @@ import 'window.vim'
 import 'buffer.vim'
 import 'autocmd.vim'
 
-type Autocmd = autocmd.Autocmd # {{{1
-type Terminal = buffer.Terminal # {{{1
+type Autocmd = autocmd.Autocmd
+type Terminal = buffer.Terminal
 type Ring = vim.Ring
 
 export class Manager # {{{1
@@ -31,11 +31,11 @@ export class Manager # {{{1
 		endif
 	enddef # }}}
 
-	static def ToggleWindow(cmd: string = '', pos: string = '', count: number = 0) # {{{2
+	static def ToggleWindow(bang: bool, cmd: string = '', pos: string = '', count: number = 0) # {{{2
 		if _win.IsOpen()
 			_win.Close()
 		else
-			NewTerminal(cmd, pos, count)
+			NewTerminal(bang, cmd, pos, count)
 		endif
 	enddef # }}}
 
@@ -64,15 +64,15 @@ export class Manager # {{{1
 		return str->join(' ')
 	enddef # }}}
 
-	static def _NewTerm(cmd: string): Terminal
+	static def _NewTerm(cmd: string): Terminal # {{{2
 		return Terminal.new(cmd ?? $SHELL, {
 			hidden: true,
 			term_kill: 'term',
 			exit_cb: _OnClose,
 		})
-	enddef
+	enddef # }}}
 
-	static def NewTerminal(cmd: string = '', pos: string = '', count: number = 0) # {{{2
+	static def NewTerminal(bang: bool, cmd: string = '', pos: string = '', count: number = 0) # {{{2
 		if _terms->empty()
 			_terms = Ring.new(_NewTerm(cmd))
 		endif
@@ -85,6 +85,9 @@ export class Manager # {{{1
 			_win.SetPos(_pos)
 			_win.Resize(_count)
 			_win.Open()
+			if bang
+				_win.LockSize()
+			endif
 
 			Autocmd.new('WinClosed')
 				.Group(group)

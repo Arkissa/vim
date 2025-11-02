@@ -12,6 +12,7 @@ type Command = command.Command
 Command.new('Term')
 	.NArgs(NArgs.Star)
 	.Count()
+	.Bang()
 	.Complete(command.Complete.ShellCmd)
 	.Callback((attr) => {
 		var pos = attr.mods.split
@@ -21,12 +22,13 @@ Command.new('Term')
 			pos = 'horizontal ' .. pos
 		endif
 
-		terminal.Manager.NewTerminal(attr.args, pos, attr.count)
+		terminal.Manager.NewTerminal(attr.bang, attr.args, pos, attr.count)
 	})
 
 Command.new('TermToggle')
 	.NArgs(NArgs.Zero)
 	.Count()
+	.Bang()
 	.Callback((attr) => {
 		var pos = attr.mods.split
 		if attr.mods.vertical
@@ -35,7 +37,7 @@ Command.new('TermToggle')
 			pos = 'horizontal ' .. pos
 		endif
 
-		terminal.Manager.ToggleWindow('', pos, attr.count)
+		terminal.Manager.ToggleWindow(attr.bang, '', pos, attr.count)
 	})
 
 Command.new('TermNext')
@@ -65,7 +67,7 @@ Command.new('TermKillAll')
 Bind.new(Mods.n)
 	.Silent()
 	.Map('\t', Bind.Cmd('botright 10Term'))
-	.Map('<Leader>tt', Bind.Cmd('TermToggle'))
+	.Map('<Leader>tt', Bind.Cmd('TermToggle!'))
 	.Map('<Leader>tk', Bind.Cmd('TermKill'))
 	.Map('<Leader>ta', Bind.Cmd('TermKillAll'))
 	.Map('[t', Bind.Cmd('TermPrev'))
