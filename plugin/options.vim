@@ -44,7 +44,7 @@ endif
 :set nowritebackup
 
 &autocompletedelay = 300 # 0 is so many noisy.
-&pumborder = vim.Option(['round', 'margin'])
+&pumborder = vim.Option(['round'])
 &complete = 'F,o'
 &ttimeoutlen = 50
 &scrolloff = 10

@@ -10,6 +10,7 @@ g:go_highlight_build_constraints = 1
 g:go_highlight_generate_tags = 1
 
 import 'vim.vim'
+import 'log.vim'
 import 'path.vim'
 import 'keymap.vim'
 import 'command.vim'
@@ -30,7 +31,6 @@ const group = "Go"
 def RealPath(pt: string): string
 	if exists_compiled("+clipboard")
 		var gopath = $"^{trim(system('go env GOPATH'))}/pkg/mod"
-		echom gopath
 		if pt =~ gopath
 			return trim(substitute(pt, gopath, '', ''), '/')
 		endif
@@ -42,7 +42,7 @@ def RealPath(pt: string): string
 
 		return fnamemodify(pt, ':.')
 	else
-		echoerr 'clipboard feature not exists.'
+		log.Error('clipboard feature not exists.')
 		return ""
 	endif
 enddef
@@ -52,14 +52,26 @@ Autocmd.new('User')
 	.Pattern(['LspAttached'])
 	.Bufnr(bufnr())
 	.Callback(() => {
-		Bind.new(Mods.n)
+		Bind.new(Mods.o)
 			.NoRemap()
 			.Buffer()
-			.Callback('yil', () => {
-				setreg('+', $"{path.UnderPath(function(RealPath))}:{line('.')}")
+			.Callback('il', () => {
+				if v:operator != 'y'
+					return
+				endif
+
+				var p = $'{path.UnderPath(function(RealPath))}:{line('.')}'
+				log.Info($'copy path to + registers: {p}')
+				setreg('+', p)
 			})
-			.Callback('yal', () => {
-				setreg('+', $"{expand("%:p")}:{line('.')}")
+			.Callback('al', () => {
+				if v:operator != 'y'
+					return
+				endif
+
+				var p = $"{expand("%:p")}:{line('.')}"
+				log.Info($'copy path to + registers: {p}')
+				setreg('+', p)
 			})
 	})
 	.Command('setlocal formatexpr=')
@@ -74,4 +86,4 @@ Command.new("Go")
 Bind.new(Mods.n)
 	.Silent()
 	.Buffer()
-	.Map('\g', Bind.Cmd('vertical leftabove 100Term opencode --model grok-code-fast-1 --continue'))
+	.Map('\g', Bind.Cmd('vertical leftabove 100Term! opencode --model grok-code-fast-1 --continue'))
