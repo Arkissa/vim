@@ -23,7 +23,6 @@ endif
 
 :set autocomplete
 :set nocompatible
-# :set noequalalways
 :set number
 :set autoindent
 :set smartindent
