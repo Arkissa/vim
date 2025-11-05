@@ -153,3 +153,7 @@ hlset([
     {name: "PmenuSbar", guisp: "NONE", guifg: "NONE", guibg: surface1, gui: {}, cterm: {}},
     {name: "PmenuThumb", guisp: "NONE", guifg: "NONE", guibg: overlay0, gui: {}, cterm: {}},
 ])
+
+if has('gui_running')
+	hlset([{ name: 'Normal', guibg: '#000000', guifg: '#FFFFFF', force: true }])
+endif
