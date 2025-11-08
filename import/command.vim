@@ -271,15 +271,15 @@ export class Command
 			return
 		endif
 
-		var cmd	=<< trim END
-			%s %s %s {
+		var cmd	=<< trim eval END
+			{c} {this._attr->join()} {this._name} {{
 				var mods = <q-mods>
 				var spt = ''
 				if indexof(["aboveleft", "belowright", "botright", "leftabove"], (_, m) => mods =~# m) != -1
 					spt = mods->split(' ')[0]
 				endif
 				var attr = Attr.new(
-					"%s",
+					"{this._name}",
 					<q-args>,
 					[<f-args>],
 					!empty(<q-bang>),
@@ -308,11 +308,11 @@ export class Command
 						mods == "verbose",
 					)
 				)
-				call(Command.InternalFunction("%s"), [attr])
-			}
+				call(Command.InternalFunction("{this._name}"), [attr])
+			}}
 		END
 
-		execute(printf(cmd->join("\n"), c, join(this._attr, " "), this._name, this._name, this._name))
+		execute(cmd->join("\n"))
 	enddef
 endclass
 
