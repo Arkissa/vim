@@ -10,6 +10,10 @@ else
     &t_SR = "\e[4 q"
 endif
 
+# fouce enable FocusGained and FocusLost event.
+&t_fe = "\<Esc>[?1004h"
+&t_fd = "\<Esc>[?1004l"
+
 :packadd hlyank
 :packadd helptoc
 :packadd matchit
