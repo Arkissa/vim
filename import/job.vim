@@ -87,7 +87,12 @@ export class Job
 			Autocmd.Do('', 'User', 'JobRunPre')
 		endif
 
+		const silent = has_key(this._opt, 'silent') ? remove(this._opt, 'silent') : false
 		this._job = job_start(this._cmd, this._opt)
+
+		if silent
+			return
+		endif
 
 		:redraw
 		echo $":!{this._cmd}"
