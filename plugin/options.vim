@@ -90,5 +90,5 @@ endif
 ])
 
 if $MYVIMDIR =~# $'^{getcwd()}'
-	&wildignore ..= ',pack/'
+	&wildignore ..= ',pakc/remote/'
 endif
