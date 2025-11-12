@@ -1,30 +1,61 @@
 vim9script
 
 import 'buffer.vim'
+import 'window.vim'
 import 'autocmd.vim'
 import 'statusline.vim'
+import 'vim.vim'
 
-type Autocmd = autocmd.Autocmd
 type Buffer = buffer.Buffer
+type Window = window.Window
+type Autocmd = autocmd.Autocmd
 
-const ExcludeFiletype = ["xxd", "gitrebase", "tutor", "help", "commint"]
+const ExcludeFiletype = ["xxd", "gitrebase", "tutor", "help", "gitcommint", "git", "fugitive", "fugitiveblame"]
 const ExcludeBuftype = ["quickfix", "terminal", "help", "xxd"]
 
 g:statusline = statusline.helper
 
+def TailWhitespaceHighlight()
+	var win = Window.newCurrent()
+	var buf = win.GetBuffer()
+
+	if vim.Contains(ExcludeFiletype, buf.GetVar('&filetype')) || vim.Contains(ExcludeBuftype, buf.GetVar('&buftype'))
+		return
+	endif
+
+	var matchid = matchadd('Search', '\s\+$', 10, -1, {
+		window: win.winnr,
+	})
+
+	Autocmd.new('WinClosed')
+		.Group(g:myvimrc_group)
+		.Once()
+		.Desc($'window with ID {win.winnr} is hilighted with remove tail whitespace.')
+		.Pattern([win.winnr->string()])
+		.Command($'matchdelete({matchid}, {win.winnr})')
+enddef
+
 Autocmd.new('BufReadPost')
 	.Group(g:myvimrc_group)
+	.Desc('auto jump to last cursor position if a buffer read post.')
 	.Callback(() => {
 		var [lnum, col] = Buffer.newCurrent().LastCursorPosition()
-		if index(ExcludeFiletype, &filetype) == -1
+		if !vim.Contains(ExcludeFiletype, &filetype)
 			cursor(lnum, col)
 		endif
 	})
+	.Desc('highlight tail whitespace on window.')
+	.Once()
 	.Callback(() => {
-		if index(ExcludeFiletype, &filetype) == -1
-		|| index(ExcludeBuftype, &buftype) == -1
-			matchadd('Search', '\s\+$')
-		endif
+		vim.NapCall(TailWhitespaceHighlight)
+	})
+
+
+Autocmd.new('WinNew')
+	.Desc('highlight tail whitespace on window.')
+	.Group(g:myvimrc_group)
+	.Callback(() => {
+		vim.NapCall(TailWhitespaceHighlight)
 	})
 
 Autocmd.new('BufEnter')
@@ -61,16 +92,19 @@ Autocmd.newMulti(['WinLeave', 'BufLeave'])
 Autocmd.new('VimEnter')
 	.Group(g:myvimrc_group)
 	.Command('set statusline=%{%g:statusline.Cut().Mode().BufName().Diags().Right().Git().FileType().Dir().Role().Build()%}')
+	.Once()
+	.Command('set autoread')
+
 
 Autocmd.new('OptionSet')
 	.Group(g:myvimrc_group)
 	.Pattern(['autoread'])
 	.Callback(() => {
-		const group = 'real-autoread'
+		const real_autoread_group = 'RealAutoRead'
 		const is_local = v:option_type == 'local'
 
 		var opts: dict<any> = {
-			group: group}
+			group: real_autoread_group}
 
 		if is_local
 			opts.bufnr = bufnr()
@@ -86,11 +120,17 @@ Autocmd.new('OptionSet')
 			'BufEnter',
 			'CursorHold',
 			'CursorHoldI',
-		]).Group(group)
+		]).Group(real_autoread_group)
 
 		if is_local
 			au.Bufnr(bufnr())
 		endif
 
-		au.Command('checktime')
+		au.Callback(() => {
+			if &buftype != '' || &readonly || !&modifiable
+				return
+			endif
+
+			execute('checktime')
+		})
 	})

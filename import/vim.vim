@@ -24,7 +24,13 @@ export class Ring # {{{1
 	var _i: number
 
 	def new(a: any = null) # {{{2
-		this._list = a == null ? [] : [a]
+		if a == null
+			this._list = []
+		elseif type(a) == v:t_list
+			this._list = a
+		else
+			this._list = [a]
+		endif
 	enddef # }}}
 
 	def len(): number # {{{2
@@ -411,6 +417,16 @@ endclass # }}}
 
 export const AsyncIO = InternalAsyncIO.new()
 
+# don't ask why the are 15.
+const timeOfNap = 15
+
+# nap for time later to call function.
+export def NapCall(Fn: func, ...args: list<any>) # {{{1
+	final co = call(function(Coroutine.new, [Fn]), args)
+	co.SetDelay(timeOfNap)
+	AsyncIO.Run(co)
+enddef # }}}
+
 export def AnyRegexp(regexps: list<string>, text: string, ignorecase: bool = false): bool # {{{1
 	def Case(regexp: string, str: string): bool # {{{2
 		return !ignorecase ? str =~# regexp : str =~ regexp
@@ -437,4 +453,12 @@ export def AllRegexp(regexps: list<string>, text: string, ignorecase: bool = fal
 	endfor
 
 	return true
+enddef # }}}
+
+export def Contains(s: any, e: any, start: number = 0, ic: bool = false): bool # {{{1
+	return index((v:t_list, v:t_tuple, v:t_blob), type(s)) >= 0 && index(s, e, start, ic) >= 0
+enddef # }}}
+
+export def ContainsOf(s: any, F: func(any): bool, opts: dict<any> = {startidx: 0}): bool # {{{1
+	return index((v:t_list, v:t_tuple, v:t_blob), type(s)) >= 0 && indexof(s, F, opts) >= 0
 enddef # }}}
