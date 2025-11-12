@@ -32,7 +32,8 @@ class Callback
 	var _F: func
 	var _data: any
 
-	def new(this.id, this._F, this.event, this.group)
+	def new(this._F, this.event, this.group)
+		this.id = id(this)->str2nr(16)
 	enddef
 
 	def SetData(data: any)
@@ -62,6 +63,7 @@ endclass
 
 export class Autocmd
 	var _when: func(): bool
+	var desc: string
 
 	var _autocmd: dict<any> = {
 		pattern: '*'
@@ -94,6 +96,11 @@ export class Autocmd
 
 	def When(F: func(): bool): Autocmd
 		this._when = F
+		return this
+	enddef
+
+	def Desc(desc: string): Autocmd
+		this.desc = $' # {desc}'
 		return this
 	enddef
 
@@ -132,7 +139,7 @@ export class Autocmd
 			return this
 		endif
 
-		this._autocmd.cmd = cmd
+		this._autocmd.cmd = cmd .. this.desc
 		autocmd_add([this._autocmd])
 		return this
 	enddef
