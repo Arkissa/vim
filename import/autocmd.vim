@@ -149,15 +149,16 @@ export class Autocmd
 		var enviroment = _enviroment
 		var group = get(this._autocmd, 'group', '')
 
-		autocmd_add([this._autocmd.event]->flattennew()->mapnew((_, event) => {
-			var id = id(F) ?? rand()
-			enviroment[id] = Callback.new(id, F, event, group)
+		var autocmds = [this._autocmd.event]->flattennew()->mapnew((_, event) => {
+			var callback = Callback.new(F, event, group)
+			enviroment[callback.id] = callback
 			var autocmd = {
 				event: event,
-				cmd: $'Autocmd.InternalFunction({id}).Call()'}
+				cmd: $'Autocmd.InternalFunction({callback.id}).Call(){this.desc}'}
 
-			return extend(autocmd, this._autocmd, 'force')
-		}))
+			return extend(autocmd, this._autocmd, 'keep')
+		})
+		autocmd_add(autocmds)
 		return this
 	enddef
 endclass
