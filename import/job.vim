@@ -11,14 +11,12 @@ import 'quickfix.vim'
 
 type Timer = timer.Timer
 type State = expect.State
-type Expect = expect.Expect
 type Autocmd = autocmd.Autocmd
 
 export class Job
 	var _job: job
 	var _cmd: string
 	var _opt: dict<any> = {}
-	var _expect: Expect
 
 	def new(this._cmd, this._opt)
 	enddef
@@ -51,36 +49,11 @@ export class Job
 		endif
 	enddef
 
-	def _Expect()
-		this._opt.err_mode = 'raw'
-		this._expect = Expect.new()
-
-		def Cb(ch: channel, text: string)
-			this._expect.Handle(text)
-		enddef
-
-		if has_key(this._opt, 'err_cb')
-			this._opt.err_cb = Cb
-		endif
-
-		if has_key(this._opt, 'out_cb')
-			this._opt.out_cb = Cb
-		endif
-
-		if has_key(this._opt, 'callback')
-			this._opt.callback = Cb
-		endif
-	enddef
-
 	def Run()
 		this.Stop()
 
 		if exists('#User#JobRunPost')
 			this._JobRunPost()
-		endif
-
-		if get(this._opt, 'out_mode', '') == 'raw'
-			this._Expect()
 		endif
 
 		if exists('#User#JobRunPre')
@@ -122,6 +95,46 @@ export class Job
 		endif
 
 		return null_dict
+	enddef
+endclass
+
+export class Expect extends Job
+	var _expect: expect.Expect
+
+	def new(...states: list<expect.State>)
+		this._expect = expect.Expect.new()
+
+		for state in reverse(states)
+			this._expect.Push(state)
+		endfor
+	enddef
+
+	def _Expect()
+		def Cb(ch: channel, text: string)
+			this._expect.Handle(text)
+		enddef
+
+		if has_key(this._opt, 'err_cb')
+			this._opt.err_cb = Cb
+		endif
+
+		if has_key(this._opt, 'out_cb')
+			this._opt.out_cb = Cb
+		endif
+
+		if has_key(this._opt, 'callback')
+			this._opt.callback = Cb
+		endif
+	enddef
+
+	def Run()
+		extend(this._opt, {
+			out_mode: 'raw',
+			err_mode: 'raw',
+		}, 'force')
+
+		this._Expect()
+		super.Run()
 	enddef
 endclass
 

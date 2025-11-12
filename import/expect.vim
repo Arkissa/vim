@@ -10,7 +10,8 @@ const MAX_BUFFER_LINE = 100
 export class State
 	var patterns: list<tuple<string, func>>
 
-	def new(this.patterns)
+	def new(...patterns: list<tuple<string, func>>)
+		this.patterns = patterns
 	enddef
 endclass
 
