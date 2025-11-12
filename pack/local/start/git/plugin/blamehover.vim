@@ -23,96 +23,225 @@ const AsyncIO = vim.AsyncIO
 const BlameHoverGroup = 'git_blame_hover'
 const BlameHoverPropTypeName = 'git_blame_proto_type'
 const BlameHoverVirtulTextHighlight = 'Comment'
-const FlushEvents = ['BufEnter', 'CursorHold', 'WinResized']
-const ClearEvents = ['InsertEnter', 'BufLeave', 'CursorMoved']
-const VirtualTextID = rand() % 10000 + 60000
-
-final cache: dict<any> = {}
+const FlushEvents = ['BufEnter', 'CursorHold']
+const ClearEvents = ['InsertEnter', 'CmdwinEnter', 'CmdlineEnter', 'BufLeave', 'CursorMoved']
 
 prop_type_add(BlameHoverPropTypeName, {
 	highlight: BlameHoverVirtulTextHighlight,
-	priority: 100,
 	combine: true,
+	priority: 100,
 	override: true,
 })
 
-def HandlerBlameLine(raw: string): dict<string>
-	var pat = '\v^([0-9a-f]{7,40})\s+\((.{-})\s+(\d{4})-\d{2}-\d{2}\s+(\d{2}:\d{2}:\d{2})\s+([+-]\d{4})\s+\d+\)'
-	var m = matchlist(raw, pat)
-	if len(m) == 0
-		return {}
-	endif
-	return {
-		'commit': m[1],
-		'author': m[2],
-		'year':   m[3],
-		'time':   m[4],
-		'tz':     m[5],
-	}
-enddef
+class Blame
+    var sha: string
+    var abbrev_sha: string
+    var author: string
+    var author_mail: string
+    var author_tz: string
+    var author_time: number
+    var committer: string
+    var committer_time: number
+    var committer_mail: string
+    var committer_tz: string
+    var summary: string
 
-def FormatBlame(blame: dict<string>): string
-	if blame->empty()
-		return ''
-	endif
+	static var _notCommitted: Blame
 
-	return $'{blame.author}, {blame.year} {blame.time} {blame.tz}'
-enddef
+	def new(
+		sha: string = '',
+		abbrev_sha: string = '',
+		author: string = '',
+		author_mail: string = '',
+		author_tz: string = '',
+		author_time: number = 0,
+		committer: string = '',
+		committer_time: number = 0,
+		committer_mail: string = '',
+		committer_tz: string = '',
+		summary: string = '',
+	)
+		this.sha = sha
+		this.abbrev_sha = abbrev_sha
+		this.author = author
+		this.author_mail = author_mail
+		this.author_tz = author_tz
+		this.author_time = author_time
+		this.committer = committer
+		this.committer_time = committer_time
+		this.committer_mail = committer_mail
+		this.committer_tz = committer_tz
+		this.summary = summary
+	enddef
 
-def CallbackShowVirtualText(ch: channel, line: string)
-	RemoveVirtualText()
+	def SetSha(v: string)
+		this.sha = v
+	enddef
 
-	const blame = FormatBlame(HandlerBlameLine(line))
-	if blame->empty()
+	def SetAbbrevSha(v: string)
+		this.abbrev_sha = v
+	enddef
+
+	def SetAuthor(v: string)
+		this.author = v
+	enddef
+
+	def SetAuthorMail(v: string)
+		this.author_mail = v
+	enddef
+
+	def SetAuthorTz(v: string)
+		this.author_tz = v
+	enddef
+
+	def SetAuthorTime(v: string)
+		this.author_time = v->str2nr()
+	enddef
+
+	def SetCommitter(v: string)
+		this.committer = v
+	enddef
+
+	def SetCommitterTime(v: string)
+		this.committer_time = v->str2nr()
+	enddef
+
+	def SetCommitterMail(v: string)
+		this.committer_mail = v
+	enddef
+
+	def SetCommitterTz(v: string)
+		this.committer_tz = v
+	enddef
+
+	def SetSummary(v: string)
+		this.summary = v
+	enddef
+
+	static def NotCommitted(file: string): Blame
+		var time = localtime()
+		if _notCommitted != null_object
+			_notCommitted.author_time = time
+			_notCommitted.committer_time = time
+			_notCommitted.summary = $'Version of {file}'
+
+			return _notCommitted
+		endif
+
+		_notCommitted = Blame.new(
+			repeat('0', 40),
+			repeat('0', 8),
+			'Not Committed Yet',
+			'<not.committed.yet>',
+			'+0000',
+			time,
+			'Not Committed Yet',
+			time,
+			'<not.committed.yet>',
+			'+0000',
+			$'Version of {file}',
+		)
+
+		return _notCommitted
+	enddef
+
+	def string(): string
+		var str = [$'{this.author}, {strftime("%Y-%m-%d %H:%M", this.author_time)}']
+		if this.abbrev_sha != '00000000'
+			str = str + [$'- {this.summary}']
+		endif
+
+		return str->join()
+	enddef
+endclass
+
+final blame = Blame.new()
+final handlers = vim.Ring.new([
+	('\v\zs[0-9a-f]{40}\ze\s+\d+\s+\d+\s+\d+$', (m) => {
+		blame.SetSha(m)
+		blame.SetAbbrevSha(m[0 : 7])
+	}),
+	('\vauthor \zs.+$', blame.SetAuthor),
+	('\vauthor-mail\s\<\zs[^>]+\>$', blame.SetAuthorMail),
+	('\vauthor-time \zs\d+$', blame.SetAuthorTime),
+	('\vauthor-tz \zs[+-]\d{4}$', blame.SetAuthorTz),
+	('\vcommitter \zs.+$', blame.SetCommitter),
+	('\vcommitter-mail\s\<\zs[^>]+\>$', blame.SetCommitterMail),
+	('\vcommitter-time \zs\d+$', blame.SetCommitterTime),
+	('\vcommitter-tz \zs[+-]\d{4}$', blame.SetCommitterTz),
+	('\vsummary \zs.+$', blame.SetSummary),
+])
+
+def HandlerBlameLine(line: string)
+	if line ==# ''
 		return
 	endif
 
-	const bufnr = bufnr()
-	const lnum = line('.')
+	var cur = handlers.Peek()
+	var re = cur[0]
+	var Fn = cur[1]
+	var m = matchstr(line, re)
+	if m !=# ''
+		Fn(m)
+		handlers.SlideRight()
+	endif
+enddef
 
-	cache[bufnr] = lnum
+def ShowVirtualText(ch: channel, line: string)
+	HandlerBlameLine(line)
+enddef
 
-	prop_add(lnum, 0, {
-		type: BlameHoverPropTypeName,
-		id: VirtualTextID,
+def RemoveVirtualText(bufnr: number, lnum: number)
+	const props = prop_list(1, {
 		bufnr: bufnr,
-		text: blame,
-		text_align: 'after',
-		text_padding_left: 3,
-		text_wrap: 'wrap',
+		end_lnum: -1,
+		types: [BlameHoverPropTypeName],
 	})
+
+	if props->empty()
+		return
+	endif
+
+	const p = {type: BlameHoverPropTypeName, bufnr: bufnr, all: true}
+	for prop in props
+		prop_remove(p, prop.lnum, prop.lnum)
+	endfor
+
+enddef
+
+var buf: number
+
+def Done(_: job, code: number)
+	var b = blame
+	buf = bufnr()
+	if code != 0
+		b = Blame.NotCommitted(bufname(buf))
+	endif
+
+	var lnum = line('.')
+	var prop = {
+		type: BlameHoverPropTypeName,
+		bufnr: buf,
+		text: b->string(),
+		text_wrap: 'wrap',
+		text_padding_left: 5,
+		text_align: 'after',
+	}
+
+	prop_add(lnum, 0, prop)
 
 	Autocmd.newMulti(ClearEvents)
 		.Group(BlameHoverGroup)
 		.Once()
+		.Replace()
+		.Bufnr(buf)
 		.Callback(() => {
-			AsyncIO.Run(Coroutine.new(RemoveVirtualText))
+			vim.NapCall(RemoveVirtualText, buf, lnum)
 		})
 enddef
 
-def RemoveVirtualText()
-	var bufnr = bufnr()
-	if !has_key(cache, bufnr)
-		return
-	endif
-
-	var lnum = cache[bufnr]
-	prop_clear(lnum, lnum, {
-		id: VirtualTextID,
-		type: BlameHoverPropTypeName,
-		both: true,
-	})
-	remove(cache, bufnr)
-enddef
-
-def Blame()
-	if &buftype != ''
-		return
-	endif
-
-	const bufnr = bufnr()
-	const lnum = line('.')
-	if has_key(cache, bufnr) && lnum == cache[bufnr]
+def RunBlame()
+	if &buftype != '' || &readonly || !&modifiable
 		return
 	endif
 
@@ -121,9 +250,11 @@ def Blame()
 		return
 	endif
 
-	const cmd = $'git --no-pager blame -L {lnum},{lnum} {fname}'
+	const lnum = line('.')
+	const cmd = $'git --no-pager blame -b --incremental -w -p -L {lnum},+1 {fname}'
 	var job = Job.new(cmd, {
-		out_cb: CallbackShowVirtualText,
+		out_cb: ShowVirtualText,
+		exit_cb: Done,
 		drop: 'auto',
 		silent: true,
 	})
@@ -133,8 +264,23 @@ enddef
 
 Autocmd.newMulti(FlushEvents)
 	.Group(BlameHoverGroup)
-	.Callback(() => {
-		var co = Coroutine.new(Blame)
+	.Desc('git blame hover flush event.')
+	.Callback((attr) => {
+		if bufloaded(buf) && buf != attr.buf
+			return
+		endif
+
+		var lnum = line('.')
+		const props = prop_list(lnum, {
+			bufnr: attr.buf,
+			end_lnum: lnum,
+			types: [BlameHoverPropTypeName]})
+
+		if !props->empty()
+			return
+		endif
+
+		var co = Coroutine.new(RunBlame)
 		co.SetDelay(get(g:, 'git_blame_delay', 100))
 
 		AsyncIO.Run(co)
