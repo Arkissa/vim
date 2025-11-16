@@ -74,7 +74,7 @@ export class Manager # {{{1
 
 	static def NewTerminal(bang: bool, cmd: string = '', pos: string = '', count: number = 0) # {{{2
 		if _terms->empty()
-			_terms = Ring.new(_NewTerm(cmd))
+			_terms = Ring.new((_NewTerm(cmd),))
 		endif
 
 		if _win.IsOpen()
