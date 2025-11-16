@@ -5,6 +5,7 @@ import 'window.vim'
 import 'autocmd.vim'
 import 'statusline.vim'
 import 'vim.vim'
+import 'timer.vim'
 
 type Buffer = buffer.Buffer
 type Window = window.Window
@@ -89,13 +90,6 @@ Autocmd.newMulti(['WinLeave', 'BufLeave'])
 	.Group(g:myvimrc_group)
 	.Command('setlocal nocursorline')
 
-Autocmd.new('VimEnter')
-	.Group(g:myvimrc_group)
-	.Command('set statusline=%{%g:statusline.Cut().Mode().BufName().Diags().Right().Git().FileType().Dir().Role().Build()%}')
-	.Once()
-	.Command('set autoread')
-
-
 Autocmd.new('OptionSet')
 	.Group(g:myvimrc_group)
 	.Pattern(['autoread'])
@@ -126,7 +120,7 @@ Autocmd.new('OptionSet')
 			au.Bufnr(bufnr())
 		endif
 
-		def Checktime()
+		def Checktime(_: timer.Timer)
 			if &buftype != '' || &readonly || !&modifiable
 				return
 			endif
@@ -134,7 +128,37 @@ Autocmd.new('OptionSet')
 			execute('checktime')
 		enddef
 
-		au.Callback(() => {
-			vim.NapCall(Checktime)
+		au.Callback(timer.Timer.new(&updatecount, Checktime).Reset)
+	})
+
+def ExcludeSpecialLockWindowSize()
+	const group = 'ExcludeSpecialLockWindowSize'
+	var saved: list<dict<any>>
+
+	Autocmd.new('CmdWinEnter')
+		.Group(group)
+		.Callback(() => {
+			saved = Autocmd.Get({group: 'LockWindowSize'})
+			if saved->empty()
+				return
+			endif
+
+			autocmd_delete([{group: 'LockWindowSize'}])
+			execute($'resize {&cmdwinheight}')
 		})
+
+	Autocmd.new('CmdWinLeave')
+		.Group(group)
+		.Callback(() => {
+			autocmd_add(saved)
+		})
+enddef
+
+Autocmd.new('VimEnter')
+	.Group(g:myvimrc_group)
+	.Command('set statusline=%{%g:statusline.Cut().Mode().BufName().Diags().Right().Git().FileType().Dir().Role().Build()%}')
+	.Once()
+	.Callback(ExcludeSpecialLockWindowSize)
+	.Callback(() => {
+		vim.NapCall(function('execute', ['set autoread']))
 	})

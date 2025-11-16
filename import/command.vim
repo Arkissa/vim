@@ -271,6 +271,7 @@ export class Command
 			return
 		endif
 
+		# command callback repl {{{3
 		var cmd	=<< trim eval END
 			{c} {this._attr->join()} {this._name} {{
 				var mods = <q-mods>
@@ -311,6 +312,7 @@ export class Command
 				call(Command.InternalFunction("{this._name}"), [attr])
 			}}
 		END
+		# }}}
 
 		execute(cmd->join("\n"))
 	enddef

@@ -19,102 +19,6 @@ endclass # }}}
 
 export const void = SingleVoid.new()
 
-export class Ring # {{{1
-	var _list: list<any>
-	var _i: number
-
-	def new(a: any = null) # {{{2
-		if a == null
-			this._list = []
-		elseif type(a) == v:t_list
-			this._list = a
-		else
-			this._list = [a]
-		endif
-	enddef # }}}
-
-	def len(): number # {{{2
-		return len(this._list)
-	enddef # }}}
-
-	def empty(): bool # {{{2
-		return this->len() == 0
-	enddef # }}}
-
-	def SwitchOf(F: func(any): bool) # {{{2
-		if this->empty()
-			return
-		endif
-
-		var maxCount = this->len()
-		var count: number
-		var i = this._i
-		while !F(this.Peek()) && count < maxCount
-			this.SlideRight()
-			count += 1
-		endwhile
-
-		if count >= maxCount
-			this._i = i
-		endif
-	enddef # }}}
-
-	def Peek(): any # {{{2
-		if this->empty()
-			return null
-		endif
-
-		return this._list[this._i]
-	enddef # }}}
-
-	def Pop(): any # {{{2
-		if this->empty()
-			return null
-		endif
-
-		var c = remove(this._list, this._i)
-		if this->empty()
-			this._i = 0
-			return c
-		endif
-
-		this._i %= this->len()
-
-		return c
-	enddef # }}}
-
-	def Push(t: any) # {{{2
-		if this->empty()
-			add(this._list, t)
-		else
-			insert(this._list, t, (this._i + 1))
-		endif
-		this._i = (this._i + 1) % this->len()
-	enddef # }}}
-
-	def SlideLeft() # {{{2
-		if !this->empty()
-			this._i = (this._i - 1 + this->len()) % this->len()
-		endif
-	enddef # }}}
-
-	def SlideRight() # {{{2
-		if !this->empty()
-			this._i = (this._i + 1) % this->len()
-		endif
-	enddef # }}}
-
-	def ToList<T>(): list<T> # {{{2
-		return copy(this._list)
-	enddef # }}}
-
-	def ForEach(F: func(any)) # {{{2
-		for item in this._list
-			F(item)
-		endfor
-	enddef # }}}
-endclass # }}}
-
 export type TupleList = tuple<...list<any>>
 
 export class List # {{{1
@@ -124,6 +28,10 @@ export class List # {{{1
 		endif
 
 		return list[0]
+	enddef # }}}
+
+	static def Length(a: TupleList): number # {{{2
+		return Foldl((_, count) => count + 1, 0, a)
 	enddef # }}}
 
 	static def Tail(list: TupleList): TupleList # {{{2
@@ -281,6 +189,122 @@ export class Zipper # {{{1
 		var [right, tail] = (List.Head(this._right), List.Tail(this._right))
 		this._right = tail
 		this._left = (right, this._left)
+	enddef # }}}
+endclass # }}}
+
+export class Ring # {{{1
+	var _right: TupleList = null_tuple
+	var _left: TupleList = null_tuple
+
+	def new(a: TupleList = null_tuple) # {{{2
+		this._right = a
+	enddef # }}}
+
+	def len(): number # {{{2
+		return List.Length(this._right) + List.Length(this._left)
+	enddef # }}}
+
+	def empty(): bool # {{{2
+		return this._left->empty() && this._right->empty()
+	enddef # }}}
+
+	def SwitchOf(F: func(any): bool) # {{{2
+		if this->empty()
+			return
+		endif
+		var saved_right = this._right
+		var saved_left = this._left
+		var found = false
+
+		defer () => {
+			if !found
+				this._left = saved_left
+				this._right = saved_right
+			endif
+		}()
+
+		var maxCount = this->len()
+		var count = 0
+
+		while count < maxCount
+			if this._right->empty()
+				[this._right, this._left] = (List.Reverse(this._left), null_tuple)
+			endif
+
+			if F(List.Head(this._right))
+				found = true
+				return
+			endif
+
+			this.SlideRight()
+			count += 1
+		endwhile
+	enddef # }}}
+
+	def Peek(): any # {{{2
+		if this->empty()
+			return null
+		endif
+
+		if this._right->empty()
+			[this._right, this._left] = (List.Reverse(this._left), null_tuple)
+		endif
+
+		return List.Head(this._right)
+	enddef # }}}
+
+	def Pop(): any # {{{2
+		if this->empty()
+			return null
+		endif
+
+		if this._right->empty()
+			[this._right, this._left] = (List.Reverse(this._left), null_tuple)
+		endif
+
+		var a = List.Head(this._right)
+		this._right = List.Tail(this._right)
+		return a
+	enddef # }}}
+
+	def Push(a: any) # {{{2
+		this._right = (a, this._right)
+	enddef # }}}
+
+	def SlideLeft() # {{{2
+		if this->empty()
+			return
+		endif
+
+		if this._left->empty()
+			[this._left, this._right] = (List.Reverse(this._right), null_tuple)
+		endif
+
+		this._right = (List.Head(this._left), this._right)
+		this._left = List.Tail(this._left)
+	enddef # }}}
+
+	def SlideRight() # {{{2
+		if this->empty()
+			return
+		endif
+
+		if this._right->empty()
+			[this._right, this._left] = (List.Reverse(this._left), null_tuple)
+		endif
+
+		this._left = (List.Head(this._right), this._left)
+		this._right = List.Tail(this._right)
+	enddef # }}}
+
+	def ToList<T>(): list<T> # {{{2
+		return List.ToVimList(this._right) + List.ToVimList(List.Reverse(this._left))
+	enddef # }}}
+
+	def ForEach(F: func(any)) # {{{2
+		for item in this.ToList<any>()
+			F(item)
+		endfor
 	enddef # }}}
 endclass # }}}
 

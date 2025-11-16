@@ -83,6 +83,19 @@ export class Autocmd
 		return _enviroment[id]
 	enddef
 
+	static def Get(opts: dict<any> = null_dict): list<dict<any>>
+		if opts == null_dict
+			return autocmd_get()
+		endif
+
+		try
+			return autocmd_get(opts)
+		catch /E367/
+		endtry
+
+		return []
+	enddef
+
 	static def Do(group: string, event: string, pattern: string, data: any = null)
 		_enviroment
 			->copy()
