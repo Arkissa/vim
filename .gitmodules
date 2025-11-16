@@ -7,6 +7,6 @@
 [submodule "pack/git/start/vim-dispatch"]
 	path = pack/remote/start/vim-dispatch
 	url = https://github.com/tpope/vim-dispatch.git
-[submodule "pack/lsp/opt/vim9-lsp"]
+[submodule "pack/remote/start/lsp"]
 	path = pack/remote/start/lsp
-	url = https://github.com/yegappan/lsp.git
+	url = https://github.com/yegappan/lsp

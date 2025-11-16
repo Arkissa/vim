@@ -126,11 +126,15 @@ Autocmd.new('OptionSet')
 			au.Bufnr(bufnr())
 		endif
 
-		au.Callback(() => {
+		def Checktime()
 			if &buftype != '' || &readonly || !&modifiable
 				return
 			endif
 
 			execute('checktime')
+		enddef
+
+		au.Callback(() => {
+			vim.NapCall(Checktime)
 		})
 	})
