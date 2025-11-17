@@ -53,7 +53,6 @@ endclass # }}}
 class LockWindowSize # {{{1
 	static const group = 'LockWindowSize'
 	static const event = 'WinResized'
-	static const _autocmd = autocmd_add([{group: LockWindowSize.group}])
 
 	static def IsLocked(winnr: number): bool # {{{2
 		var opts = {
@@ -62,7 +61,13 @@ class LockWindowSize # {{{1
 			pattern: winnr->string(),
 		}
 
-		return !autocmd_get(opts)->empty()
+		var found = false
+		try
+			found = !autocmd_get(opts)->empty()
+		catch /E367/
+		endtry
+
+		return found
 	enddef # }}}
 
 	static def Lock(winnr: number, height: number, widht: number) # {{{2
@@ -70,7 +75,18 @@ class LockWindowSize # {{{1
 			.Group(group)
 			.Pattern([winnr->string()])
 			.Callback(() => {
-				win_execute(winnr, $"resize {height} | vertical resize {widht}")
+				var cmd = []
+				if height > 0
+					cmd->add($'resize {height}')
+				endif
+
+				if widht > 0
+					cmd->add($'vertical resize {widht}')
+				endif
+
+				if cmd->len() > 0
+					win_execute(winnr, cmd->join(' | '))
+				endif
 			})
 
 		Autocmd.new('WinClosed')
@@ -79,6 +95,14 @@ class LockWindowSize # {{{1
 			.Pattern([winnr->string()])
 			.Callback(function(LockWindowSize.Unlock, [winnr]))
 	enddef # }}}
+
+	static def LockHeight(winnr: number, height: number)
+		LockWIndowSize.Lock(winnr, height, -1)
+	enddef
+
+	static def LockWidth(winnr: number, width: number)
+		LockWIndowSize.Lock(winnr, -1, width)
+	enddef
 
 	static def Unlock(winnr: number) # {{{2
 		autocmd_delete([{
@@ -249,8 +273,23 @@ export class Window # {{{1
 			return
 		endif
 
-		echom $'{this.Height()} {this.Width()}'
 		LockWindowSize.Lock(this.winnr, this.Height(), this.Width())
+	enddef # }}}
+
+	def LockHeightSize() # {{{2
+		if LockWindowSize.IsLocked(this.winnr)
+			return
+		endif
+
+		LockWindowSize.LockHeight(this.winnr, this.Height())
+	enddef # }}}
+
+	def LockWidthSize() # {{{2
+		if LockWindowSize.IsLocked(this.winnr)
+			return
+		endif
+
+		LockWindowSize.LockWidth(this.winnr, this.Width())
 	enddef # }}}
 
 	def UnlockSize() # {{{2

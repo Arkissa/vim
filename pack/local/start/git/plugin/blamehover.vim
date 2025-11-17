@@ -1,14 +1,10 @@
 vim9script noclear
 
-if exists('g:loaded_git_blame') || &compatible
+if !executable('git') || !isdirectory('.git') || exists('g:loaded_git_blame') || &compatible
   finish
 endif
 
 g:loaded_git_blame = true
-
-if !executable('git')
-	finish
-endif
 
 import 'vim.vim'
 import 'job.vim' as jb
@@ -156,7 +152,7 @@ class Blame
 endclass
 
 final blame = Blame.new()
-final handlers = vim.Ring.new([
+final handlers = vim.Ring.new((
 	('\v\zs[0-9a-f]{40}\ze\s+\d+\s+\d+\s+\d+$', (m) => {
 		blame.SetSha(m)
 		blame.SetAbbrevSha(m[0 : 7])
@@ -170,7 +166,7 @@ final handlers = vim.Ring.new([
 	('\vcommitter-time \zs\d+$', blame.SetCommitterTime),
 	('\vcommitter-tz \zs[+-]\d{4}$', blame.SetCommitterTz),
 	('\vsummary \zs.+$', blame.SetSummary),
-])
+))
 
 def HandlerBlameLine(line: string)
 	if line ==# ''
@@ -212,6 +208,10 @@ enddef
 var buf: number
 
 def Done(_: job, code: number)
+	if mode() != 'n'
+		return
+	endif
+
 	var b = blame
 	buf = bufnr()
 	if code != 0

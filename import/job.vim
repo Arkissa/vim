@@ -47,6 +47,8 @@ export class Job
 		if has_key(this._opt, 'callback')
 			this._opt.callback = funcref(Cb, [this._opt.callback])
 		endif
+
+		t.Start()
 	enddef
 
 	def Run()
