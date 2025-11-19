@@ -91,7 +91,6 @@ class LockWindowSize # {{{1
 
 		Autocmd.new('WinClosed')
 			.Group(group)
-			.Once()
 			.Pattern([winnr->string()])
 			.Callback(function(LockWindowSize.Unlock, [winnr]))
 	enddef # }}}
@@ -105,7 +104,7 @@ class LockWindowSize # {{{1
 	enddef
 
 	static def Unlock(winnr: number) # {{{2
-		autocmd_delete([{
+		Autocmd.Delete([{
 			group: group,
 			event: event,
 			pattern: winnr->string(),

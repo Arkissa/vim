@@ -105,7 +105,7 @@ Autocmd.new('OptionSet')
 		endif
 
 		if !v:option_new->str2nr()
-			autocmd_delete([opts])
+			Autocmd.Delete([opts])
 			return
 		endif
 
@@ -113,7 +113,6 @@ Autocmd.new('OptionSet')
 			'FocusGained',
 			'BufEnter',
 			'CursorHold',
-			'CursorHoldI',
 		]).Group(real_autoread_group)
 
 		if is_local
@@ -143,7 +142,7 @@ def ExcludeSpecialLockWindowSize()
 				return
 			endif
 
-			autocmd_delete([{group: 'LockWindowSize'}])
+			Autocmd.Delete([{group: 'LockWindowSize'}], false)
 			execute($'resize {&cmdwinheight}')
 		})
 
