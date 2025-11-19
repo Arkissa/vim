@@ -9,23 +9,7 @@ type Mods = keymap.Mods
 type NArgs = command.NArgs
 type Command = command.Command
 
-Command.new('Term')
-	.NArgs(NArgs.Star)
-	.Count()
-	.Bang()
-	.Complete(command.Complete.ShellCmd)
-	.Callback((attr) => {
-		var pos = attr.mods.split
-		if attr.mods.vertical
-			pos = 'vertical ' .. pos
-		elseif attr.mods.horizontal
-			pos = 'horizontal ' .. pos
-		endif
-
-		terminal.Manager.NewTerminal(attr.bang, attr.args, pos, attr.count)
-	})
-
-Command.new('TermToggle')
+Command.new('TermWinToggle')
 	.NArgs(NArgs.Zero)
 	.Count()
 	.Bang()
@@ -37,7 +21,7 @@ Command.new('TermToggle')
 			pos = 'horizontal ' .. pos
 		endif
 
-		terminal.Manager.ToggleWindow(attr.bang, '', pos, attr.count)
+		terminal.Manager.Toggle(attr.bang, pos, attr.count)
 	})
 
 Command.new('TermNext')
@@ -66,8 +50,8 @@ Command.new('TermKillAll')
 
 Bind.new(Mods.n)
 	.Silent()
-	.Map('\t', Bind.Cmd('botright 10Term'))
-	.Map('<Leader>tt', Bind.Cmd('TermToggle!'))
+	.Map('\t', ':botright term ++rows=15<CR>') # can't use Bind.Cmd, because need cmd read from cmdline.
+	.Map('<Leader>tt', Bind.Cmd('TermWinToggle!'))
 	.Map('<Leader>tk', Bind.Cmd('TermKill'))
 	.Map('<Leader>ta', Bind.Cmd('TermKillAll'))
 	.Map('[t', Bind.Cmd('TermPrev'))
