@@ -1,6 +1,5 @@
 vim9script
 
-import 'log.vim'
 import 'vim.vim'
 import 'quickfix.vim'
 import 'window.vim'
@@ -23,9 +22,15 @@ const conf = get(g:, 'QuickfixPreviewerConfig', {
 	borderhighlight: [],
 })
 
+const prop_name = "quickfix.Previewer"
+prop_type_add(prop_name, {
+	highlight: get(conf, 'hightlight', 'Cursor'),
+	override: true,
+	priority: 100,
+})
+
 # peek quickfix buffer with popup window.
 class Previewer # {{{1
-	static var _prop_name = "quickfix.Previewer"
 	static var _qf: Quickfixer
 	static var _window: window.Popup
 
@@ -64,7 +69,7 @@ class Previewer # {{{1
 		var lnum = item.lnum ?? 1
 		var col = item.col ?? 1
 		prop_add(lnum, col, {
-			type: _prop_name,
+			type: prop_name,
 			end_lnum: item.end_lnum ?? lnum,
 			end_col: item.end_col ?? col,
 			bufnr: win.GetBufnr(),
@@ -74,7 +79,7 @@ class Previewer # {{{1
 	static def _RemoveHightlightText(opt: autocmd.EventArgs) # {{{2
 		var win: window.Popup = opt.data
 		prop_remove({
-			type: _prop_name,
+			type: prop_name,
 			bufnr: win.GetBufnr()
 		})
 	enddef # }}}
@@ -83,10 +88,9 @@ class Previewer # {{{1
 		var data: tuple<window.Popup, any> = opt.data
 		var [win, _] = data
 		prop_remove({
-			type: _prop_name,
+			type: prop_name,
 			bufnr: win.GetBufnr()
 		})
-		prop_type_delete(_prop_name)
 	enddef # }}}
 
 	static def Open() # {{{2
@@ -103,12 +107,6 @@ class Previewer # {{{1
 		if _qf.Empty() || item == null_object
 			return
 		endif
-
-		prop_type_add(_prop_name, {
-			highlight: get(conf, 'hightlight', 'Cursor'),
-			override: true,
-			priority: 100,
-		})
 
 		_window.Open()
 
@@ -131,20 +129,19 @@ class Previewer # {{{1
 			.Callback(_WinOption)
 			.Callback(_AddHightlightText)
 
+		var F = 
 		Autocmd.new('WinClosed')
 			.Group(group)
 			.Pattern([win.winnr->string()])
 			.Callback(_DeleteHightlightName)
-			.Callback(() => {
-				autocmd_delete([{group: group}])
-			})
+			.Callback(function(Autocmd.Delete, [[{group: group}], true]))
 
 		Autocmd.new('CursorMoved')
 			.Group(group)
 			.Bufnr(bufnr)
 			.Callback(_SetCursorUnderBuff)
 
-		Autocmd.newMulti(["WinLeave", "WinClosed", "WinLeave", "BufWipeout", "BufHidden"])
+		Autocmd.newMulti(["WinLeave", "BufWipeout", "BufHidden"])
 			.Group(group)
 			.Bufnr(bufnr)
 			.Callback(Close)
@@ -174,10 +171,12 @@ class Previewer # {{{1
 				border: get(conf, 'border', []),
 				borderchars: get(conf, 'borderchars', []),
 				borderhighlight: get(conf, 'borderhighlight', []),
+				wrap: true,
+				resize: false,
 				maxheight: height,
 				minheight: height,
-				minwidth: width,
-				maxwidth: width,
+				minwidth: width - 3,
+				maxwidth: width - 3,
 				col: info.wincol,
 				line: info.winrow - 2,
 			})

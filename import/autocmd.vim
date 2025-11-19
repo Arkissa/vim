@@ -79,8 +79,8 @@ export class Autocmd
 		this._autocmd.event = events
 	enddef
 
-	static def InternalFunction(id: number): Callback
-		return _enviroment[id]
+	static def InternalFunction(id: number, once: bool): Callback
+		return once ? remove(_enviroment, id) : _enviroment[id]
 	enddef
 
 	static def Get(opts: dict<any> = null_dict): list<dict<any>>
@@ -105,6 +105,33 @@ export class Autocmd
 			})
 
 		execute(['doautocmd', '<nomodeline>', group, event, pattern]->join())
+	enddef
+
+	static def Delete(opts: list<dict<any>>, deleteFunction: bool = true)
+		if deleteFunction
+			var to_delete = []
+
+			for opt in opts
+				to_delete->extend(Autocmd.Get(opt))
+			endfor
+
+			if to_delete->empty()
+				return
+			endif
+
+			var ids = to_delete
+				->mapnew((_, au) => matchstr(au.cmd, 'InternalFunction(\zs\d\+\ze, \(true\|false\))'))
+				->filter((_, id) => id != '')
+				->mapnew((_, id) => str2nr(id))
+
+			for id in ids
+				if has_key(_enviroment, id)
+					remove(_enviroment, id)
+				endif
+			endfor
+		endif
+
+		autocmd_delete(opts)
 	enddef
 
 	def When(F: func(): bool): Autocmd
@@ -174,7 +201,7 @@ export class Autocmd
 			enviroment[callback.id] = callback
 			var autocmd = {
 				event: event,
-				cmd: $'Autocmd.InternalFunction({callback.id}).Call(){this.desc}'}
+				cmd: $'Autocmd.InternalFunction({callback.id}, {get(this._autocmd, 'once', false)}).Call(){this.desc}'}
 
 			return extend(autocmd, this._autocmd, 'keep')
 		})

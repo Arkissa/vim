@@ -76,6 +76,7 @@ endif
 &completeopt = vim.Option(['menuone', 'noinsert', 'noselect', 'fuzzy', 'popup', 'preview', 'longest'])
 &completefuzzycollect = vim.Option(['keyword', 'files', 'whole_line'])
 &completeitemalign = vim.Option(['kind', 'abbr', 'menu'])
+&completepopup = vim.Option(['border:round', 'borderhighlight:Title', 'highlight:Normal'])
 &suffixes = vim.Option(['.bak', '~', '.o', '.h', '.info', '.swp', '.obj', '.pyc', '.pyo', '.egg-info', '.class'])
 &wildignore = vim.Option([
 	'*.o', '*.obj', '*~', '*.exe', '*.a', '*.pdb', '*.lib',

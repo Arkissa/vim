@@ -380,7 +380,7 @@ export abstract class Execute extends jb.Quickfixer
 		var sep = '\$\*'
 
 		var expandedCmd: string
-		if cmd =~ sep
+		if cmd =~# sep
 			expandedCmd = substitute(cmd, sep, param, '')
 		else
 			expandedCmd = $'{trim(cmd)} {param}'

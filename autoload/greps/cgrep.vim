@@ -4,22 +4,20 @@ import 'vim.vim'
 import 'command.vim'
 
 class Cgrep extends command.ErrorFormat
-	var _command = ["cgrep", "-r"]
+	var _command = ["cgrep", "-r", "$*"]
 
 	def new(args: dict<any> = {})
 		if args->has_key("types")
-			extend(this._command, map(args.types, (_, type) => $"-t {type}"))
+			extend(this._command, map(args.types, (_, type) => $"--type={type}"))
 		endif
 
 		if args->has_key("kinds")
-			extend(this._command, map(args.kinds, (_, kind) => $"-k {kind}"))
+			extend(this._command, map(args.kinds, (_, kind) => $"--kind={kind}"))
 		endif
 
 		if args->has_key("pruneDirs")
 			extend(this._command, map(args.pruneDirs, (_, dir) => $"--prune-dir={dir}"))
 		endif
-
-		add(this._command, '$*')
 	enddef
 
 	def Cmd(): string
