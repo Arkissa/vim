@@ -62,7 +62,7 @@ g:GrepConfig = {
 				['\d']: ':Grep --name <C-r><C-w>',
 			},
 			args: {
-				types: ["Go"],
+				types: ["+Go"],
 				pruneDirs: ["proto", "3rd", "bin", "node_modules", "dist-newstyle", ".git"],
 				kind: ["Language"]
 			}
