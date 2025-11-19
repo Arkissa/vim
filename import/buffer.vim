@@ -374,6 +374,18 @@ export class Terminal extends Buffer # {{{1
 		this.SetVar("&number", false)
 	enddef # }}}
 
+	def newByBufnr(bufnr: number)
+		this.bufnr = bufnr
+		this.name = bufname(this.bufnr)
+		this.SetVar("&buflisted", false)
+		this.SetVar("&relativenumber", false)
+		this.SetVar("&number", false)
+
+		if this.GetVar('&buftype') != 'terminal'
+			this.SetVar('&buftype', 'terminal')
+		endif
+	enddef
+
 	def GetJob(): job # {{{2
 		return term_getjob(this.bufnr)
 	enddef # }}}
@@ -391,7 +403,7 @@ export class Terminal extends Buffer # {{{1
 	enddef # }}}
 
 	def SendKeys(k: string) # {{{2
-		term_sendkeys(this.bufnr, k) == 0
+		term_sendkeys(this.bufnr, k)
 	enddef # }}}
 
 	def SetAPI(s: string) # {{{2
