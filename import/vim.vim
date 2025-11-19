@@ -39,13 +39,33 @@ export class List # {{{1
 			throw 'empty list'
 		endif
 
-		if list->len() == 1
-			return ()
+		if list->len() > 2
+			return list[1 : ]
 		endif
 
 		return list->len() == 2 && type(list[1]) == v:t_tuple
 			? list[1]
 			: list[1 : ]
+	enddef # }}}
+
+	static def DeleteBy(F: func(any, any): bool, x: any, xs: TupleList): TupleList # {{{2
+		if xs->empty()
+			return ()
+		endif
+
+		var new = ()
+		var old = xs
+		while !old->empty()
+			var a = List.Head(old)
+			if F(x, a)
+				return List.Concat(List.Reverse(new), List.Tail(old))
+			endif
+
+			new = (a, new)
+			old = List.Tail(old)
+		endwhile
+
+		return xs
 	enddef # }}}
 
 	static def Foldl(F: func(any, any): any, init: any, list: TupleList): any # {{{2
@@ -298,13 +318,27 @@ export class Ring # {{{1
 	enddef # }}}
 
 	def ToList<T>(): list<T> # {{{2
-		return List.ToVimList(this._right) + List.ToVimList(List.Reverse(this._left))
+		return List.ToVimList(List.Reverse(this._left)) + List.ToVimList(this._right)
 	enddef # }}}
 
 	def ForEach(F: func(any)) # {{{2
 		for item in this.ToList<any>()
 			F(item)
 		endfor
+	enddef # }}}
+
+	def DeleteBy(F: func(any, any): bool, a: any) # {{{2
+		var xs = List.DeleteBy(F, a, this._right)
+		if List.Length(xs) != List.Length(this._right)
+			this._right = xs
+
+			if this._right->empty() && !this._left->empty()
+				[this._right, this._left] = (List.Reverse(this._left), null_tuple)
+			endif
+			return
+		endif
+
+		this._left = List.DeleteBy(F, a, this._left)
 	enddef # }}}
 endclass # }}}
 

@@ -165,7 +165,7 @@ final handlers = vim.Ring.new((
 	('\vcommitter-mail\s\<\zs[^>]+\>$', blame.SetCommitterMail),
 	('\vcommitter-time \zs\d+$', blame.SetCommitterTime),
 	('\vcommitter-tz \zs[+-]\d{4}$', blame.SetCommitterTz),
-	('\vsummary \zs.+$', blame.SetSummary),
+	(('\vsummary \zs.+$', blame.SetSummary),),
 ))
 
 def HandlerBlameLine(line: string)
