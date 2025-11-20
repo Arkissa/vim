@@ -108,3 +108,8 @@ Bind.newMulti(Mods.i, Mods.c)
 	.Map('<C-b>', '<Left>')
 	.Map('<M-b>', '<C-Left>')
 	.Map('<M-f>', '<C-Right>')
+
+Bind.new(Mods.n)
+	.Silent()
+	.Buffer()
+	.Map('\g', ':vertical leftabove term! ++cols=100 opencode --continue<CR>')

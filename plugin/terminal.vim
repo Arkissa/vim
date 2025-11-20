@@ -50,7 +50,7 @@ Command.new('TermKillAll')
 
 Bind.new(Mods.n)
 	.Silent()
-	.Map('\t', Bind.Cmd('botright term ++rows=15'))
+	.Map('\t', ':botright term ++rows=15<CR>') # can't use Bind.Cmd, because need cmd read from cmdline.
 	.Map('<Leader>tt', Bind.Cmd('TermWinToggle!'))
 	.Map('<Leader>tk', Bind.Cmd('TermKill'))
 	.Map('<Leader>ta', Bind.Cmd('TermKillAll'))
