@@ -39,39 +39,42 @@ class Text # {{{1
 		return $"…{bufname[len - limit + 1 : ]}"
 	enddef # }}}
 
-	static def GetText(text: string, limit: number): string # {{{2
-		var len = text->strdisplaywidth()
-		if len <= limit
-			return text
-		endif
-
-		return $"{text}…"
-	enddef # }}}
-
 	static def Func(info: dict<any>): list<string> # {{{2
 		var qf: Quickfixer = info.quickfix == 1 ? Quickfix.new({id: info.id}) : Location.new(info.winid, {id: info.id})
 
 		var qflist = qf.GetList({id: info.id, items: 1})
-
-		var items = qflist.items
+		var qfitems = qflist.items[info.start_idx - 1 : info.end_idx]
 		var maxFnameWidth = float2nr(floor(min([95, &columns / 4])))
-		var max_row = items
+		var max_row = qfitems
 			->mapnew((_, item) => Text.GetLnum(item))
 			->map((_, row) => row->strdisplaywidth())
 			->max()
-		var max_type = items
+		var max_type = qfitems
 			->mapnew((_, item) => item.type.Value->strdisplaywidth())
 			->max()
 		max_type = max_type == 0 ? 0 : max_type + 1
+		b:quickfix_max_type = max((get(b:, 'quickfix_max_type', max_type), max_type))
+		b:quickfix_max_row = max((get(b:, 'quickfix_max_type', max_row), max_row))
 
-		return items[info.start_idx - 1 : info.end_idx]->mapnew((_, item) => {
-				var fname: string
+		return qfitems->mapnew((_, item) => {
+				var fname = ''
+				var lnum = ''
+				var text = item.text
+				var row = b:quickfix_max_row
+				var type = b:quickfix_max_type
 				if item.valid
-					fname = Text.GetFname(fnamemodify(item.buffer.name, ":~:."), maxFnameWidth)
+					if filereadable(item.buffer.name)
+						fname = Text.GetFname(fnamemodify(item.buffer.name, ":~:."), maxFnameWidth)
+						lnum = Text.GetLnum(item)
+					elseif item.buffer.IsExists()
+						text = $'{item.buffer.name}{lnum}{text}'
+						item.buffer.Delete()
+						row = 0
+					endif
 				endif
 
-				var line = $"%-{max_type}s%-{maxFnameWidth}s │%{max_row}s│%{min([99, item.text->strdisplaywidth() + 1])}s"
-				return printf(line, item.type.Value, fname, Text.GetLnum(item), Text.GetText(item.text, 99))
+				var line = $"%-{type}s%-{maxFnameWidth}s │%{row}s│%{min([99, item.text->strdisplaywidth() + 1])}s"
+				return printf(line, item.type.Value, fname, lnum, text)
 			})
 	enddef # }}}
 endclass # }}}

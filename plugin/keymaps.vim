@@ -8,12 +8,9 @@ type Bind = keymap.Bind
 type Mods = keymap.Mods
 
 def QuickfixRingIdx(locl: bool, prev: bool)
-	var qf: quickfix.Quickfixer
-	if locl
-		qf = quickfix.Location.newCurrent()
-	else
-		qf = quickfix.Quickfix.newCurrent()
-	endif
+	var qf: quickfix.Quickfixer = locl
+		? quickfix.Location.newCurrent()
+		: quickfix.Quickfix.newCurrent()
 
 	if qf.Empty()
 		log.Error('E553: No more items')
@@ -28,6 +25,9 @@ def QuickfixRingIdx(locl: bool, prev: bool)
 	var what = qf.GetList({idx: idx, size: 1, items: 1})
 
 	var item = what.items[0]
+	if !item.valid
+		return
+	endif
 
 	var type: string
 	if item.type == quickfix.Type.E
@@ -70,11 +70,11 @@ Bind.new(Mods.n)
 	.Silent()
 	.Map('\\', '@@')
 
-	.Callback('<Leader>[', () => {
+	.Callback('[<Leader>', () => {
 		appendbufline(bufnr(), line('.') - 1, '')
 	})
 
-	.Callback('<Leader>]', () => {
+	.Callback(']<Leader>', () => {
 		appendbufline(bufnr(), line('.'), '')
 	})
 
