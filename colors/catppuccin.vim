@@ -42,9 +42,29 @@ var mantle = "#181825"
 var crust = "#11111B"
 
 g:terminal_ansi_colors = [
-  \ surface1, red, green, yellow, blue, pink, teal, subtext1,
-  \ surface2, red, green, yellow, blue, pink, teal, subtext0
-\ ]
+	surface1, red, green, yellow, blue, pink, teal, subtext1,
+	surface2, red, green, yellow, blue, pink, teal, subtext0,
+]
+
+def XtermDefineHl(): list<dict<any>>
+	if !exists('g:terminal_ansi_colors') || len(g:terminal_ansi_colors) < 16
+		return []
+	endif
+
+	return range(0, 15)
+		->mapnew((_, i) => {
+			var col = g:terminal_ansi_colors[i]
+			return [
+				{
+					name: $'XtermColorFg{i}',
+					guifg: col},
+				{
+					name: $'XtermColorBg{i}',
+					guibg: col}
+			]
+		})
+		->flattennew()
+enddef
 
 hlset([
     {name: "Visual", guibg: surface1, guifg: "NONE", gui: {bold: 1}, cterm: {bold: 1}, ctermfg: "NONE", ctermbg: "NONE"},
@@ -157,3 +177,5 @@ hlset([
 if has('gui_running')
 	hlset([{ name: 'Normal', guibg: '#000000', guifg: '#FFFFFF', force: true }])
 endif
+
+hlset(XtermDefineHl())

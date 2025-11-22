@@ -111,5 +111,4 @@ Bind.newMulti(Mods.i, Mods.c)
 
 Bind.new(Mods.n)
 	.Silent()
-	.Buffer()
 	.Map('\g', ':vertical leftabove term! ++cols=100 opencode --continue<CR>')
