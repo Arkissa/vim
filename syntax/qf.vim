@@ -5,10 +5,10 @@ if exists('b:current_syntax')
 endif
 
 # Complete line pattern
-syn match qfFileName /^\([EWIN]\s\)\?\f\+\s\d\+\(-\d\+\)\?\(:\d\+\(-\d\+\)\?\)\?\s/ nextgroup=qfText contains=qfLevelTag,qfLineCol
+syn match qfFileName "^\([EWIN]\s\)\?\f\+\s\d\+\(-\d\+\)\?\(:\d\+\(-\d\+\)\?\)\?\s" nextgroup=qfText contains=qfLevelTag,qfLineCol
 
 # Pattern Level Tag
-syn match qfLevelTag /^[EWIN]\s/ contained contains=qfError,qfWarn,qfInfo,qfNote
+syn match qfLevelTag "^[EWIN]\s" contained contains=qfError,qfWarn,qfInfo,qfNote
 # Level Tag keywords (E, W, I, N)
 syn keyword qfError E contained
 syn keyword qfWarn W contained
@@ -16,7 +16,7 @@ syn keyword qfInfo I contained
 syn keyword qfNote N contained
 
 # Line and column: lnum[-end_lnum][:col[-end_col]]
-syn match qfLineCol /\d\+\(-\d\+\)\?\(:\d\+\(-\d\+\)\?\)\?/ contained
+syn match qfLineCol "\d\+\(-\d\+\)\?\(:\d\+\(-\d\+\)\?\)\?" contained
 syn match qfText ".*" contained
 
 
@@ -38,7 +38,7 @@ def SyntaxAnsiColors(prefix: string, code_offset: number, xterm_type: string): l
 		if color >= 8
 			code = code_offset + 60 + (color - 8)
 		endif
-		execute($'syn region {prefix}{color} matchgroup=Conceal start=/\e\[\([0-9]\+;\)*{code}m/ matchgroup=Conceal end=/\e\[0\{{0,2}}m/ concealends')
+		execute($'syn region {prefix}{color} matchgroup=Conceal start="\e\[\([0-9]\+;\)*{code}m" matchgroup=Conceal end="\e\[0\{{0,2}}m" concealends')
 		highlights->add({name: $'{prefix}{color}', linksto: $'XtermColor{xterm_type}{color}', default: true})
 	endfor
 	return highlights
@@ -51,6 +51,10 @@ def GetRGBComponents(color: number): list<number>
 	var b = idx % 6
 	return [r, g, b]
 enddef
+
+# Fallback: conceal any unhandled ANSI escape sequences
+# This must be defined LAST so it has lowest priority
+syn region AnsiFallback matchgroup=Conceal start="\e\[[0-9;]*m" end="\e\[0\{0,2}m" concealends
 
 def MapRGBToAnsi(r: number, g: number, b: number): number
 	if abs(r - g) <= 1 && abs(g - b) <= 1 && abs(r - b) <= 1
@@ -145,7 +149,7 @@ def SyntaxXtermColors(prefix: string, code: number, xterm_type: string): list<di
 
 	# 0-15: Map to corresponding ANSI colors
 	for color in range(0, 15)
-		execute($'syn region {prefix}{color} matchgroup=Conceal start=/\e\[\([0-9]\+;\)*{code};5;{color}m/ matchgroup=Conceal end=/\e\[0\{{0,2}}m/ concealends')
+		execute($'syn region {prefix}{color} matchgroup=Conceal start="\e\[\([0-9]\+;\)*{code};5;{color}m" matchgroup=Conceal end="\e\[0\{{0,2}}m" concealends')
 		highlights->add({name: $'{prefix}{color}', linksto: $'XtermColor{xterm_type}{color}', default: true})
 	endfor
 
@@ -165,21 +169,21 @@ def SyntaxXtermColors(prefix: string, code: number, xterm_type: string): list<di
 		var ansi = str2nr(ansi_str)
 		var colors = rgb_groups[ansi_str]
 		var pattern = BuildNumberRangePattern(colors)
-		execute($'syn region {prefix}RGB{ansi} matchgroup=Conceal start=/\e\[\([0-9]\+;\)*{code};5;\({pattern}\)m/ matchgroup=Conceal end=/\e\[0\{{0,2}}m/ concealends')
+		execute($'syn region {prefix}RGB{ansi} matchgroup=Conceal start="\e\[\([0-9]\+;\)*{code};5;\({pattern}\)m" matchgroup=Conceal end="\e\[0\{{0,2}}m" concealends')
 		highlights->add({name: $'{prefix}RGB{ansi}', linksto: $'XtermColor{xterm_type}{ansi}', default: true})
 	endfor
 
 	# 232-255: Grayscale - simplified with regex ranges
 	# 232-237 -> Black (0)
-	execute($'syn region {prefix}GrayBlack matchgroup=Conceal start=/\e\[\([0-9]\+;\)*{code};5;23[2-7]m/ matchgroup=Conceal end=/\e\[0\{{0,2}}m/ concealends')
+	execute($'syn region {prefix}GrayBlack matchgroup=Conceal start="\e\[\([0-9]\+;\)*{code};5;23[2-7]m" matchgroup=Conceal end="\e\[0\{{0,2}}m" concealends')
 	highlights->add({name: $'{prefix}GrayBlack', linksto: $'XtermColor{xterm_type}0', default: true})
 
 	# 238-249 -> Gray (8)
-	execute($'syn region {prefix}GrayMedium matchgroup=Conceal start=/\e\[\([0-9]\+;\)*{code};5;\(23[89]\|24[0-9]\)m/ matchgroup=Conceal end=/\e\[0\{{0,2}}m/ concealends')
+	execute($'syn region {prefix}GrayMedium matchgroup=Conceal start="\e\[\([0-9]\+;\)*{code};5;\(23[89]\|24[0-9]\)m" matchgroup=Conceal end="\e\[0\{{0,2}}m" concealends')
 	highlights->add({name: $'{prefix}GrayMedium', linksto: $'XtermColor{xterm_type}8', default: true})
 
 	# 250-255 -> Bright White (15)
-	execute($'syn region {prefix}GrayWhite matchgroup=Conceal start=/\e\[\([0-9]\+;\)*{code};5;25[0-5]m/ matchgroup=Conceal end=/\e\[0\{{0,2}}m/ concealends')
+	execute($'syn region {prefix}GrayWhite matchgroup=Conceal start="\e\[\([0-9]\+;\)*{code};5;25[0-5]m" matchgroup=Conceal end="\e\[0\{{0,2}}m" concealends')
 	highlights->add({name: $'{prefix}GrayWhite', linksto: $'XtermColor{xterm_type}15', default: true})
 
 	return highlights
