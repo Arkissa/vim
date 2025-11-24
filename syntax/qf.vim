@@ -19,14 +19,14 @@ syn keyword qfNote N contained
 syn match qfLineCol "\d\+\(-\d\+\)\?\(:\d\+\(-\d\+\)\?\)\?" contained
 syn match qfText ".*" contained
 
-
-hi def link qfFileName Identifier
-hi def link qfLineCol Number
-
-hi def link qfError LspDiagSignErrorText
-hi def link qfWarn LspDiagSignWarningText
-hi def link qfInfo LspDiagSignInfoText
-hi def link qfNote LspDiagSignHintText
+hlset([
+	{name: 'qfError', default: true, linksto: 'LspDiagSignErrorText'},
+	{name: 'qfWarn', default: true, linksto: 'LspDiagSignWarningText'},
+	{name: 'qfInfo', default: true, linksto: 'LspDiagSignInfoText'},
+	{name: 'qfNote', default: true, linksto: 'LspDiagSignHintText'},
+	{name: 'qfFileName', default: true, linksto: 'XtermFg4'},
+	{name: 'qfLineCol', default: true, linksto: 'Number'},
+])
 
 &l:conceallevel = 2
 &l:concealcursor = 'nvc'

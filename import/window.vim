@@ -178,7 +178,7 @@ export class Window # {{{1
 
 	def Resize(height: number) # {{{2
 		if this.IsOpen()
-			this.Execute($'silent resize {height}')
+			this.Execute($'resize {height}', 'silent')
 		endif
 
 		this._height = height
@@ -188,21 +188,21 @@ export class Window # {{{1
 		this._pos = pos
 	enddef # }}}
 
-	def SetBuf(bufnr: number) # {{{2
+	def SetBuf(bufnr: number, au: bool = true) # {{{2
 		var winnr = this.winnr->string()
-		if exists($'#BufWinLeave#{winnr}')
-			Autocmd.Do('', 'BufWinLeave', winnr, this)
+		if au && exists($'#BufWinLeave#{winnr}')
+				Autocmd.Do('', 'BufWinLeave', winnr, this)
 		endif
 
-		this.Execute($'silent! buffer! {bufnr}')
+		this.Execute($'{au ? '' : 'noautocmd '}buffer! {bufnr}', 'silent')
 
-		if exists($'#BufWinEnter#{winnr}')
+		if au && exists($'#BufWinEnter#{winnr}')
 			Autocmd.Do('', 'BufWinEnter', winnr, this)
 		endif
 	enddef # }}}
 
-	def SetBuffer(buf: bf.Buffer) # {{{2
-		this.SetBuf(buf.bufnr)
+	def SetBuffer(buf: bf.Buffer, au: bool = true) # {{{2
+		this.SetBuf(buf.bufnr, au)
 	enddef # }}}
 
 	def Close(result: any = null) # {{{2
@@ -211,7 +211,7 @@ export class Window # {{{1
 			Autocmd.Do('', 'WinClosed', win, (this, result ?? this.GetBufnr()))
 		endif
 
-		this.Execute('silent! close!')
+		this.Execute('close!', 'silent!')
 	enddef # }}}
 
 	def GetCursorPos(): tuple<number, number> # {{{2
@@ -253,8 +253,8 @@ export class Window # {{{1
 		)
 	enddef # }}}
 
-	def Execute(cmd: string) # {{{2
-		win_execute(this.winnr, cmd)
+	def Execute(cmd: string, silent: string = '') # {{{2
+		win_execute(this.winnr, cmd, silent)
 	enddef # }}}
 
 	def ExecuteCallback(F: func()) # {{{2
