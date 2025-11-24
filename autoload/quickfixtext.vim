@@ -1,13 +1,19 @@
 vim9script
 
+import 'vim.vim'
+import 'window.vim'
+import 'buffer.vim'
+import 'autocmd.vim'
 import 'quickfix.vim'
 
+type Autocmd = autocmd.Autocmd
 type Location = quickfix.Location
 type Quickfix = quickfix.Quickfix
 type Quickfixer = quickfix.Quickfixer
 type QuickfixItem = quickfix.QuickfixItem
 
 class Text # {{{1
+	static const group = 'Quickfixtextfunc'
 	static def StripAnsi(text: string): string # {{{2
 		return text->substitute('\e\[[0-9;]*m', '', 'g')
 	enddef # }}}
@@ -62,19 +68,33 @@ class Text # {{{1
 		var qfitems = qflist.items[info.start_idx - 1 : info.end_idx]
 		var maxFnameWidth = float2nr(floor(min([95, &columns / 4])))
 
+		var win = window.Window.newByWinnr(winnr('#')->win_getid())
 		return qfitems->mapnew((_, item) => {
 			var lnum = Text.GetLnum(item)
 			var text = item.text
 			var fname = ''
 			var type_str = item.type.Value
 			if item.valid
-				if !filereadable(item.buffer.name) && item.buffer.IsExists()
-					var prefix = item.buffer.name .. lnum
-					text = prefix->empty() ? text : $'{prefix} {text}'
+				if !filereadable(item.buffer.name)
+					text = [item.buffer.name, lnum, text]
+						->filter((_, v) => !v->empty())
+						->join(':')
 					fname = ''
 					lnum = ''
-					item.buffer.Delete()
-				else
+					Autocmd.new('BufEnter')
+						.Group(Text.group)
+						.Desc('Refusal to enter errorformat due to a mismatch to an unreadable buffer.')
+						.Bufnr(item.buffer.bufnr)
+						.Replace()
+						.Callback(() => {
+							execute('redraw')
+							echo ''
+							var b = buffer.Buffer.newByBufnr(bufnr('#'))
+							var [lpos, cpos] = b.LastCursorPosition()
+							win.SetBuffer(b)
+							vim.NapCall(win.SetCursor, lpos, cpos)
+						})
+				elseif item.buffer.bufnr > 0
 					fname = Text.GetFname(fnamemodify(item.buffer.name, ":~:."), maxFnameWidth)
 				endif
 			endif
@@ -83,7 +103,7 @@ class Text # {{{1
 			var parts = [type_str, fname, lnum, text]->filter((_, v) => !v->empty())
 			var line = parts->join(' ')
 			return line
-			})
+		})
 	enddef # }}}
 endclass # }}}
 
