@@ -86,7 +86,11 @@ export class Buffer # {{{1
 		return (lnum, col)
 	enddef # }}}
 
-	def GetVar(name: string): any # {{{2
+	def GetVar(name: string, default: any = null): any # {{{2
+		if default != null
+			return getbufvar(this.bufnr, name, default)
+		endif
+
 		return getbufvar(this.bufnr, name)
 	enddef # }}}
 

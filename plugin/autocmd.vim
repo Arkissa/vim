@@ -130,34 +130,10 @@ Autocmd.new('OptionSet')
 		au.Callback(timer.Timer.new(&updatecount, Checktime).Reset)
 	})
 
-def ExcludeSpecialLockWindowSize()
-	const group = 'ExcludeSpecialLockWindowSize'
-	var saved: list<dict<any>>
-
-	Autocmd.new('CmdWinEnter')
-		.Group(group)
-		.Callback(() => {
-			saved = Autocmd.Get({group: 'LockWindowSize'})
-			if saved->empty()
-				return
-			endif
-
-			Autocmd.Delete([{group: 'LockWindowSize'}], false)
-			execute($'resize {&cmdwinheight}')
-		})
-
-	Autocmd.new('CmdWinLeave')
-		.Group(group)
-		.Callback(() => {
-			autocmd_add(saved)
-		})
-enddef
-
 Autocmd.new('VimEnter')
 	.Group(g:myvimrc_group)
 	.Command('set statusline=%{%g:statusline.Cut().Mode().BufName().Diags().Right().Git().FileType().Dir().Role().Build()%}')
 	.Once()
-	.Callback(ExcludeSpecialLockWindowSize)
 	.Callback(() => {
 		vim.NapCall(function('execute', ['set autoread']))
 	})

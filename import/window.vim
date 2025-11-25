@@ -50,68 +50,6 @@ export class WinInfo # {{{1
 	enddef # }}}
 endclass # }}}
 
-class LockWindowSize # {{{1
-	static const group = 'LockWindowSize'
-	static const event = 'WinResized'
-
-	static def IsLocked(winnr: number): bool # {{{2
-		var opts = {
-			group: group,
-			event: event,
-			pattern: winnr->string(),
-		}
-
-		var found = false
-		try
-			found = !autocmd_get(opts)->empty()
-		catch /E367/
-		endtry
-
-		return found
-	enddef # }}}
-
-	static def Lock(winnr: number, height: number, widht: number) # {{{2
-		Autocmd.new(event)
-			.Group(group)
-			.Pattern([winnr->string()])
-			.Callback(() => {
-				var cmd = []
-				if height > 0
-					cmd->add($'resize {height}')
-				endif
-
-				if widht > 0
-					cmd->add($'vertical resize {widht}')
-				endif
-
-				if cmd->len() > 0
-					win_execute(winnr, cmd->join(' | '))
-				endif
-			})
-
-		Autocmd.new('WinClosed')
-			.Group(group)
-			.Pattern([winnr->string()])
-			.Callback(function(LockWindowSize.Unlock, [winnr]))
-	enddef # }}}
-
-	static def LockHeight(winnr: number, height: number)
-		LockWIndowSize.Lock(winnr, height, -1)
-	enddef
-
-	static def LockWidth(winnr: number, width: number)
-		LockWIndowSize.Lock(winnr, -1, width)
-	enddef
-
-	static def Unlock(winnr: number) # {{{2
-		Autocmd.Delete([{
-			group: group,
-			event: event,
-			pattern: winnr->string(),
-		}])
-	enddef # }}}
-endclass # }}}
-
 export class Window # {{{1
 	var winnr: number
 	var _pos: string
@@ -172,7 +110,11 @@ export class Window # {{{1
 		return winbufnr(this.winnr)
 	enddef # }}}
 
-	def GetVar(name: string): any # {{{2
+	def GetVar(name: string, default: any = null): any # {{{2
+		if default != null
+			return getwinvar(this.winnr, name, default)
+		endif
+
 		return getwinvar(this.winnr, name)
 	enddef # }}}
 
@@ -265,34 +207,6 @@ export class Window # {{{1
 
 	def FeedKeys(exe: string, mod: string = 'm') # {{{2
 		this.Execute($'feedkeys(''{exe}'', ''{mod}'')')
-	enddef # }}}
-
-	def LockSize() # {{{2
-		if LockWindowSize.IsLocked(this.winnr)
-			return
-		endif
-
-		LockWindowSize.Lock(this.winnr, this.Height(), this.Width())
-	enddef # }}}
-
-	def LockHeightSize() # {{{2
-		if LockWindowSize.IsLocked(this.winnr)
-			return
-		endif
-
-		LockWindowSize.LockHeight(this.winnr, this.Height())
-	enddef # }}}
-
-	def LockWidthSize() # {{{2
-		if LockWindowSize.IsLocked(this.winnr)
-			return
-		endif
-
-		LockWindowSize.LockWidth(this.winnr, this.Width())
-	enddef # }}}
-
-	def UnlockSize() # {{{2
-		LockWindowSize.Unlock(this.winnr)
 	enddef # }}}
 endclass # }}}
 
