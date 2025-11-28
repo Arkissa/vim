@@ -120,7 +120,7 @@ Autocmd.new('OptionSet')
 		endif
 
 		def Checktime(_: timer.Timer)
-			if &buftype != '' || &readonly || !&modifiable
+			if &buftype != '' || &readonly || !&modifiable || mode() =~# 'i'
 				return
 			endif
 

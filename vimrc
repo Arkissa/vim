@@ -57,9 +57,9 @@ g:GrepConfig = {
 			keymaps: {
 				bind: Bind.new(Mods.n).Buffer().NoRemap(),
 				['\w']: ':Grep ',
-				['\s']: ':Grep --string ',
+				['\s']: ":Grep --string \\\"\\\"<Left><Left>",
 				['\r']: ':Grep -G ',
-				['\d']: ':Grep --name <C-r><C-w>',
+				['\d']: ':Grep --name -w <C-r><C-w>',
 			},
 			args: {
 				types: ["+Go"],
