@@ -60,12 +60,12 @@ export class QuickfixItem
 		this.end_col = item.end_col
 		this.text = item.text
 		this.valid = item.valid
-		this.type = has_key(item, 'type') ? Type.FromString(item.type) : ''
-		this.vcol = has_key(item, 'vcol') ? item.vcol : 0
-		this.module = has_key(item, 'module') ? item.module : ''
-		this.user_data = has_key(item, 'user_data') ? item.user_data : null_dict
-		this.pattern = has_key(item, 'pattern') ? item.pattern : ''
-		this.nr = has_key(item, 'nr') ? item.nr : 0
+		this.type = Type.FromString(get(item, 'type', ''))
+		this.vcol = get(item, 'vcol', 0)
+		this.module = get(item, 'module', '')
+		this.user_data = get(item, 'user_data', null_dict)
+		this.pattern = get(item, 'pattern', '')
+		this.nr = get(item, 'nr', 0)
 	enddef
 
 	def newByBuffer(buf: buffer.Buffer)

@@ -12,6 +12,8 @@ type Mods = keymap.Mods
 &l:buflisted = false
 &l:relativenumber = false
 &l:winfixbuf = true
+&l:signcolumn = 'auto'
+&l:numberwidth = 2
 
 Bind.new(Mods.n)
 	.NoRemap()

@@ -12,6 +12,29 @@ type Quickfix = quickfix.Quickfix
 type Quickfixer = quickfix.Quickfixer
 type QuickfixItem = quickfix.QuickfixItem
 
+sign_define([
+	{
+		name: 'E',
+		text: 'E',
+		texthl: 'qfError'
+	},
+	{
+		name: 'W',
+		text: 'W',
+		texthl: 'qfWarn'
+	},
+	{
+		name: 'I',
+		text: 'I',
+		texthl: 'qfInfo',
+	},
+	{
+		name: 'N',
+		text: 'N',
+		texthl: 'qfNote',
+	},
+])
+
 class Text # {{{1
 	static const group = 'Quickfixtextfunc'
 	static def StripAnsi(text: string): string # {{{2
@@ -64,16 +87,25 @@ class Text # {{{1
 			? Quickfix.new({id: info.id})
 			: Location.new(info.winid, {id: info.id})
 
-		var qflist = qf.GetList({id: info.id, items: 1})
+		var qflist = qf.GetList({id: info.id, items: 1, qfbufnr: 1})
 		var qfitems = qflist.items[info.start_idx - 1 : info.end_idx]
 		var maxFnameWidth = float2nr(floor(min([95, &columns / 4])))
 
-		var win = window.Window.newByWinnr(winnr('#')->win_getid())
-		return qfitems->mapnew((_, item) => {
+		var lastwin = window.Window.newByWinnr(winnr('#')->win_getid())
+		Autocmd.new('WinClosed')
+			.Group(Text.group)
+			.Pattern([])
+			.Once()
+			.Callback(() => {
+				sign_unplace(Text.group)
+			})
+		return qfitems->mapnew((i, item) => {
 			var lnum = Text.GetLnum(item)
 			var text = item.text
 			var fname = ''
-			var type_str = item.type.Value
+			if item.type != quickfix.Type.Empty
+				sign_place(0, Text.group, item.type.Value, qflist.qfbufnr, {lnum: info.start_idx + i})
+			endif
 			if item.valid
 				if !filereadable(item.buffer.name)
 					text = [item.buffer.name, lnum, text]
@@ -81,26 +113,13 @@ class Text # {{{1
 						->join(':')
 					fname = ''
 					lnum = ''
-					Autocmd.new('BufEnter')
-						.Group(Text.group)
-						.Desc('Refusal to enter errorformat due to a mismatch to an unreadable buffer.')
-						.Bufnr(item.buffer.bufnr)
-						.Replace()
-						.Callback(() => {
-							execute('redraw')
-							echo ''
-							var b = buffer.Buffer.newByBufnr(bufnr('#'))
-							var [lpos, cpos] = b.LastCursorPosition()
-							win.SetBuffer(b)
-							vim.NapCall(win.SetCursor, lpos, cpos)
-						})
 				elseif item.buffer.bufnr > 0
 					fname = Text.GetFname(fnamemodify(item.buffer.name, ":~:."), maxFnameWidth)
 				endif
 			endif
 
 			# Build line with conditional spacing
-			var parts = [type_str, fname, lnum, text]->filter((_, v) => !v->empty())
+			var parts = [fname, lnum, text]->filter((_, v) => !v->empty())
 			var line = parts->join(' ')
 			return line
 		})
