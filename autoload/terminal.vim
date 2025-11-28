@@ -360,7 +360,7 @@ class TerminalManager # {{{1
 					this._win.SetBuf(win.GetBufnr())
 
 					if this.GetCmdBang()
-						this._win.LockSize()
+						this._win.SetVar('&winfixwidth', true)
 					endif
 					return
 				endif
@@ -405,7 +405,7 @@ class TerminalManager # {{{1
 
 		this._WinOpen(this._win, pos, count)
 		if bang
-			this._win.LockSize()
+			this._win.SetVar('&winfixwidth', true)
 		endif
 
 		var term: Terminal
@@ -466,6 +466,7 @@ class TerminalManager # {{{1
 				w.SetVar('&signcolumn', 'no')
 				w.SetVar('&relativenumber', false)
 				w.SetVar('&hidden', false)
+				w.SetVar('&winfixbuf', true)
 			})
 	enddef # }}}
 

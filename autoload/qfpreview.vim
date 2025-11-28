@@ -48,6 +48,7 @@ class Previewer # {{{1
 		win.SetVar("&number", get(conf, 'number', false))
 		win.SetVar("&cursorline", get(conf, 'cursorline', false))
 		win.SetVar("&relativenumber", false)
+		win.SetVar("&wrap", false)
 	enddef # }}}
 
 	static def _DetectFiletype(opt: autocmd.EventArgs) # {{{2
@@ -129,7 +130,6 @@ class Previewer # {{{1
 			.Callback(_WinOption)
 			.Callback(_AddHightlightText)
 
-		var F = 
 		Autocmd.new('WinClosed')
 			.Group(group)
 			.Pattern([win.winnr->string()])
@@ -171,7 +171,7 @@ class Previewer # {{{1
 				border: get(conf, 'border', []),
 				borderchars: get(conf, 'borderchars', []),
 				borderhighlight: get(conf, 'borderhighlight', []),
-				wrap: true,
+				wrap: false,
 				resize: false,
 				maxheight: height,
 				minheight: height,
