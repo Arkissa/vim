@@ -5,28 +5,11 @@ if exists('b:current_syntax')
 endif
 
 # Complete line pattern
-syn match qfFileName "^\([EWIN]\s\)\?\f\+\s\d\+\(-\d\+\)\?\(:\d\+\(-\d\+\)\?\)\?\s" nextgroup=qfText contains=qfLevelTag,qfLineCol
-
-# Pattern Level Tag
-syn match qfLevelTag "^[EWIN]\s" contained contains=qfError,qfWarn,qfInfo,qfNote
-# Level Tag keywords (E, W, I, N)
-syn keyword qfError E contained
-syn keyword qfWarn W contained
-syn keyword qfInfo I contained
-syn keyword qfNote N contained
+syn match qfFileName "\s\{-\}\f\+\s\d\+\(-\d\+\)\?\(:\d\+\(-\d\+\)\?\)\?\s" nextgroup=qfText contains=qfLevelTag,qfLineCol
 
 # Line and column: lnum[-end_lnum][:col[-end_col]]
-syn match qfLineCol "\d\+\(-\d\+\)\?\(:\d\+\(-\d\+\)\?\)\?" contained
+syn match qfLineCol "\s\d\+\(-\d\+\)\?\(:\d\+\(-\d\+\)\?\)\?\s" contained
 syn match qfText ".*" contained
-
-hlset([
-	{name: 'qfError', default: true, linksto: 'LspDiagSignErrorText'},
-	{name: 'qfWarn', default: true, linksto: 'LspDiagSignWarningText'},
-	{name: 'qfInfo', default: true, linksto: 'LspDiagSignInfoText'},
-	{name: 'qfNote', default: true, linksto: 'LspDiagSignHintText'},
-	{name: 'qfFileName', default: true, linksto: 'XtermFg4'},
-	{name: 'qfLineCol', default: true, linksto: 'Number'},
-])
 
 &l:conceallevel = 2
 &l:concealcursor = 'nvc'
@@ -190,6 +173,12 @@ def SyntaxXtermColors(prefix: string, code: number, xterm_type: string): list<di
 enddef
 
 hlset([
+	{name: 'qfError', default: true, linksto: 'XtermFg1'},
+	{name: 'qfWarn', default: true, linksto: 'XtermFg3'},
+	{name: 'qfInfo', default: true, linksto: 'XtermFg6'},
+	{name: 'qfNote', default: true, linksto: 'XtermFg14'},
+	{name: 'qfFileName', default: true, linksto: 'XtermFg4'},
+	{name: 'qfLineCol', default: true, linksto: 'Number'},
 	SyntaxAnsiColors('ansiFg', 30, 'Fg'),
 	SyntaxAnsiColors('ansiBg', 40, 'Bg'),
 	SyntaxXtermColors('XtermFg', 38, 'Fg'),
