@@ -12,7 +12,7 @@ type Autocmd = autocmd.Autocmd
 
 const group = "Linter"
 
-var linterConfig: dict<any> = copy(g:LinterConfig)
+var linterConfig: dict<any> = copy(g:linter_config)
 
 def Lint(lint: command.Execute, onSaveCmd: string)
 	if onSaveCmd != null_string
