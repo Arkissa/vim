@@ -13,7 +13,7 @@ type Quickfixer = quickfix.Quickfixer
 
 const AsyncIO = vim.AsyncIO
 
-const conf = get(g:, 'QuickfixPreviewerConfig', {
+const conf = get(g:, 'quickfix_previewer_config', {
 	highlight: "Cursor",
 	cursorline: false,
 	padding: [],

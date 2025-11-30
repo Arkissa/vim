@@ -1,11 +1,11 @@
 vim9script
 
-if !exists("g:GrepConfig") || g:GrepConfig->empty()
+if !exists("g:grep_config") || g:grep_config->empty()
 	finish
 endif
 
 # type check
-var grepConfig: dict<any> = copy(g:GrepConfig)
+var grepConfig: dict<any> = copy(g:grep_config)
 var greps: list<dict<any>> = get(grepConfig, 'greps', [])
 
 import 'command.vim'
@@ -13,6 +13,7 @@ import 'autocmd.vim'
 import 'keymap.vim'
 
 type Bind = keymap.Bind
+type Mods = keymap.Mods
 type NArgs = command.NArgs
 type Command = command.Command
 type Autocmd = autocmd.Autocmd
@@ -35,7 +36,7 @@ def RegisterKeymap(bind: Bind, kvs: dict<any>)
 	endfor
 enddef
 
-if has_key(grepConfig, 'autoOpen') && remove(grepConfig, 'autoOpen')
+if has_key(grepConfig, 'auto_open') && remove(grepConfig, 'auto_open')
 	def AutoOpen(attr: any)
 		attr.data.Window()
 	enddef
@@ -65,8 +66,8 @@ for conf in greps
 
 	uniq(fts)
 
-	if has_key(conf, 'keymaps') && has_key(conf.keymaps, 'bind')
-		var bind: Bind = conf.keymaps.bind
+	if has_key(conf, 'keymaps')
+		var bind: Bind = get(conf.keymaps, 'bind', null_object) ?? Bind.new(Mods.n).Buffer().NoRemap()
 
 		Autocmd.new('FileType')
 			.Group(group)

@@ -27,6 +27,7 @@ endif
 
 :set autocomplete
 :set nocompatible
+:set smoothscroll
 :set number
 :set autoindent
 :set smartindent
@@ -41,10 +42,14 @@ endif
 :set hlsearch
 :set lazyredraw
 :set shortmess+=c
+:set shortmess-=S
 :set spelllang+=cjk
 :set dir-=.
 :set backup
 :set nowritebackup
+:colorscheme catppuccin
+:filetype plugin indent on
+:syntax on
 
 &autocompletedelay = 300 # 0 is so many noisy.
 &pumborder = vim.Option(['round'])
@@ -91,5 +96,5 @@ endif
 ])
 
 if $MYVIMDIR =~# $'^{getcwd()}'
-	&wildignore ..= ',pakc/remote/'
+	&wildignore ..= ',*/pack/remote/**'
 endif

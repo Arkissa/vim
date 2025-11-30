@@ -1,6 +1,6 @@
 vim9script
 
-if !exists("g:LinterConfig")
+if !exists("g:linter_config")
 	finish
 endif
 

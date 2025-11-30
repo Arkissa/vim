@@ -9,7 +9,7 @@ type NArgs = command.NArgs
 type Complete = command.Complete
 type Autocmd = autocmd.Autocmd
 
-const SimpleSession = get(g:, 'SimpleSession', {})
+const SimpleSession = get(g:, 'simple_session', {})
 const group = "Sesssion"
 
 def IsTemp(): bool
@@ -55,13 +55,13 @@ Command.new('SessionLoad')
 
 
 Autocmd.new('VimLeavePre')
-	.When((): bool => get(SimpleSession, 'saveOnVimLeave', false))
+	.When((): bool => get(SimpleSession, 'autosave', false))
 	.Group(group)
 	.Once()
 	.Command('silent SessionSave')
 
 Autocmd.new('BufEnter')
-	.When((): bool => get(SimpleSession, 'loadOnBufEnter', false))
+	.When((): bool => get(SimpleSession, 'autoload', false))
 	.Group(group)
 	.Once()
 	.Command('silent SessionLoad')
