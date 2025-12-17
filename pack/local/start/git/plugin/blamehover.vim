@@ -252,14 +252,12 @@ def RunBlame()
 
 	const lnum = line('.')
 	const cmd = $'git --no-pager blame -b --incremental -w -p -L {lnum},+1 {fname}'
-	var job = Job.new(cmd, {
-		out_cb: ShowVirtualText,
-		exit_cb: Done,
-		drop: 'auto',
-		silent: true,
-	})
-
-	job.Run()
+	Job.new(cmd, {
+			out_cb: ShowVirtualText,
+			exit_cb: Done,
+			drop: 'auto',
+			silent: true,
+	}).Run()
 enddef
 
 Autocmd.newMulti(FlushEvents)

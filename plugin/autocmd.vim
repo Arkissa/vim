@@ -124,7 +124,7 @@ Autocmd.new('OptionSet')
 				return
 			endif
 
-			execute('checktime')
+			vim.NapCall(function('execute', ['checktime']))
 		enddef
 
 		au.Callback(timer.Timer.new(&updatecount, Checktime).Reset)
