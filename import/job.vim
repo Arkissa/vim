@@ -18,7 +18,8 @@ export class Job
 	var _cmd: string
 	var _opt: dict<any> = {}
 
-	def new(this._cmd, this._opt)
+	def new(this._cmd, opt: dict<any>)
+		this._opt = copy(opt)
 	enddef
 
 	def _JobRunPost()
@@ -63,6 +64,9 @@ export class Job
 		endif
 
 		const silent = has_key(this._opt, 'silent') ? remove(this._opt, 'silent') : false
+		defer () => {
+			this._opt.silent = silent
+		}()
 		this._job = job_start(this._cmd, this._opt)
 
 		if silent
