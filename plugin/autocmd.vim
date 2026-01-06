@@ -137,3 +137,7 @@ Autocmd.new('VimEnter')
 	.Callback(() => {
 		vim.NapCall(function('execute', ['set autoread']))
 	})
+
+Autocmd.new('TerminalOpen')
+	.Group(g:myvimrc_group)
+	.Command('setlocal signcolumn=no')
