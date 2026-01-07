@@ -1,11 +1,16 @@
 vim9script
 
 import 'command.vim'
+import 'quickfix.vim'
 
 type Command = command.Command
+type Quickfix = quickfix.Quickfix
 
 Command.new('Copen')
 	.Bang()
 	.Bar()
 	.Overlay()
-	.Command("dispatch#copen(<bang>0, '<mods>' ?? 'belowright')")
+	.Callback((attr) => {
+		dispatch#copen(attr.bang, '<mods>' ?? 'belowright')
+		Quickfix.newCurrent().Window()
+	})
