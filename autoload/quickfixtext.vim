@@ -121,7 +121,7 @@ class Text # {{{1
 			# Build line with conditional spacing
 			var parts = [fname, lnum, text]->filter((_, v) => !v->empty())
 			var line = parts->join(' ')
-			return line
+			return line ?? " "
 		})
 	enddef # }}}
 endclass # }}}
