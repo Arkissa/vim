@@ -112,7 +112,7 @@ export interface Quickfixer
 	def Close()
 	def Window(height: number = 0)
 	def IsLocation(): bool
-	def Empty(): bool
+	def IsEmpty(): bool
 	def IsOpen(): bool
 	def GetItemsWithType(): list<QuickfixItem>
 	def NextValidIdx(ring: bool): number
@@ -210,7 +210,7 @@ export class Quickfix implements Quickfixer
 	enddef
 
 	def GetItemUnderTheCursor(): QuickfixItem
-		if this.Empty()
+		if this.IsEmpty()
 			return null_object
 		endif
 
@@ -253,7 +253,7 @@ export class Quickfix implements Quickfixer
 		return false
 	enddef
 
-	def Empty(): bool
+	def IsEmpty(): bool
 		return this.GetList() == null_list
 	enddef
 
@@ -321,7 +321,7 @@ export class Location implements Quickfixer
 	enddef
 
 	def GetItemUnderTheCursor(): QuickfixItem
-		if this.Empty()
+		if this.IsEmpty()
 			return null_object
 		endif
 
@@ -364,7 +364,7 @@ export class Location implements Quickfixer
 		return true
 	enddef
 
-	def Empty(): bool
+	def IsEmpty(): bool
 		return this.GetList() == null_list
 	enddef
 

@@ -105,7 +105,7 @@ class Previewer # {{{1
 			? Location.newCurrent()
 			: Quickfix.newCurrent()
 		var item = _qf.GetItemUnderTheCursor()
-		if _qf.Empty() || item == null_object
+		if _qf.IsEmpty() || item == null_object
 			return
 		endif
 
