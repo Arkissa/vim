@@ -116,12 +116,12 @@ export abstract class StatusLine
 
 		var typeItems = []
 		var qf = Quickfix.newCurrent()
-		if !qf.Empty()
+		if !qf.IsEmpty()
 			typeItems->extend(qf.GetList())
 		endif
 
 		var locl = Location.newCurrent()
-		if !locl.Empty()
+		if !locl.IsEmpty()
 			typeItems->extend(locl.GetList())
 		endif
 

@@ -12,7 +12,7 @@ def QuickfixRingIdx(locl: bool, prev: bool)
 		? quickfix.Location.newCurrent()
 		: quickfix.Quickfix.newCurrent()
 
-	if qf.Empty()
+	if qf.IsEmpty()
 		log.Error('E553: No more items')
 		return
 	endif

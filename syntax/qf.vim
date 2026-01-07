@@ -5,7 +5,7 @@ if exists('b:current_syntax')
 endif
 
 # Complete line pattern
-syn match qfFileName "\s\{-\}\f\+\s\d\+\(-\d\+\)\?\(:\d\+\(-\d\+\)\?\)\?\s" nextgroup=qfText contains=qfLevelTag,qfLineCol
+syn match qfFileName "\f\+\s\d\+\(-\d\+\)\?\(:\d\+\(-\d\+\)\?\)\?\s" nextgroup=qfText contains=qfLevelTag,qfLineCol
 
 # Line and column: lnum[-end_lnum][:col[-end_col]]
 syn match qfLineCol "\s\d\+\(-\d\+\)\?\(:\d\+\(-\d\+\)\?\)\?\s" contained
