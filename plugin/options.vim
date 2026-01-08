@@ -50,6 +50,8 @@ endif
 :colorscheme catppuccin
 :filetype plugin indent on
 :syntax on
+:runtime ftplugin/man.vim
+:set keywordprg=:Man
 
 &autocompletedelay = 300 # 0 is so many noisy.
 &pumborder = vim.Option(['round'])
