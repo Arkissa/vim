@@ -12,5 +12,8 @@ Command.new('Copen')
 	.Overlay()
 	.Callback((attr) => {
 		dispatch#copen(attr.bang, '<mods>' ?? 'belowright')
-		Quickfix.newCurrent().Window()
+		var qf = Quickfix.newCurrent()
+		if !qf.IsEmpty()
+			qf.Open()
+		endif
 	})
