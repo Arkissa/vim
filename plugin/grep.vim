@@ -11,6 +11,7 @@ var greps: list<dict<any>> = get(grepConfig, 'greps', [])
 import 'command.vim'
 import 'autocmd.vim'
 import 'keymap.vim'
+import autoload 'greps/grepprg.vim'
 
 type Bind = keymap.Bind
 type Mods = keymap.Mods
@@ -36,15 +37,16 @@ def RegisterKeymap(bind: Bind, kvs: dict<any>)
 	endfor
 enddef
 
-if has_key(grepConfig, 'auto_open') && remove(grepConfig, 'auto_open')
-	def AutoOpen(attr: any)
-		attr.data.Window()
-	enddef
-
+if get(grepConfig, 'auto_open', false)
 	Autocmd.new('QuickFixCmdPost')
 		.Group(group)
 		.Pattern(['Grep'])
-		.Callback(AutoOpen)
+		.Callback((attr) => {
+			var qf = attr.data
+			if !qf.IsEmpty()
+				qf.Open()
+			endif
+		})
 endif
 
 for conf in greps
@@ -55,7 +57,7 @@ for conf in greps
 	endif
 
 	var Constructor = eval($'{fnamemodify(conf.module, ':t:r')}.Grep.new')
-	var obj: command.Execute = has_key(conf, 'args')
+	var obj: grepprg.Grepprg = has_key(conf, 'args')
 		? Constructor(conf.args)
 		: Constructor()
 
@@ -64,7 +66,7 @@ for conf in greps
 		fts = type(conf.ft) == v:t_string ? [conf.ft] : (conf.ft ?? fts)
 	endif
 
-	uniq(fts)
+	fts = uniq(copy(fts))
 
 	if has_key(conf, 'keymaps')
 		var bind: Bind = get(conf.keymaps, 'bind', null_object) ?? Bind.new(Mods.n).Buffer().NoRemap()
