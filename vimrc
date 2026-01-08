@@ -21,16 +21,8 @@ g:quickfix_previewer_config = {
 g:grep_config = {
 	greps: [
 		{
-			module: 'greps/grepprg',
-			Init: () => {
-				&grepprg = vim.Cmd(['grep', '-r', '-n', '$*'])
-			},
-			keymaps: {
-				['\w']: ':Grep ',
-			}
-		},
-		{
 			module: 'greps/cgrep',
+			ft: ['go', 'gomod', 'json', 'lua', 'rs', 'yaml', 'c', 'java', 'cpp', 'haskell', 'python', 'js', 'ts', 'bash', 'cabal'],
 			keymaps: {
 				['\w']: ':Grep ',
 				['\s']: ":Grep --string \\\"\\\"<Left><Left>",
@@ -38,11 +30,19 @@ g:grep_config = {
 				['\d']: ':Grep --name -w <C-r><C-w>',
 			},
 			args: {
-				types: [],
-				pruneDirs: ["proto", "3rd", "bin", "node_modules", "dist-newstyle", ".git"],
+				prune_dirs: ["proto", "3rd", "bin", "node_modules", "dist-newstyle", ".git"],
 				kind: ["Language"]
 			}
-		}
+		},
+		{
+			module: 'greps/gnugrep',
+			keymaps: {
+				['\w']: ':Grep ',
+			},
+			args: {
+				exclude_dir: ["proto", "3rd", "bin", "node_modules", "dist-newstyle", ".git"],
+			}
+		},
 	],
 	auto_open: true
 }

@@ -3,24 +3,14 @@ vim9script
 import "vim.vim"
 import "command.vim"
 
-class Grepprg extends command.ErrorFormat
-	def Cmd(): string
-		var args = []
-		var ignores = split(&wildignore, ',')
-		for ignore in ignores
-			if ignore =~# '/'
-				args->add($"--exclude-dir={ignore}")
-			else
-				args->add($"--exclude={ignore}")
-			endif
-		endfor
+export abstract class Grepprg extends command.ErrorFormat
+	abstract def GetArgs(): list<string>
 
-		return this.Expandcmd(substitute(&grepprg, '\$\*', $'{vim.Cmd(args)} $*', ''))
+	def Cmd(): string
+		return this.Expandcmd(substitute(&grepprg, '\$\*', $'{vim.Cmd(this.GetArgs())} $*', ''))
 	enddef
 
 	def Efm(): string
 		return &grepformat
 	enddef
 endclass
-
-export type Grep = Grepprg
