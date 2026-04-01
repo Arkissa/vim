@@ -122,6 +122,40 @@ var defaultLspConfig = [
 			}
 		},
 	},
+	{
+		name: 'rustanalyzer',
+		filetype: 'rust',
+		path: 'rust-analyzer',
+		initializationOptions: {
+			inlayHints: {
+				typeHints: {
+					enable: true
+				},
+				parameterHints: {
+					enable: true
+				}
+			},
+		}
+	},
+	{
+		name: 'python',
+		filetype: 'python',
+		path: 'basedpyright-langserver',
+		args: ['--stdio'],
+		workspaceConfig: {
+			basedpyright: {
+				analysis: {
+					venv: ".venv",
+					diagnosticMode: "openFilesOnly",
+					useLibraryCodeForTypes: true,
+					reportMissingTypeStubs: "none",
+					inlayHints: {
+						callArgumentNames: true
+					}
+				}
+			}
+		}
+	},
 ]
 
 g:LspConf = extend(get(g:, 'LspConf', []), defaultLspConfig)

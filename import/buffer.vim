@@ -370,7 +370,7 @@ endclass # }}}
 
 export class Terminal extends Buffer # {{{1
 	def new(cmd: string, opt: dict<any>) # {{{2
-		opt.hidden = true
+		opt.hidden = get(opt, 'hidden', true)
 		this.bufnr = term_start(cmd, opt)
 		this.name = bufname(this.bufnr)
 		this.SetVar("&buflisted", false)
@@ -378,7 +378,7 @@ export class Terminal extends Buffer # {{{1
 		this.SetVar("&number", false)
 	enddef # }}}
 
-	def newByBufnr(bufnr: number)
+	def newByBufnr(bufnr: number) # {{{2
 		this.bufnr = bufnr
 		this.name = bufname(this.bufnr)
 		this.SetVar("&buflisted", false)
@@ -388,7 +388,7 @@ export class Terminal extends Buffer # {{{1
 		if this.GetVar('&buftype') != 'terminal'
 			this.SetVar('&buftype', 'terminal')
 		endif
-	enddef
+	enddef # }}}
 
 	def GetJob(): job # {{{2
 		return term_getjob(this.bufnr)
@@ -408,6 +408,10 @@ export class Terminal extends Buffer # {{{1
 
 	def SendKeys(k: string) # {{{2
 		term_sendkeys(this.bufnr, k)
+	enddef # }}}
+
+	def SendKeysAndEnter(k: string) # {{{2
+		term_sendkeys(this.bufnr, k .. "\<CR>")
 	enddef # }}}
 
 	def SetAPI(s: string) # {{{2

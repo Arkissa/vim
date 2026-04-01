@@ -138,6 +138,41 @@ Autocmd.new('VimEnter')
 		vim.NapCall(function('execute', ['set autoread']))
 	})
 
-Autocmd.new('TerminalOpen')
+Autocmd.new('WinNew')
+	.Desc('When terminal show on window will be set signcolumn=no and nowrap.')
 	.Group(g:myvimrc_group)
-	.Command('setlocal signcolumn=no')
+	.Callback(() => {
+		vim.NapCall(() => {
+			if &buftype == 'terminal'
+				&signcolumn = 'no'
+				&wrap = false
+			endif
+		})
+	})
+
+
+Autocmd.new('CompleteChanged')
+	.Group(g:myvimrc_group)
+	.Callback(() => {
+		var popid = popup_findinfo()
+		var options = popup_getoptions(popid)
+		if has_key(options, 'filter')
+			return
+		endif
+
+		popup_setoptions(popid, {
+			filter: (winid, key) => {
+				var win = Window.newByWinnr(winid)
+				if vim.Contains(["\<C-u>", "\<C-d>"], key)
+					win.ExecuteCallback(() => {
+						execute($"normal! {key}")
+					})
+					return true
+				endif
+				return false
+			}})
+	})
+
+Autocmd.new('StdinReadPost')
+	.Group(g:myvimrc_group)
+	.Command('if &modified | &modified = false | endif')

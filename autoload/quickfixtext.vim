@@ -83,6 +83,7 @@ class Text # {{{1
 	enddef # }}}
 
 	static def Func(info: dict<any>): list<string> # {{{2
+		sign_unplace(Text.group)
 		var qf: Quickfixer = info.quickfix == 1
 			? Quickfix.new({id: info.id})
 			: Location.new(info.winid, {id: info.id})
@@ -103,9 +104,6 @@ class Text # {{{1
 			var lnum = Text.GetLnum(item)
 			var text = item.text
 			var fname = ''
-			if item.type != quickfix.Type.Empty
-				sign_place(0, Text.group, item.type.Value, qflist.qfbufnr, {lnum: info.start_idx + i})
-			endif
 			if item.valid
 				if !filereadable(item.buffer.name)
 					text = [item.buffer.name, lnum, text]
@@ -113,8 +111,16 @@ class Text # {{{1
 						->join(':')
 					fname = ''
 					lnum = ''
-				elseif item.buffer.bufnr > 0
+
+					return text
+				endif
+
+				if item.buffer.bufnr > 0
 					fname = Text.GetFname(fnamemodify(item.buffer.name, ":~:."), maxFnameWidth)
+				endif
+
+				if item.type != quickfix.Type.Empty
+					sign_place(0, Text.group, item.type.Value, qflist.qfbufnr, {lnum: info.start_idx + i})
 				endif
 			endif
 

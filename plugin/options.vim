@@ -56,6 +56,7 @@ endif
 &autocompletedelay = 300 # 0 is so many noisy.
 &pumborder = vim.Option(['round'])
 &complete = 'F,o'
+&ttyscroll = 3 # kitty will fast redraw screen.
 &ttimeoutlen = 50
 &scrolloff = 10
 &pumheight = 15
@@ -80,8 +81,7 @@ endif
 	'winpos', 'resize', 'terminal', 'folds', 'help',
 	'localoptions'
 ])
-&completeopt = vim.Option(['menuone', 'noinsert', 'noselect', 'fuzzy', 'popup', 'preview', 'longest'])
-&completefuzzycollect = vim.Option(['keyword', 'files', 'whole_line'])
+&completeopt = vim.Option(['menuone', 'noinsert', 'fuzzy', 'noselect', 'popup', 'preview'])
 &completeitemalign = vim.Option(['kind', 'abbr', 'menu'])
 &completepopup = vim.Option(['border:round', 'borderhighlight:Title', 'highlight:Normal'])
 &suffixes = vim.Option(['.bak', '~', '.o', '.h', '.info', '.swp', '.obj', '.pyc', '.pyo', '.egg-info', '.class'])
@@ -93,7 +93,7 @@ endif
  	'*DS_Store*', '*.ipch', '*.gem', '*.png', '*.jpg', '*.gif',
 	'*.bmp', '*.tga', '*.pcx', '*.ppm', '*.img', '*.iso', '*.so',
 	'*.swp', '*.zip', '*/.Trash/**', '*.pdf', '*.dmg', '*/.rbenv/**',
- 	'*/.nx/**', '*.app', '*.git', '.git/', '__pycache__/', 'dist-newstyle/',
+ 	'*/.nx/**', '*.app', '*.git', '.git/', '__pycache__/', '*/dist-newstyle/**',
  	'*.wav', '*.mp3', '*.ogg', '*.pcm', 'node_modules/', '*.pb.*', '*/3rd/**'
 ])
 

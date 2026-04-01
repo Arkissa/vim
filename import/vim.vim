@@ -520,3 +520,25 @@ enddef # }}}
 export def ContainsOf(s: any, F: func(any): bool, opts: dict<any> = {startidx: 0}): bool # {{{1
 	return index((v:t_list, v:t_tuple, v:t_blob), type(s)) >= 0 && indexof(s, F, opts) >= 0
 enddef # }}}
+
+export def FindMarks(marks: list<string>): string
+	var curdir = $PWD
+
+	while true
+		echo curdir
+		for mark in marks
+			var fs = globpath(curdir, mark, false, true)
+			if !fs->empty()
+				return fs[0]
+			endif
+		endfor
+
+		if curdir == $HOME || curdir == '/'
+			break
+		endif
+
+		curdir = fnamemodify(curdir, ':h')
+	endwhile
+
+	return ''
+enddef
