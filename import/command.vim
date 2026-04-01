@@ -19,14 +19,6 @@ export enum NArgs
 	var Value: string
 endenum
 
-export enum Range
-	Empty(''),
-	Persent('%'),
-	N('N')
-
-	var Value: string
-endenum
-
 export class Mods
 	var silent: bool
 	var unsilent: bool
@@ -223,9 +215,14 @@ export class Command
 		return this
 	enddef
 
-	def Range(n: Range = Range.N): Command
-		var range = n != Range.Empty ? $'-range={n.Value}' : '-range'
-		add(this._attr, range)
+	def Range(n: string = ''): Command
+		if n == ''
+			add(this._attr, '-range')
+		elseif n == '%' || n =~# '\d\+'
+			add(this._attr, '-range=%')
+		else
+			throw "command range must be % or natural number or empty string"
+		endif
 		return this
 	enddef
 

@@ -1,8 +1,11 @@
 vim9script
 
-import 'keymap.vim'
 import 'log.vim'
+import 'keymap.vim'
+import 'buffer.vim'
 import 'quickfix.vim'
+
+type Terminal = buffer.Terminal
 
 type Bind = keymap.Bind
 type Mods = keymap.Mods
@@ -113,3 +116,17 @@ Bind.newMulti(Mods.i, Mods.c, Mods.t)
 Bind.new(Mods.n)
 	.Silent()
 	.Map('\g', ':vertical leftabove term! ++cols=100 opencode --continue<CR>')
+
+Bind.new(Mods.n)
+	.NoRemap()
+	.NoWait()
+	.Callback("'\<CR>", () => {
+		var cmd = input('Command Shell: ', '', 'shellcmdline')
+		if cmd == ""
+			return
+		endif
+
+		cmd = expandcmd(cmd)
+		histadd(':', $"terminal {cmd}")
+		Terminal.new(cmd, {hidden: false})
+	})

@@ -95,6 +95,12 @@ export class Job
 		endif
 	enddef
 
+	def Kill()
+		if this._job != null_job
+			job_stop(this._job, "kill")
+		endif
+	enddef
+
 	def Info(): dict<any>
 		if this._job != null_job
 			return job_info(this._job)
@@ -150,6 +156,7 @@ export abstract class Quickfixer extends Job
 	abstract def Cmd(): string
 	abstract def CloseCb(qf: quickfix.Quickfixer, chan: channel)
 	abstract def Callback(qf: quickfix.Quickfixer, chan: channel, msg: string)
+	abstract def ExitCb(qf: quickfix.Quickfixer, job: job, code: number)
 
 	def Run()
 		var qf = !this._location
