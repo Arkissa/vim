@@ -9,6 +9,6 @@ import 'vim.vim'
 	'o:hor50'
 ])
 
-&guifont = 'FiraCode Nerd Font Mono 11'
-&guifontwide = 'FiraCode Nerd Font Mono 11'
+&guifont = 'CodeNewRoman Nerd Font Mono 11'
+&guifontwide = 'CodeNewRoman Nerd Font Mono 11'
 set guioptions-=T
