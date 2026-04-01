@@ -23,13 +23,14 @@ export enum Type
 
 	var Value: string
 	static def FromString(t: string): Type
-		if t == 'E'
+		var type = toupper(t)
+		if type == 'E'
 			return E
-		elseif t == 'W'
+		elseif type == 'W'
 			return W
-		elseif t == 'I'
+		elseif type == 'I'
 			return I
-		elseif t == 'N'
+		elseif type == 'N'
 			return N
 		else
 			return Empty
