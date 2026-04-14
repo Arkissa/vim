@@ -1,9 +1,8 @@
 vim9script
 
 import 'vim.vim'
-import 'autocmd.vim'
 import 'keymap.vim'
-import 'log.vim'
+import 'autocmd.vim'
 
 type Bind = keymap.Bind
 type Mods = keymap.Mods
@@ -122,7 +121,11 @@ export class Buffer # {{{1
 		deletebufline(this.bufnr, start, end)
 	enddef # }}}
 
-	def AppendLine(text: string, lnum: number = this.LineCount() - 1) # {{{2
+	def DeletLastLine()
+		deletebufline(this.bufnr, '$')
+	enddef
+
+	def AppendLine(text: string, lnum: number = this.LineCount()) # {{{2
 		appendbufline(this.bufnr, lnum, text)
 	enddef # }}}
 
@@ -322,6 +325,9 @@ endclass # }}}
 
 export class Prompt extends Buffer # {{{1
 	var _bash = BashStyle.new()
+	var _prompt: string
+	var _promptCont: string
+	var _lines: list<string> = []
 	static final _count = vim.IncID.new()
 
 	static def _Name(name: string = ''): string # {{{2
@@ -329,22 +335,82 @@ export class Prompt extends Buffer # {{{1
 		return $'prompt-buffer://{name ?? $'prompt-{id + 1}'}'
 	enddef # }}}
 
+	def _Handler(text: string): string
+		if this._lines->len() > 0
+			this._lines->add(text)
+			var t = this._lines->join("\n")
+			this._lines = []
+			this.SetPrompt(this._prompt)
+
+			return t
+		endif
+
+		return text
+	enddef
+
+	def _DeletePromptLastLine()
+		this.DeletLastLine()
+		setcursorcharpos(line('.'), col('$'))
+		this._lines->remove(-1)
+	enddef
+
+	def _AppendPromptLine()
+		var line = getbufoneline(this.bufnr, line('.'))->trim(this._prompt, 1)
+		this._lines->add(line)
+
+		this.AppendLine('')
+		setcursorcharpos(line('.'), col('$'))
+	enddef
+
+	def _MultiLine()
+		Bind.new(Mods.i)
+			.Buffer(this.bufnr)
+			.Callback('<S-CR>', () => {
+				prompt_setprompt(this.bufnr, this._promptCont)
+				this._AppendPromptLine()
+			})
+		Bind.new(Mods.i)
+			.Buffer(this.bufnr)
+			.Expr()
+			.Callback('<BS>', () => {
+				var prompt = getbufoneline(this.bufnr, line('.'))
+				if prompt != "" && prompt != this._prompt
+					return "\<BS>"
+				endif
+
+				if this._lines->len() == 0
+					this.SetPrompt(this._prompt)
+					return ''
+				endif
+
+				vim.NapCall(this._DeletePromptLastLine)
+				return ''
+			})
+
+		this.SetCallback((text) => {
+		})
+	enddef
+
+	def _Init()
+		this.SetVar('&buftype', 'prompt')
+		this.SetVar('&bufhidden', 'hide')
+		this.SetVar('&buflisted', false)
+		this._MultiLine()
+		this._prompt = this.GetPrompt()
+	enddef
+
 	def new(name: string) # {{{2
 		this.name = _Name(name)
 		this.bufnr = bufadd(this.name)
 
-		this.SetVar('&buftype', 'prompt')
-		this.SetVar('&bufhidden', 'hide')
-		this.SetVar('&buflisted', false)
+		this._Init()
 	enddef # }}}
 
 	def newByBufnr(bufnr: number) # {{{2
 		this.bufnr = bufnr
 		this.name = _Name(bufname(bufnr))
 
-		this.SetVar('&buftype', 'prompt')
-		this.SetVar('&bufhidden', 'hidden')
-		this.SetVar('&buflisted', false)
+		this._Init()
 	enddef # }}}
 
 	def BashStyleKeymaps() # {{{2
@@ -356,11 +422,20 @@ export class Prompt extends Buffer # {{{1
 	enddef # }}}
 
 	def SetPrompt(prompt: string) # {{{2
-		prompt_setprompt(this.bufnr, prompt)
+		this._prompt = prompt
+		prompt_setprompt(this.bufnr, this._prompt)
+	enddef # }}}
+
+	def SetPromptCont(prompt: string) # {{{2
+		this._promptCont = prompt
 	enddef # }}}
 
 	def SetCallback(F: func(string)) # {{{2
-		prompt_setcallback(this.bufnr, this._bash.History(F))
+		prompt_setcallback(this.bufnr, (text) => {
+			var HF = this._bash.History(F)
+
+			HF(this._Handler(text))
+		})
 	enddef # }}}
 
 	def SetInterrupt(F: func()) # {{{2
