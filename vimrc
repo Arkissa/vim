@@ -39,7 +39,7 @@ g:grep_config = {
 				['\d']: ':Grep --name -w <C-r><C-w>',
 			},
 			args: {
-				prune_dirs: ["proto", "3rd", "bin", "node_modules", "dist-newstyle", ".git"],
+				prune_dirs: ["proto", "3rd", "bin", "node_modules", "dist-newstyle", ".git", "target"],
 				kind: ["Language"]
 			}
 		},
