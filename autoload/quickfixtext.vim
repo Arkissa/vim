@@ -82,6 +82,10 @@ class Text # {{{1
 		return $"{text}…"
 	enddef # }}}
 
+	static def EscapeFnameSpace(bufname: string): string # {{{2
+		return substitute(bufname, '\(\s\)', "\\='\\' .. submatch(1)", 'g')
+	enddef # }}}
+
 	static def Func(info: dict<any>): list<string> # {{{2
 		sign_unplace(Text.group)
 		var qf: Quickfixer = info.quickfix == 1
@@ -125,7 +129,7 @@ class Text # {{{1
 			endif
 
 			# Build line with conditional spacing
-			var parts = [fname, lnum, text]->filter((_, v) => !v->empty())
+			var parts = [Text.EscapeFnameSpace(fname), lnum, text]->filter((_, v) => !v->empty())
 			var line = parts->join(' ')
 			return line ?? " "
 		})

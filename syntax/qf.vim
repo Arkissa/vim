@@ -4,11 +4,10 @@ if exists('b:current_syntax')
 	finish
 endif
 
-# Complete line pattern
-syn match qfFileName "^\f\+\s\d\+\(-\d\+\)\?\(:\d\+\(-\d\+\)\?\)\?" nextgroup=qfText contains=qfLevelTag,qfLineCol
+syn match qfLine "^\(\\ \|[^ \t]\)\+\s\+\d\+\(-\d\+\)\?\(:\d\+\(-\d\+\)\?\)\?\s\+.*" transparent contains=qfFileName
 
-# Line and column: lnum[-end_lnum][:col[-end_col]]
-syn match qfLineCol "\s\d\+\(-\d\+\)\?\(:\d\+\(-\d\+\)\?\)\?" contained
+syn match qfFileName "^\(\\ \|[^ \t]\)\+" contained nextgroup=qfLineCol skipwhite
+syn match qfLineCol "\(\S\)\@<!\d\+\(-\d\+\)\?\(:\d\+\(-\d\+\)\?\)\?\(\S\)\@!" contained nextgroup=qfText skipwhite
 syn match qfText ".*" contained
 
 &l:conceallevel = 2
