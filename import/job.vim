@@ -17,14 +17,38 @@ export class Job
 	var _job: job
 	var _cmd: string
 	var _opt: dict<any> = {}
+	var _runPreHooks: list<func(Job)> = []
+	var _runPostHooks: list<func(Job)> = []
 
 	def new(this._cmd, opt: dict<any>)
 		this._opt = copy(opt)
 	enddef
 
-	def _JobRunPost()
+	def OnRunPre(F: func(Job)): Job
+		this._runPreHooks->add(F)
+		return this
+	enddef
+
+	def OnRunPost(F: func(Job)): Job
+		this._runPostHooks->add(F)
+		return this
+	enddef
+
+	def _EmitRunPre()
+		for F in this._runPreHooks
+			F(this)
+		endfor
+	enddef
+
+	def _EmitRunPost()
+		for F in this._runPostHooks
+			F(this)
+		endfor
+	enddef
+
+	def _ScheduleRunPost()
 		var t = Timer.new(500, (_t) => {
-			Autocmd.Do('', 'User', 'JobRunPost')
+			this._EmitRunPost()
 
 			_t.Stop()
 		})
@@ -55,12 +79,10 @@ export class Job
 	def Run()
 		this.Stop()
 
-		if exists('#User#JobRunPost')
-			this._JobRunPost()
-		endif
+		this._EmitRunPre()
 
-		if exists('#User#JobRunPre')
-			Autocmd.Do('', 'User', 'JobRunPre')
+		if !this._runPostHooks->empty()
+			this._ScheduleRunPost()
 		endif
 
 		const silent = has_key(this._opt, 'silent') ? remove(this._opt, 'silent') : false
