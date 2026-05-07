@@ -1,6 +1,6 @@
 vim9script
 
-import '../autoload/qfpreview.vim'
+import autoload 'qfpreview/qfpreview.vim'
 
 import 'keymap.vim'
 

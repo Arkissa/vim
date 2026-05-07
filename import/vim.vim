@@ -521,11 +521,16 @@ export def ContainsOf(s: any, F: func(any): bool, opts: dict<any> = {startidx: 0
 	return index((v:t_list, v:t_tuple, v:t_blob), type(s)) >= 0 && indexof(s, F, opts) >= 0
 enddef # }}}
 
-export def FindMarks(marks: list<string>): string
-	var curdir = $PWD
+export def FindMarks(start: string = '', marks: list<string> = []): string # {{{2
+	var curdir = start ==# ''
+		? getcwd()
+		: fnamemodify(start, ':p')
+
+	if !isdirectory(curdir)
+		curdir = fnamemodify(curdir, ':h')
+	endif
 
 	while true
-		echo curdir
 		for mark in marks
 			var fs = globpath(curdir, mark, false, true)
 			if !fs->empty()
@@ -533,7 +538,7 @@ export def FindMarks(marks: list<string>): string
 			endif
 		endfor
 
-		if curdir == $HOME || curdir == '/'
+		if curdir ==# $HOME || curdir ==# '/'
 			break
 		endif
 
@@ -541,4 +546,4 @@ export def FindMarks(marks: list<string>): string
 	endwhile
 
 	return ''
-enddef
+enddef # }}}

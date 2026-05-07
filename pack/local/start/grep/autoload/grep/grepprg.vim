@@ -4,7 +4,12 @@ import "vim.vim"
 import "command.vim"
 
 export abstract class Grepprg extends command.ErrorFormat
-	abstract def GetArgs(): list<string>
+	abstract def Grepprg(): string
+	abstract def GrepFormat(): string
+
+	def GetArgs(): list<string>
+		return []
+	enddef
 
 	def Cmd(): string
 		return this.Expandcmd(substitute(&grepprg, '\$\*', $'{vim.Cmd(this.GetArgs())} $*', ''))
@@ -12,5 +17,11 @@ export abstract class Grepprg extends command.ErrorFormat
 
 	def Efm(): string
 		return &grepformat
+	enddef
+
+	def Run()
+		&grepprg = this.Grepprg()
+		&grepformat = this.GrepFormat()
+		super.Run()
 	enddef
 endclass

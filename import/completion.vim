@@ -22,3 +22,32 @@ export class Complete
 		return this._cmp.Complete(base)
 	enddef
 endclass
+
+export const kinds = {
+	Text: '󰦨',
+	Method: '',
+	Function: '󰡱',
+	Constructor: '',
+	Field: '',
+	Variable: '',
+	Class: '',
+	Interface: '',
+	Module: '',
+	Property: '',
+	Unit: '󰊱',
+	Value: '',
+	Enum: '',
+	Keyword: '',
+	Snippet: '',
+	Color: '',
+	File: '',
+	Reference: '',
+	Folder: '󰣞',
+	EnumMember: '',
+	Constant: '',
+	Struct: '',
+	Event: '',
+	Operator: '',
+	TypeParameter: '',
+	Buffer: ''
+}

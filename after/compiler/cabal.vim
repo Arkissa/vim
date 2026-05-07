@@ -2,7 +2,7 @@ vim9script
 
 import 'vim.vim'
 
-&l:makeprg = 'cabal'
+# &l:makeprg = 'cabal'
 &l:errorformat = vim.Option([
 	'%W%f:(%l\,%c)-(%e\,%k): %tarning: %m',
 	'%W%f:(%l\,%c)-(%e\,%k): %tarning:',

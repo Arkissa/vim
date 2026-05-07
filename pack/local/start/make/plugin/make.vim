@@ -4,9 +4,8 @@ import 'vim.vim'
 import 'keymap.vim'
 import 'command.vim'
 import 'autocmd.vim'
-import 'log.vim'
 
-import autoload 'make.vim'
+import autoload 'make/make.vim'
 
 type Make = make.Make
 type Bind = keymap.Bind

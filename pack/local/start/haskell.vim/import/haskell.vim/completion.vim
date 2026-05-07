@@ -1,14 +1,14 @@
 vim9script
 
 import 'completion.vim'
-import 'haskell.vim/repl.vim'
+import 'haskell.vim/ghci.vim'
 
 var optionsGHC: list<string>
 var langExtensions: list<string>
 
 type CompleteFunc = completion.CompleteFunc
 
-class CompletionRequest extends repl.SyncRequest
+class CompletionRequest extends ghci.SyncRequest
 	var _cmd: string
 	var _result: any
 
@@ -72,7 +72,7 @@ endinterface
 interface MetaCompleter
 	def RuleOk(line: string): bool
 	def Start(token: string): number
-	def NewCompleter(ghci: repl.GHCi, token: string): Completer
+	def NewCompleter(ghci: ghci.GHCi, token: string): Completer
 endinterface
 
 class GHCLanguageExtensions implements Completer
@@ -85,7 +85,7 @@ class GHCLanguageExtensions implements Completer
 endclass
 
 class MetaGHCLanguageExtensions implements MetaCompleter
-	def NewCompleter(_: repl.GHCi, _: string): Completer
+	def NewCompleter(_: ghci.GHCi, _: string): Completer
 		return GHCLanguageExtensions.new()
 	enddef
 
@@ -108,7 +108,7 @@ class GHCOptions implements Completer
 endclass
 
 class MetaGHCOptions implements MetaCompleter
-	def NewCompleter(_: repl.GHCi, _: string): Completer
+	def NewCompleter(_: ghci.GHCi, _: string): Completer
 		return GHCOptions.new()
 	enddef
 
@@ -122,7 +122,7 @@ class MetaGHCOptions implements MetaCompleter
 endclass
 
 class HaskellModules implements Completer
-	var _ghci: repl.GHCi
+	var _ghci: ghci.GHCi
 	var _cache: any = null
 	var _context: string
 
@@ -147,7 +147,7 @@ class HaskellModules implements Completer
 endclass
 
 class MetaHasakellModules implements MetaCompleter
-	def NewCompleter(ghci: repl.GHCi, token: string): Completer
+	def NewCompleter(ghci: ghci.GHCi, token: string): Completer
 		return HaskellModules.new(ghci, token)
 	enddef
 
@@ -161,7 +161,7 @@ class MetaHasakellModules implements MetaCompleter
 endclass
 
 class HaskellLexerToken implements Completer
-	var _ghci: repl.GHCi
+	var _ghci: ghci.GHCi
 
 	def new(this._ghci)
 	enddef
@@ -177,7 +177,7 @@ class HaskellLexerToken implements Completer
 endclass
 
 class MetaHasekellLexerToken implements MetaCompleter
-	def NewCompleter(ghci: repl.GHCi, _: string): Completer
+	def NewCompleter(ghci: ghci.GHCi, _: string): Completer
 		return HaskellLexerToken.new(ghci)
 	enddef
 
@@ -200,7 +200,7 @@ def MetaCompleters(): list<MetaCompleter>
 enddef
 
 export class GHCiRepl implements CompleteFunc
-	var _ghci: repl.GHCi
+	var _ghci: ghci.GHCi
 	var _completer: Completer
 
 	def new(this._ghci)

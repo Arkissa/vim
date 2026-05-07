@@ -4,9 +4,10 @@ import 'lsp.vim'
 import 'vim.vim'
 import 'keymap.vim'
 import 'autocmd.vim'
+import 'completion.vim'
 
-type Bind = keymap.Bind
 type Mods = keymap.Mods
+type Bind = keymap.Bind
 type Autocmd = autocmd.Autocmd
 
 const group = 'VIM9LSP'
@@ -178,9 +179,9 @@ const option = {
 	outlineOnRight: true,
 	outlineWinSize: 50,
     popupBorder: true,
+	hoverInPreview: true,
 	popupBorderCompletion: true,
 	definitionFallback: true,
-	hoverFallback: true,
     popupBorderHighlight: 'Title',
     popupBorderHighlightPeek: 'Title',
     popupBorderSignatureHelp: true,
@@ -196,34 +197,7 @@ const option = {
     useQuickfixForLocations: true,
     usePopupInCodeAction: true,
     customCompletionKinds: true,
-    completionKinds: {
-		Text: '󰦨',
-		Method: '',
-		Function: '󰡱',
-		Constructor: '',
-		Field: '',
-		Variable: '',
-		Class: '',
-		Interface: '',
-		Module: '',
-		Property: '',
-		Unit: '󰊱',
-		Value: '',
-		Enum: '',
-		Keyword: '',
-		Snippet: '',
-		Color: '',
-		File: '',
-		Reference: '',
-		Folder: '󰣞',
-		EnumMember: '',
-		Constant: '',
-		Struct: '',
-		Event: '',
-		Operator: '',
-		TypeParameter: '',
-		Buffer: ''
-    },
+    completionKinds: completion.kinds,
 }
 
 Autocmd.new('User')

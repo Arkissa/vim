@@ -3,7 +3,7 @@ vim9script
 import 'vim.vim'
 import 'command.vim'
 
-class GolangCiLint extends command.ErrorFormat
+export class Lint extends command.ErrorFormat
 	def Cmd(): string
 		return this.Expandcmd('golangci-lint run $*')
 	enddef
@@ -17,5 +17,3 @@ class GolangCiLint extends command.ErrorFormat
 		])
 	enddef
 endclass
-
-export type Lint = GolangCiLint

@@ -18,44 +18,9 @@ g:quickfix_previewer_config = {
 	borderhighlight: ["Title", "Title", "Title", "Title"],
 }
 
-g:grep_config = {
-	greps: [
-		{
-			module: 'greps/gnugrep',
-			keymaps: {
-				['\w']: ':Grep ',
-			},
-			args: {
-				exclude_dir: ["proto", "3rd", "bin", "node_modules", "dist-newstyle", ".git"],
-			}
-		},
-		{
-			module: 'greps/cgrep',
-			ft: ['go', 'gomod', 'markdown', 'json', 'lua', 'rust', 'yaml', 'c', 'java', 'cpp', 'haskell', 'python', 'js', 'ts', 'bash', 'cabal'],
-			keymaps: {
-				['\w']: ':Grep ',
-				['\s']: ":Grep --string \\\"\\\"<Left><Left>",
-				['\r']: ':Grep -G ',
-				['\d']: ':Grep --name -w <C-r><C-w>',
-			},
-			args: {
-				prune_dirs: ["proto", "3rd", "bin", "node_modules", "dist-newstyle", ".git", "target"],
-				kind: ["Language"]
-			}
-		},
-	],
-	auto_open: true
-}
-
-g:linter_config = {
-	go: {
-		module: 'linters/golangci',
-	}
-}
-
-g:simple_session = {
-	autosave: true
-}
+g:lint_auto_open_qf = true
+g:grep_auto_open_qf = true
+g:session_auto_save = true
 
 g:helptoc = {
 	shell_prompt: '^\$\s'
