@@ -7,6 +7,7 @@ type Autocmd = autocmd.Autocmd
 const group = 'CompleteAutoComplete'
 
 Autocmd.new('InsertCharPre')
+	.Desc('Auto complete path in string.')
 	.Group('CompleteAutoComplete')
 	.Callback((): void => {
 		if pumvisible() == 1 || v:char != '/'
