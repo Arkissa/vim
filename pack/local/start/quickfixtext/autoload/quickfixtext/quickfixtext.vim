@@ -136,4 +136,6 @@ class Text # {{{1
 	enddef # }}}
 endclass # }}}
 
-export const Func = Text.Func
+export def Func(dict: any): list<string>
+	return Text.Func(dict)
+enddef
