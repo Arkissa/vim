@@ -9,7 +9,7 @@ type Autocmd = autocmd.Autocmd
 type Command = command.Command
 type Complete = command.Complete
 
-const group = "Sesssion"
+const group = "Session"
 
 def IsTemp(): bool
 	if exists('+shellslash')
@@ -54,13 +54,13 @@ Command.new('SessionLoad')
 
 
 Autocmd.new('VimLeavePre')
-	.When((): bool => exists('g:session_auto_save') == 2)
+	.When((): bool => exists('g:session_auto_save'))
 	.Group(group)
 	.Once()
 	.Command('silent SessionSave')
 
 Autocmd.new('BufEnter')
-	.When((): bool => exists('g:session_auto_load') == 2)
+	.When((): bool => exists('g:session_auto_load'))
 	.Group(group)
 	.Once()
 	.Command('silent SessionLoad')
