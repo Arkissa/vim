@@ -547,3 +547,7 @@ export def FindMarks(start: string = '', marks: list<string> = []): string # {{{
 
 	return ''
 enddef # }}}
+
+export def HasPrefix(s: string, prefix: string): bool # {{{
+	return len(s) >= len(prefix) && s[ : len(prefix) - 1] == prefix
+enddef # }}}
