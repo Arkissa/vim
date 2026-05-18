@@ -1,7 +1,9 @@
 vim9script
 
 import 'completion.vim'
+
 import 'haskell.vim/ghci.vim'
+import 'haskell.vim/session.vim'
 
 var optionsGHC: list<string>
 var langExtensions: list<string>
@@ -72,7 +74,7 @@ endinterface
 interface MetaCompleter
 	def RuleOk(line: string): bool
 	def Start(token: string): number
-	def NewCompleter(ghci: ghci.GHCi, token: string): Completer
+	def NewCompleter(client: session.Client, token: string): Completer
 endinterface
 
 class GHCLanguageExtensions implements Completer
@@ -85,7 +87,7 @@ class GHCLanguageExtensions implements Completer
 endclass
 
 class MetaGHCLanguageExtensions implements MetaCompleter
-	def NewCompleter(_: ghci.GHCi, _: string): Completer
+	def NewCompleter(_: session.Client, _: string): Completer
 		return GHCLanguageExtensions.new()
 	enddef
 
@@ -108,7 +110,7 @@ class GHCOptions implements Completer
 endclass
 
 class MetaGHCOptions implements MetaCompleter
-	def NewCompleter(_: ghci.GHCi, _: string): Completer
+	def NewCompleter(_: session.Client, _: string): Completer
 		return GHCOptions.new()
 	enddef
 
@@ -122,11 +124,11 @@ class MetaGHCOptions implements MetaCompleter
 endclass
 
 class HaskellModules implements Completer
-	var _ghci: ghci.GHCi
+	var _client: session.Client
 	var _cache: any = null
 	var _context: string
 
-	def new(this._ghci, this._context)
+	def new(this._client, this._context)
 	enddef
 
 	def Complete(base: string): any
@@ -134,7 +136,7 @@ class HaskellModules implements Completer
 			return this._cache
 		endif
 
-		var response = this._ghci.SyncSend(CompletionRequest.new(this._context))
+		var response = this._client.SyncSend(CompletionRequest.new(this._context))
 		if type(response) != v:t_list || response->empty()
 			this._cache = v:none
 		else
@@ -147,8 +149,8 @@ class HaskellModules implements Completer
 endclass
 
 class MetaHasakellModules implements MetaCompleter
-	def NewCompleter(ghci: ghci.GHCi, token: string): Completer
-		return HaskellModules.new(ghci, token)
+	def NewCompleter(client: session.Client, token: string): Completer
+		return HaskellModules.new(client, token)
 	enddef
 
 	def RuleOk(line: string): bool
@@ -161,13 +163,13 @@ class MetaHasakellModules implements MetaCompleter
 endclass
 
 class HaskellLexerToken implements Completer
-	var _ghci: ghci.GHCi
+	var _client: session.Client
 
-	def new(this._ghci)
+	def new(this._client)
 	enddef
 
 	def Complete(base: string): any
-		var response = this._ghci.SyncSend(CompletionRequest.new(base))
+		var response = this._client.SyncSend(CompletionRequest.new(base))
 		if type(response) != v:t_list || response->empty()
 			return v:none
 		endif
@@ -177,8 +179,8 @@ class HaskellLexerToken implements Completer
 endclass
 
 class MetaHasekellLexerToken implements MetaCompleter
-	def NewCompleter(ghci: ghci.GHCi, _: string): Completer
-		return HaskellLexerToken.new(ghci)
+	def NewCompleter(client: session.Client, _: string): Completer
+		return HaskellLexerToken.new(client)
 	enddef
 
 	def RuleOk(_: string): bool
@@ -199,15 +201,15 @@ def MetaCompleters(): list<MetaCompleter>
 	]
 enddef
 
-export class GHCiRepl implements CompleteFunc
-	var _ghci: ghci.GHCi
+export class HaskellComplete extends CompleteFunc
+	var _client: session.Client
 	var _completer: Completer
 
-	def new(this._ghci)
+	def new(this._client)
 	enddef
 
 	def First(): number
-		if this._ghci.Status() != "run"
+		if !g:syntax_on || !this._client.Ping()
 			return -3
 		endif
 
@@ -229,7 +231,7 @@ export class GHCiRepl implements CompleteFunc
 					break
 				endif
 
-				this._completer = meta.NewCompleter(this._ghci, token)
+				this._completer = meta.NewCompleter(this._client, token)
 				return start
 			endif
 		endfor
@@ -238,11 +240,7 @@ export class GHCiRepl implements CompleteFunc
 	enddef
 
 	def Complete(base: string): any
-		if this._ghci.Status() != "run"
-			return -3
-		endif
-
-		if this._completer == null_object
+		if !this._client.Ping() || this._completer == null_object
 			return -3
 		endif
 

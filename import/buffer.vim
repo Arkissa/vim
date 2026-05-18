@@ -156,8 +156,8 @@ export class Buffer # {{{1
 		return bufexists(this.bufnr) == 1
 	enddef # }}}
 
-	def Load(): number # {{{2
-		return bufload(this.bufnr)
+	def Load() # {{{2
+		bufload(this.bufnr)
 	enddef # }}}
 
 	def WinID(): number # {{{2
@@ -173,7 +173,13 @@ export class Buffer # {{{1
 	enddef # }}}
 
 	def InWindow(): bool # {{{2
-		return this.GetInfo() isnot null_object && info.windows != null_list
+		var info = this.GetInfo()
+		return info isnot null_object && info.windows != null_list
+	enddef # }}}
+
+	def Hidden(): bool # {{{2
+		var info = this.GetInfo()
+		return info isnot null_object && info.hidden
 	enddef # }}}
 
 	def Listed(): bool # {{{2

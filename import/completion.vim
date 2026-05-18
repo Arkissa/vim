@@ -1,25 +1,15 @@
 vim9script
 
-export interface CompleteFunc
-	def First(): number
-	def Complete(base: string): any
-endinterface
-
-export class Complete
-	var _cmp: CompleteFunc
-
-	def new(this._cmp)
-		if this._cmp == null_object
-			throw 'Complete.new(): argument must not be null_object'
-		endif
-	enddef
+export abstract class CompleteFunc
+	abstract def First(): number
+	abstract def Complete(base: string): any
 
 	def Func(first: number, base: string): any
 		if first == 1
-			return this._cmp.First()
+			return this.First()
 		endif
 
-		return this._cmp.Complete(base)
+		return this.Complete(base)
 	enddef
 endclass
 
