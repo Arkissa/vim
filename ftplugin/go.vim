@@ -1,5 +1,11 @@
 vim9script
 
+if exists('b:did_ftplugin')
+	finish
+endif
+
+execute($"runtime! {$VIMRUNTIME}/ftplugin/go.vim")
+
 g:go_highlight_types = 1
 g:go_highlight_fields = 1
 g:go_highlight_functions = 1
