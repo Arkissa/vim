@@ -12,7 +12,7 @@ type Complete = command.Complete
 const group = "Session"
 
 def IsTemp(): bool
-	if exists('+shellslash')
+	if exists_compiled('+shellslash')
 		def Recover(saved: any)
 			&shellslash = saved
 		enddef
