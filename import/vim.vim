@@ -517,7 +517,7 @@ export def Contains(s: any, e: any, start: number = 0, ic: bool = false): bool #
 	return index((v:t_list, v:t_tuple, v:t_blob), type(s)) >= 0 && index(s, e, start, ic) >= 0
 enddef # }}}
 
-export def ContainsOf(s: any, F: func(any): bool, opts: dict<any> = {startidx: 0}): bool # {{{1
+export def ContainsOf(s: any, F: func(any, any): bool, opts: dict<any> = {startidx: 0}): bool # {{{1
 	return index((v:t_list, v:t_tuple, v:t_blob), type(s)) >= 0 && indexof(s, F, opts) >= 0
 enddef # }}}
 

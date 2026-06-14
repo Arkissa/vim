@@ -1,0 +1,57 @@
+#!/bin/sh
+
+if [ -z "$VIM_TERMINAL" ]; then
+	echo "Usage: $0 [-w|--wait] filenames"
+	echo "Only work in VIMTERMINAL."
+	exit 1
+fi
+
+WAIT=0
+ARGS="$@"
+n="$#"
+
+while [ "$n" -gt 0 ]; do
+	arg=$1; shift
+	n=$((n - 1))
+	case "$arg" in
+		-w|--wait) 
+			WAIT=1
+			token="token_$$"
+			ARGS="$@ --token=$token"
+			wait_token() {
+				token="$1"
+				tty_id="$2"
+
+				saved=$(stty -g < "$tty_id" 2>/dev/null)
+				trap "stty '$saved' < '$tty_id' 2>/dev/null" EXIT INT TERM HUP
+				stty -echo < "$tty_id" 2>/dev/null
+				while IFS= read -r line < "$tty_id"; do
+					case "$line"
+						in *"$token"*) break ;;
+					esac
+				done
+			}
+			;;
+		*) set -- "$@" "$arg" ;;
+	esac
+done
+
+drop() {
+	tty_id="$1"
+	api="$2"
+	shift 2
+
+	printf '\033]51;["call","%s","%s"]\007' "$api" "$@" > "$tty_id"
+}
+
+api=$VIM_TAPI_DROP
+if [ -z "$api" ]; then
+	echo "\$VIM_TAPI_DROP is empty"
+	exit 1
+fi
+
+tty_id="/dev/tty"
+
+drop "$tty_id" "$api" "$ARGS"
+[ "$WAIT" -eq 1 ] && wait_token "$token" "$tty_id"
+	
