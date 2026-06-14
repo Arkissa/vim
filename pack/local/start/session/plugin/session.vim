@@ -26,6 +26,7 @@ def IsTemp(): bool
 enddef
 
 Command.new('SessionSave')
+	.Bar()
 	.Callback((attr) => {
 		if IsTemp()
 			return
@@ -37,6 +38,7 @@ Command.new('SessionSave')
 
 Command.new('SessionLoad')
 	.NArgs(NArgs.Quest)
+	.Bar()
 	.Complete(Complete.CustomList, (_, _, _): list<string> => {
 		var dir = get(g:, "session_dir", "")
 		return session.Session.All(dir)->map((_, name) => {
@@ -59,8 +61,8 @@ Autocmd.new('VimLeavePre')
 	.Once()
 	.Command('silent SessionSave')
 
-Autocmd.new('BufEnter')
+Autocmd.new('VimEnter')
 	.When((): bool => exists('g:session_auto_load'))
 	.Group(group)
 	.Once()
-	.Command('silent SessionLoad')
+	.Command('if argc() == 0 | SessionLoad | endif')

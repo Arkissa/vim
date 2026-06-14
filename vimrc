@@ -21,6 +21,7 @@ g:quickfix_previewer_config = {
 g:lint_auto_open_qf = true
 g:grep_auto_open_qf = true
 g:session_auto_save = true
+g:session_auto_load = true
 
 g:helptoc = {
 	shell_prompt: '^\$\s'
