@@ -4,15 +4,17 @@ if exists("b:did_ftplugin")
   finish
 endif
 
-b:did_ftplugin = 1
+execute($"runtime! {$VIMRUNTIME}/ftplugin/haskell.vim")
 
 import 'vim.vim'
 import 'buffer.vim'
 import 'keymap.vim'
 import 'autocmd.vim'
+import 'command.vim'
 
 import 'haskell.vim/load.vim'
 import 'haskell.vim/type.vim'
+import 'haskell.vim/show.vim'
 import 'haskell.vim/session.vim'
 import 'haskell.vim/completion.vim'
 
@@ -63,24 +65,17 @@ Bind.new(Mods.n)
 	.NoRemap()
 	.Callback('<LEADER>k', () => {
 		var client = _session.GetClient()
-		client.Send(type.TypeRequest.new(expand('<cword>')))
-	})
+		var lines = type.Type.new(client)
+			.Query(type.Mode.Type, type.TypeExpr.newExpr(expand('<cword>')))
 
-b:undo_ftplugin = "setl com< cms< fo< su< sua< inex< inc< def<"
+		show.Preview.Show(lines)
+	})
 
 var cpo_save = &cpo
 :set cpo&vim
 
-:setlocal suffixes+=.hi
-:setlocal formatoptions-=t formatoptions+=croql
-:setlocal includeexpr=IncludeExpr()
-
-&l:define = '^\\%(data\\>\\\|class\\>\\%(.*=>\\)\\?\\\|\\%(new\\)\\?type\\>\\\|\\ze\\k\\+\\s*\\%(::\\\|=\\)\\)'
-&l:include = '^import\\>\\%(\\s\\+safe\\>\\)\\?\\%(\\s\\+qualified\\>\\)\\?'
 &l:omnifunc = Omnifunc
-&l:comments = 's1fl:{-,mb:-,ex:-},:--'
-&l:commentstring = '-- %s'
-&l:suffixesadd = '.hs,.lhs,.hsc'
+:setlocal includeexpr=IncludeExpr()
 
 if !vim.Contains(&complete, '.')
 	:setlocal complete+=.

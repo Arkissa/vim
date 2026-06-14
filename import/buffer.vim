@@ -115,7 +115,11 @@ export class Buffer # {{{1
 	enddef # }}}
 
 	def Clear() # {{{2
-		this.DeleteLine(1, '$')
+		:silent this.DeleteLine(1, '$')
+	enddef # }}}
+
+	def empty(): bool #{{{2
+		return this.LineCount() == 1 && this.GetOneLine(1) == ""
 	enddef # }}}
 
 	def DeleteLine(start: number, end: any = start) # {{{2

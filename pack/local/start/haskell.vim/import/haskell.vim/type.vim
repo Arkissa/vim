@@ -1,60 +1,95 @@
 vim9script
 
-import 'log.vim'
 import 'buffer.vim'
 
-import 'haskell.vim/ghci.vim'
-import 'haskell.vim/config.vim'
+import 'haskell.vim/session.vim'
+import 'haskell.vim/request.vim'
 
-const type = 'HaskellType'
+export class TypeExpr
+	var expr: string
+	var filename: string
+	var pos: tuple<number, number, number, number>
 
-def PreviewResponse(lines: list<string>)
-	var b = buffer.Buffer.new(type)
-	b.SetVar('&bufhidden', 'wipe')
-	b.SetVar('&buftype', 'nofile')
-	b.SetVar('&swapfile', false)
+	def new(this.expr, this.filename, this.pos)
+	enddef
 
-	b.Load()
-	b.Clear()
+	def newExpr(this.expr)
+	enddef
+endclass
 
-	b.SetLines(lines, 1)
-	b.SetVar('&modified', false)
+class CompleteExpention extends request.Complete
+	var _matchs = [
+		'error: [GHC-31891]'
+	]
 
-	execute($'pbuffer {b.bufnr}')
-enddef
+	def Body(timeout: number = -1): list<string>
+		var response = super.Body(timeout)
+		for match in this._matchs
+			if response =~# match
+				throw $'request faild: {match}'
+			endif
+		endfor
 
-export class TypeRequest extends ghci.Request
+		return response->split("\n")
+	enddef
+endclass
+
+class TypeRequest extends CompleteExpention
 	var _expr: string
 
-	def new(this._expr)
+	def new(arg: TypeExpr)
+		this._expr = arg.expr
 	enddef
 
 	def Cmd(): string
 		return $':type {this._expr}'
 	enddef
 
-	def Complete(response: string)
-		PreviewResponse(response->split("\n"))
+	def Body(timeout: number = -1): list<string>
+		try
+			return super.Body(timeout)
+		catch
+			return []
+		endtry
 	enddef
 endclass
 
-class TypeAtRequest extends ghci.Request
-	var _line: number
-	var _col: number
-	var _endline: number
-	var _endcol: number
+class TypeAtRequest extends CompleteExpention
+	var _arg: TypeExpr
 
-	var _expr: string
-	var _filename: string
-
-	def new(this._filename, this._line, this._col, this._endline, this._endcol, this._expr)
+	def new(this._arg)
 	enddef
 
 	def Cmd(): string
-		return $':type-at {this._filename} {this._line} {this._col} {this._endline} {this._endcol} {this._expr}'
+		var [line, col, endline, endcol] = this._arg.pos
+		return $':type-at {this._arg.filename} {line} {col} {endline} {endcol} {this._arg.expr}'
 	enddef
 
-	def Complete(response: string)
-		PreviewResponse(response->split("\n"))
+	def Body(timeout: number = -1): list<string>
+		try
+			return super.Body(timeout)
+		catch
+			return []
+		endtry
+	enddef
+endclass
+
+export enum Mode
+	Type,
+	TypeAt
+endenum
+
+export class Type
+	var _client: session.Client
+
+	def new(this._client)
+	enddef
+
+	def Query(mode: Mode, arg: TypeExpr): list<string>
+		var RequestConstructor = eval($'{mode.name}Request.new')
+		var req = RequestConstructor(arg)
+
+		this._client.Send(req)
+		return req.Body()
 	enddef
 endclass

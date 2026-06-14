@@ -4,7 +4,7 @@ import 'log.vim'
 import 'buffer.vim'
 import 'autocmd.vim'
 
-import 'haskell.vim/ghci.vim'
+import 'haskell.vim/request.vim'
 import 'haskell.vim/session.vim'
 
 type Autocmd = autocmd.Autocmd
@@ -12,7 +12,7 @@ type Autocmd = autocmd.Autocmd
 const group = 'haskell.vim'
 const description = 'load buffer after restart with ghci.'
 
-class LoadRequest extends ghci.Request
+class LoadCommand implements request.Command
 	var _filename: string
 	def new(this._filename)
 	enddef
@@ -20,19 +20,11 @@ class LoadRequest extends ghci.Request
 	def Cmd(): string
 		return $':load {this._filename}'
 	enddef
-
-	def Complete(response: string)
-		log.PopInfo(response)
-	enddef
 endclass
 
-class ReloadRequest extends ghci.Request
+class ReloadCommand implements request.Command
 	def Cmd(): string
 		return ':reload'
-	enddef
-
-	def Complete(response: string)
-		log.PopInfo(response)
 	enddef
 endclass
 
@@ -50,13 +42,13 @@ def AutoLoad(client: session.Client, bs: list<buffer.Buffer>)
 
 	for b in bs->copy()->filter((_, b) => b.InWindow())
 		winEnter = winEnter.Bufnr(b.bufnr).Callback(() => {
-			client.Send(LoadRequest.new(b.name))
+			client.Send(request.Discard.new(LoadCommand.new(b.name)))
 		})
 	endfor
 
 	for b in bs->copy()->filter((_, b) => b.Hidden())
 		bufWinEnter = bufWinEnter.Bufnr(b.bufnr).Callback(() => {
-			client.Send(LoadRequest.new(b.name))
+			client.Send(request.Discard.new(LoadCommand.new(b.name)))
 		})
 	endfor
 enddef
@@ -70,7 +62,7 @@ export def Load(b: buffer.Buffer)
 		AutoLoad(client, sess.GetBuffers())
 	endif
 
-	client.Send(LoadRequest.new(b.name))
+	client.Send(request.Discard.new(LoadCommand.new(b.name)))
 enddef
 
 export def Reload(b: buffer.Buffer)
@@ -82,5 +74,5 @@ export def Reload(b: buffer.Buffer)
 		AutoLoad(client, sess.GetBuffers())
 	endif
 
-	client.Send(ReloadRequest.new())
+	client.Send(request.Discard.new(ReloadRequest.new()))
 enddef

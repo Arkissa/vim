@@ -2,17 +2,18 @@ vim9script
 
 import 'completion.vim'
 
-import 'haskell.vim/ghci.vim'
+import 'haskell.vim/request.vim'
 import 'haskell.vim/session.vim'
+
+type CompleteFunc = completion.CompleteFunc
 
 var optionsGHC: list<string>
 var langExtensions: list<string>
 
-type CompleteFunc = completion.CompleteFunc
+const maxDelay = 64
 
-class CompletionRequest extends ghci.SyncRequest
+class CompletionCommand implements request.Command
 	var _cmd: string
-	var _result: any
 
 	def new(word: string)
 		this._cmd = $':complete repl "{word}"'
@@ -21,22 +22,38 @@ class CompletionRequest extends ghci.SyncRequest
 	def Cmd(): string
 		return this._cmd
 	enddef
+endclass
 
-	def IsDone(): bool
-		if complete_check()
-			this._result = v:none
-			return true
+class CompletionRequest extends request.Complete
+	def new(this._cmd)
+	enddef
+
+	def Body(timeout: number = -1): any
+		var delay = 1
+		var running = true
+		if timeout != -1
+			timer.Timer.new(timeout, (_) => {
+				running = false
+			}).Start()
 		endif
 
-		return !this._result->empty()
-	enddef
+		while !this._done && running
+			if complete_check()
+				return v:none
+			endif
 
-	def Complete(msg: string)
-		this._result = msg->split("\n")[1 :]->mapnew((_, word) => word->matchstr('"\zs.*\ze"'))
-	enddef
+			execute($"sleep {delay}m", "silent")
 
-	def Result(): any
-		return this._result
+			delay = min([delay << 1, maxDelay])
+		endwhile
+
+		if !running
+			return v:none
+		endif
+
+		return this._body
+			->split("\n")[1 :]
+			->mapnew((_, word) => word->matchstr('"\zs.*\ze"'))
 	enddef
 endclass
 
@@ -124,11 +141,12 @@ class MetaGHCOptions implements MetaCompleter
 endclass
 
 class HaskellModules implements Completer
-	var _client: session.Client
+	var _cmd: CompletionCommand
 	var _cache: any = null
-	var _context: string
+	var _client: session.Client
 
-	def new(this._client, this._context)
+	def new(this._client, context: string)
+		this._cmd = CompletionCommand.new(context)
 	enddef
 
 	def Complete(base: string): any
@@ -136,7 +154,10 @@ class HaskellModules implements Completer
 			return this._cache
 		endif
 
-		var response = this._client.SyncSend(CompletionRequest.new(this._context))
+		var cmp = CompletionRequest.new(this._cmd)
+		this._client.Send(cmp)
+
+		var response = cmp.Body()
 		if type(response) != v:t_list || response->empty()
 			this._cache = v:none
 		else
@@ -169,7 +190,10 @@ class HaskellLexerToken implements Completer
 	enddef
 
 	def Complete(base: string): any
-		var response = this._client.SyncSend(CompletionRequest.new(base))
+		var cmp = CompletionRequest.new(CompletionCommand.new(base))
+		this._client.Send(cmp)
+
+		var response = cmp.Body()
 		if type(response) != v:t_list || response->empty()
 			return v:none
 		endif

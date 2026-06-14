@@ -6,84 +6,33 @@ import 'vim.vim'
 import 'timer.vim'
 import 'buffer.vim'
 
-const EOT = {
-	escape: '\x04',
-	raw: "\x04"
-}
-const maxDelay = 64
-const maxWait = 200
-
-interface Awaitable
-	def IsDone(): bool
-	def Result(): any
-endinterface
-
-export abstract class Request
-	abstract def Cmd(): string
-
-	def Live(_: string)
-	enddef
-
-	def Complete(_: string)
-	enddef
-endclass
-
-export abstract class SyncRequest extends Request implements Awaitable
-	abstract def Cmd(): string
-	abstract def IsDone(): bool
-	abstract def Result(): any
-endclass
+import 'haskell.vim/request.vim'
 
 export enum Cmd
-	Stack("stack repl"),
-	Cabal("cabal repl"),
-	GHCi("ghci")
+	Stack("stack repl", ("--ghci-option=-ferror-spans", "--no-build", "--no-load")),
+	Cabal("cabal repl", ("--ghc-option=-ferror-spans")),
+	GHCi("ghci", ("-ferror-spans"))
 
 	var Value: string
+	var Args: tuple<string>
 endenum
 
-class Startup extends Request
+class Startup implements request.Command
 	var _startup = [
 		':set -v1',
 		':set +c',
 		':set prompt-cont ""',
-		$':set prompt "{EOT.escape}"',
+		$':set prompt "{request.EOT}"',
 	]
 
 	def Cmd(): string
 		return this._startup->join("\n")
 	enddef
-
-	def Live(_: string)
-	enddef
-
-	def Complete(_: string)
-		log.PopInfo("ghci startuped.")
-	enddef
 endclass
 
-def Await(a: Awaitable, timeout: number = -1): any
-	var delay = 1
-	var running = true
-	if timeout != -1
-		timer.Timer.new(timeout, (_) => {
-			running = false
-		}).Start()
-	endif
-
-	while !a.IsDone() && running
-		execute($"sleep {delay}m", "silent")
-
-		delay = min([delay << 1, maxDelay])
-	endwhile
-
-	return a.Result()
-enddef
-
 export class GHCi extends job.Job
-	var pending: Request
-	var _queue: list<Request>
-	var _response: string
+	var _pending: request.Request
+	var _queue: list<request.Request>
 
 	def new(cmd: Cmd)
 		this._cmd = cmd.Value
@@ -98,34 +47,28 @@ export class GHCi extends job.Job
 	enddef
 
 	def Callback(chan: channel, chunk: string)
-		if this.pending == null_object
+		if this._pending == null_object
 			return
 		endif
 
-		this._response ..= chunk
-		if this._response[-1] != EOT.raw
-			this.pending.Live(chunk)
+		if !this._pending.Callback(chunk)
 			return
 		endif
 
-		this.pending.Live(chunk[: -2])
-		this.pending.Complete(this._response[: -2])
-		this._response = ""
-
-		this.pending = null_object
+		this._pending = null_object
 		if !this._queue->empty()
 			this.Send(this._queue->remove(0))
 		endif
 	enddef
 
-	def Send(req: Request)
-		if this.pending != null_object
+	def Send(req: request.Request)
+		if this._pending != null_object
 			this._queue->add(req)
 			return
 		endif
 
-		this.pending = req
-		ch_sendraw(this.GetChannel(), this.pending.Cmd() .. "\n")
+		this._pending = req
+		ch_sendraw(this.GetChannel(), this._pending.Cmd() .. "\n")
 	enddef
 
 	def Restart()
@@ -139,12 +82,6 @@ export class GHCi extends job.Job
 
 	def Run()
 		super.Run()
-		this.Send(Startup.new())
-	enddef
-
-	def SyncSend(request: SyncRequest): any
-		this.Send(request)
-
-		return Await(request, maxWait)
+		this.Send(request.Complete.new(Startup.new()))
 	enddef
 endclass

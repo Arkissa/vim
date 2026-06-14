@@ -4,6 +4,7 @@ import 'vim.vim'
 import 'buffer.vim'
 
 import 'haskell.vim/ghci.vim'
+import 'haskell.vim/request.vim'
 
 def Checksum(path: string): string
 	return readfile(path)->join("\n")->sha256()
@@ -46,20 +47,12 @@ export class Client
 		return this._ghci.Status() == 'run'
 	enddef
 
-	def Send(req: ghci.Request)
+	def Send(req: request.Request)
 		if this._ghci.Status() != 'run'
 			throw _notLive
 		endif
 
 		this._ghci.Send(req)
-	enddef
-
-	def SyncSend(req: ghci.SyncRequest): any
-		if this._ghci.Status() != 'run'
-			throw _notLive
-		endif
-
-		return this._ghci.SyncSend(req)
 	enddef
 endclass
 
