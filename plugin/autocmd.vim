@@ -59,19 +59,6 @@ Autocmd.new('WinNew')
 		vim.NapCall(TailWhitespaceHighlight)
 	})
 
-Autocmd.new('BufEnter')
-	.Group(g:myvimrc_group)
-	.Callback(() => {
-		var wininfos = getwininfo()
-		for wininfo in wininfos
-			if getbufvar(wininfo.bufnr, "&buftype") ==# ""
-				return
-			endif
-		endfor
-
-		execute('quitall!')
-	})
-
 Autocmd.new('InsertLeave')
 	.Group(g:myvimrc_group)
 	.When(() => executable('ibus') == 1)
