@@ -119,5 +119,5 @@ Bind.new(Mods.n)
 	.Callback("'\<CR>", () => {
 		var cmd = expandcmd(input('Command Shell: ', '', 'shellcmdline'))
 		histadd(':', $"terminal {cmd}")
-		Terminal.new(cmd, {hidden: false})
+		Terminal.new(cmd ?? $SHELL, {hidden: false})
 	})
