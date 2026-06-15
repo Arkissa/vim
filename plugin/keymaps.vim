@@ -78,19 +78,6 @@ Bind.new(Mods.n)
 		appendbufline(bufnr(), line('.'), '')
 	})
 
-Bind.new(Mods.c)
-	.NoWait()
-	.Callback('<C-k>', () => {
-		setcmdline(strpart(getcmdline(), 0, getcmdpos() - 1))
-	})
-	.Callback('<M-d>', () => {
-		var line = getcmdline()
-		var pos = getcmdpos() - 1
-		var start = line->slice(0, pos)
-		setcmdline(start .. substitute(line->slice(pos), '^.\{-\}\<\w\+\>', '', ''), pos + 1)
-	})
-	.Map('<C-d>', '<Del>')
-
 Bind.new(Mods.t)
 	.NoWait()
 	.Map('<M-d>', '<ESC>d')
@@ -112,6 +99,63 @@ Bind.newMulti(Mods.i, Mods.c, Mods.t)
 	.Map('<C-b>', '<Left>')
 	.Map('<M-b>', '<C-Left>')
 	.Map('<M-f>', '<C-Right>')
+
+var cmdlineYank = ""
+
+Bind.new(Mods.c)
+	.NoRemap()
+	.NoWait()
+	.Expr()
+	.Callback('<C-u>', () => {
+		var line = getcmdline()
+		var pos = getcmdpos() - 1
+
+		cmdlineYank = line->strcharpart(0, pos)
+
+		return "\<C-u>"
+	})
+	.Callback('<C-w>', () => {
+		var line = getcmdline()
+		var pos = getcmdpos() - 1
+		var text = line->strcharpart(0, pos)->matchstr('\v<\w+>$')
+		cmdlineYank = text
+
+		return "\<C-w>"
+	})
+
+Bind.new(Mods.c)
+	.NoWait()
+	.Callback('<C-y>', () => {
+		var line = getcmdline()
+		var pos = getcmdpos() - 1
+		var start = line->slice(0, pos)
+		if cmdlineYank == ""
+			return
+		endif
+
+		setcmdline(start .. cmdlineYank .. line->slice(pos), pos + len(cmdlineYank) + 1)
+	})
+	.Callback('<C-k>', () => {
+		var line = getcmdline()
+		var pos = getcmdpos() - 1
+
+		var n = line->strdisplaywidth() - pos
+		cmdlineYank = line->strcharpart(pos, n)
+		var text = line->strcharpart(0, pos)
+
+		setcmdline(text)
+	})
+	.Callback('<M-d>', () => {
+		const wordRegexp = '^.\{-\}\<\w\+\>'
+		var line = getcmdline()
+		var pos = getcmdpos() - 1
+		var start = line->slice(0, pos)
+		var text = line->slice(pos)
+
+		cmdlineYank = matchstr(text, wordRegexp)
+		setcmdline(start .. substitute(text, wordRegexp, '', ''), pos + 1)
+	})
+	.Map('<C-d>', '<Del>')
 
 Bind.new(Mods.n)
 	.NoRemap()
