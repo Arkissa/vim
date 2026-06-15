@@ -1,53 +1,39 @@
 vim9script
 
 import 'vim.vim'
-import 'buffer.vim'
-import 'autocmd.vim'
 
-type Autocmd = autocmd.Autocmd
+import 'termdrop/termdrop.vim' as drop
+
+const optNames = ['ff', 'fileformat', 'enc', 'encoding', 'bin', 'binary', 'nobin', 'nobinary', 'bad', 'edit']
 
 def g:Tapi_Drop(bufnr: number, a: string)
 	var arglist = a->split('\s\+')
-	echom a
 
-	var opts = arglist
+	var flags = arglist
 		->copy()
 		->filter((_, arg) => arg =~# '^--')
 		->map((_, arg) => arg->substitute('^--', '', ''))
 
-	var args = arglist
+	var files = arglist
 		->copy()
 		->filter((_, arg) => arg !~# '^--')
 
-	var cmd = ['drop']
+	var opts = []
 	var token: string
+	var mods = drop.Mods.Default
 
-	for opt in opts
-		if opt == 'tab'
-			cmd = cmd->insert('tab', 0)
-		elseif opt =~# "^token="
-			token = opt->substitute('token=', '', '')
-		elseif vim.ContainsOf(['ff', 'fileformat', 'enc', 'encoding', 'bin', 'binary', 'nobin', 'nobinary', 'bad', 'edit'], (_, o) => opt =~# $'^{o}')
-			cmd = cmd->add($"++{opt}")
+	echom $"flags={flags}"
+	for flag in flags
+		if flag == 'tab'
+			mods = drop.Mods.Tab
+		elseif flag =~# "^token="
+			token = flag->substitute('token=', '', '')
+		elseif vim.ContainsOf(optNames, (_, o) => flag =~# $'^{o}')
+			opts->add($"++{flag}")
 		endif
 	endfor
 
-	var drop = cmd->extend(args)->join(' ')
-	execute(drop)
-	var b = buffer.Buffer.newCurrent()
-	b.SetVar('&bufhidden', 'wipe')
-
-	if token->empty()
-		return
-	endif
-
-	Autocmd.new('BufWipeout')
-		.Group("termdrop")
-		.Bufnr(b.bufnr)
-		.Once()
-		.Callback(() => {
-			term_sendkeys(bufnr, token .. "\n")
-		})
+	drop.Drop(drop.Arg.new(bufnr, opts, files, token, mods))
 enddef
 
 const bin = expand("<script>:h:h") .. '/bin'
