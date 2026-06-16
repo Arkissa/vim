@@ -10,100 +10,85 @@ type Coroutine = vim.Coroutine
 type Quickfix = quickfix.Quickfix
 type Location = quickfix.Location
 
-class Git
-	var _cache: dict<string>
+# class Git
+# 	var _cache: dict<string>
 
-	def new()
-	enddef
+# 	def new()
+# 	enddef
 
-	def _GetBranch(): string
-		if executable('git')
-			var branch = trim(system('git branch --show-current'))
-			if v:shell_error == 0
-				return branch
-			endif
-		endif
+# 	def _GetBranch(): string
+# 		if executable('git')
+# 			var branch = trim(system('git branch --show-current'))
+# 			if v:shell_error == 0
+# 				return branch
+# 			endif
+# 		endif
 
-		return ''
-	enddef
+# 		return ''
+# 	enddef
 
-	def Branch(bufnr: string): string
-		if has_key(this._cache, bufnr)
-			return tis._cache[bufnr]
-		endif
+# 	def Branch(bufnr: string): string
+# 		if has_key(this._cache, bufnr)
+# 			return tis._cache[bufnr]
+# 		endif
 
 
+# 	enddef
+# endclass
+
+interface Provider
+	def string(): string
+endinterface
+
+export class Cut implements Provider
+	def string(): string
+		return '%<'
 	enddef
 endclass
 
-export abstract class StatusLine
+export class Sep implements Provider
+	def string(): string
+		return '%='
+	enddef
+endclass
+
+export class BufName implements Provider
+	def string(): string
+		var buf = buffer.Buffer.newCurrent()
+		return $'[{empty(buf.name) ? '(No Name)' : fnamemodify(buf.name, ':t')}%m]'
+	enddef
+endclass
+
+export class Mode implements Provider
 	static const modeMap = {
 		'n': 'NORMAL', 'i': 'INSERT', 'R': 'REPLACE', 'v': 'VISUAL', 'V': 'V-LINE', "\<C-v>": 'V-BLOCK',
 		'c': 'COMMAND', 's': 'SELECT', 'S': 'S-LINE', "\<C-s>": 'S-BLOCK', 't': 'TERMINAL'
 	}
 
-	var _statusline = ['%<']
-
-	def Cut(): StatusLine
-		this._Append('%<')
-
-		return this
+	def string(): string
+		return get(modeMap, mode(), '')
 	enddef
+endclass
 
-	def Left(): StatusLine
-		this._Append('%=')
-
-		return this
-	enddef
-
-	def Right(): StatusLine
-		this._Append('%=')
-		return this
-	enddef
-
-	def _Append(s: string)
-		if s == ''
-			return
-		endif
-
-		add(this._statusline, s)
-	enddef
-
-	def BufName(): StatusLine
-		var buf = buffer.Buffer.newCurrent()
-		this._Append($'[{empty(buf.name) ? '(No Name)' : fnamemodify(buf.name, ':t')}%m]')
-
-		return this
-	enddef
-
-	def Mode(): StatusLine
-		this._Append(get(modeMap, mode(), ''))
-
-		return this
-	enddef
-
-	def Dir(): StatusLine
+export class Dir implements Provider
+	def string(): string
 		var str = substitute(expand('%:p:h'), $'^{getcwd()}\(.*\)', '.\1', '') ?? '.'
-		if str =~ '^\.'
-			this._Append(str)
-		else
-			this._Append(fnamemodify(str, ':~:.'))
-		endif
-
-		return this
+		return str =~ '^\.' ? str : fnamemodify(str, ':~:.')
 	enddef
+endclass
 
-	def Git(): StatusLine
+export class Git implements Provider
+	def string(): string
 		if exists_compiled('*g:FugitiveStatusline')
-			this._Append(g:FugitiveStatusline())
-
-			return this
+			return g:FugitiveStatusline()
 		else
-			return this
+			return ''
 		endif
 	enddef
+endclass
 
-	def Diags(): StatusLine
+export class Diags implements Provider
+	def string(): string
 		var errCount = diag.DiagsGetErrorCount(Buffer.newCurrent().bufnr)
 		var str = []
 
@@ -137,35 +122,71 @@ export abstract class StatusLine
 			endif
 		endfor
 
-		this._Append(str->join(' '))
-
-		return this
-	enddef
-
-	def Role(): StatusLine
-		this._Append('≡')
-		this._Append('%3P')
-		this._Append('%3l:%-3c')
-
-		return this
-	enddef
-
-	def FileType(): StatusLine
-		this._Append('%y')
-
-		return this
-	enddef
-
-	def Build(): string
-		var s = join(this._statusline, ' ')
-
-		this._statusline = []
-
-		return $' {s} '
+		return str->join(' ')
 	enddef
 endclass
 
-class BaseStatusLine extends StatusLine
+export class Icon implements Provider
+	var _icon: string
+	def new(icon: string = '≡')
+		this._icon = icon
+	enddef
+
+	def string(): string
+		return this._icon
+	enddef
 endclass
 
-export var helper = BaseStatusLine.new()
+export class FilePercent implements Provider
+	def string(): string
+		return '%3P'
+	enddef
+endclass
+
+export class LineCol implements Provider
+	def string(): string
+		return '%3l:%-3c'
+	enddef
+endclass
+
+export class FileType implements Provider
+	def string(): string
+		return '%y'
+	enddef
+endclass
+
+export class FileSize implements Provider
+	def string(): string
+		var name = expand('%:p')
+		if name == ''
+			return ''
+		endif
+
+		var size = getfsize(name)
+		if size <= 0
+			return ''
+		endif
+
+		if size < 1024
+			return printf('%dB', size)
+		elseif size < 1024 * 1024
+			return printf('%.2fK', size / 1024.0)
+		elseif size < 1024 * 1024 * 1024
+			return printf('%.2fM', size / 1024.0 / 1024.0)
+		endif
+
+		return printf('%.2fG', size / 1024.0 / 1024.0 / 1024.0)
+	enddef
+endclass
+
+export class Build
+	var _providers: list<Provider>
+
+	def new(...providers: list<Provider>)
+		this._providers = providers
+	enddef
+
+	def string(): string
+		return $' {this._providers->mapnew((_, provider) => provider->string())->join(' ')} '
+	enddef
+endclass
