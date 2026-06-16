@@ -22,7 +22,6 @@ def g:Tapi_Drop(bufnr: number, a: string)
 	var token: string
 	var mods = drop.Mods.Default
 
-	echom $"flags={flags}"
 	for flag in flags
 		if flag == 'tab'
 			mods = drop.Mods.Tab
