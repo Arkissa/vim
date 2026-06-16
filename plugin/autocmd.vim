@@ -5,6 +5,7 @@ import 'window.vim'
 import 'autocmd.vim'
 import 'statusline.vim'
 import 'vim.vim'
+import 'log.vim'
 import 'timer.vim'
 
 type Buffer = buffer.Buffer
@@ -125,18 +126,14 @@ Autocmd.new('VimEnter')
 		vim.NapCall(function('execute', ['set autoread']))
 	})
 
-Autocmd.new('WinNew')
-	.Desc('When terminal show on window will be set signcolumn=no and nowrap.')
+Autocmd.new('TerminalOpen')
+	.Desc('set signcolumn=no and nowrap for terminal.')
 	.Group(g:myvimrc_group)
-	.Callback(() => {
-		vim.NapCall(() => {
-			if &buftype == 'terminal'
-				&signcolumn = 'no'
-				&wrap = false
-			endif
-		})
+	.Callback((attr) => {
+		var b = buffer.Buffer.newByBufnr(attr.buf)
+		b.SetVar('&signcolumn', 'no')
+		b.SetVar('&wrap', false)
 	})
-
 
 Autocmd.new('CompleteChanged')
 	.Group(g:myvimrc_group)

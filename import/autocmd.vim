@@ -6,9 +6,10 @@ export class EventArgs
 	var data: any
 	var event: string
 	var group: string
+	var afile: string
 	var match: string
 
-	def new(this.id, this.buf, this.event, this.group, this.match, data: any = null)
+	def new(this.id, this.buf, this.event, this.group, this.afile, this.match, data: any = null)
 		this.data = data
 	enddef
 
@@ -18,6 +19,7 @@ export class EventArgs
 			event: this.event,
 			group: this.group,
 			match: this.match,
+			afile: this.afile,
 			buf: this.buf,
 			data: this.data,
 		})
@@ -46,9 +48,10 @@ class Callback
 			if typename(this._F) != 'func()'
 				args->add(EventArgs.new(
 					this.id,
-					bufnr(),
+					expand('<abuf>')->str2nr(),
 					this.event,
 					this.group,
+					expand('<afile>'),
 					expand('<amatch>'),
 					this._data
 				))
