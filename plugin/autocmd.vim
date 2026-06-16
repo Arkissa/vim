@@ -13,8 +13,20 @@ type Autocmd = autocmd.Autocmd
 
 const ExcludeFiletype = ["xxd", "gitrebase", "tutor", "help", "gitcommint", "git", "fugitive", "fugitiveblame"]
 const ExcludeBuftype = ["quickfix", "terminal", "help", "xxd"]
-
-g:statusline = statusline.helper
+const g:stl = statusline.Build.new(
+	statusline.Cut.new(),
+	statusline.Mode.new(),
+	statusline.BufName.new(),
+	statusline.Diags.new(),
+	statusline.Sep.new(),
+	statusline.Git.new(),
+	statusline.FileType.new(),
+	statusline.Dir.new(),
+	statusline.Icon.new(),
+	statusline.FileSize.new(),
+	statusline.FilePercent.new(),
+	statusline.LineCol.new(),
+)
 
 def TailWhitespaceHighlight()
 	var win = Window.newCurrent()
@@ -119,8 +131,10 @@ Autocmd.new('OptionSet')
 
 Autocmd.new('VimEnter')
 	.Group(g:myvimrc_group)
-	.Command('set statusline=%{%g:statusline.Cut().Mode().BufName().Diags().Right().Git().FileType().Dir().Role().Build()%}')
+	.Desc('statusline')
+	.Command('set statusline=%{%g:stl->string()%}')
 	.Once()
+	.Desc('set autoread')
 	.Callback(() => {
 		vim.NapCall(function('execute', ['set autoread']))
 	})
