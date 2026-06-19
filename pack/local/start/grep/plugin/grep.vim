@@ -29,13 +29,10 @@ Command.new("Grep")
 	.Bang()
 	.NArgs(command.NArgs.Star)
 	.Callback((attr) => {
-		const grep: grepprg.Grepprg  = get(b:, 'grepprg', get(g:, 'grepprg', null_object))
+		var grep: grepprg.Grepprg  = get(b:, 'grepprg', get(g:, 'grepprg', null_object))
 		if grep == null_object
-			echoerr 'No defined Grep.'
-			return
+			grep = gnugrep.Grep.new()
 		endif
 
 		grep.Attr(attr).Run()
 	})
-
-g:grepprg = gnugrep.Grep.new()
