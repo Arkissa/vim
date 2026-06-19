@@ -5,7 +5,6 @@ import 'buffer.vim'
 import 'quickfix.vim'
 
 type Buffer = buffer.Buffer
-type Coroutine = vim.Coroutine
 type Quickfix = quickfix.Quickfix
 type Location = quickfix.Location
 

@@ -1,6 +1,7 @@
 vim9script
 
 import 'vim.vim'
+import 'thread.vim'
 import 'autocmd.vim'
 
 import autoload 'lsp.vim'
@@ -14,8 +15,8 @@ Autocmd.new('VimEnter')
 	.Desc("load lsp")
 	.Once()
 	.Callback(() => {
-		vim.NapCall(() => {
-			:packadd lsp
+		thread.Fork(() => {
+			execute('packadd lsp')
 		})
 	})
 

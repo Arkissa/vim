@@ -1,6 +1,7 @@
 vim9script
 
 import 'vim.vim'
+import 'thread.vim'
 import 'quickfix.vim'
 import 'window.vim'
 import 'autocmd.vim'
@@ -8,10 +9,7 @@ import 'autocmd.vim'
 type Autocmd = autocmd.Autocmd
 type Location = quickfix.Location
 type Quickfix = quickfix.Quickfix
-type Coroutine = vim.Coroutine
 type Quickfixer = quickfix.Quickfixer
-
-const AsyncIO = vim.AsyncIO
 
 const conf = get(g:, 'quickfix_previewer_config', {
 	highlight: "Cursor",
@@ -52,12 +50,12 @@ class Previewer # {{{1
 	enddef # }}}
 
 	static def _DetectFiletype(opt: autocmd.EventArgs) # {{{2
-		AsyncIO.Run(Coroutine.new((win) => {
+		thread.Fork((win) => {
 			var ft = win.GetVar('&filetype')
 			if ft == ""
 				win.Execute("filetype detect")
 			endif
-		}, opt.data))
+		}, opt.data)
 	enddef # }}}
 
 	static def _AddHightlightText(opt: autocmd.EventArgs) # {{{2

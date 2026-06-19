@@ -8,17 +8,6 @@ export def Option(s: list<string>): string # {{{1
 	return s->join(',')
 enddef # }}}
 
-export abstract class Void # {{{1
-	def string(): string # {{{2
-		return 'void'
-	enddef # }}}
-endclass # }}}
-
-class SingleVoid extends Void # {{{1
-endclass # }}}
-
-export const void = SingleVoid.new()
-
 export type TupleList = tuple<...list<any>>
 
 export class List # {{{1
@@ -357,134 +346,6 @@ endclass # }}}
 
 final coroutine = IncID.new()
 
-export class Exception # {{{1
-	var _exception: string
-
-	def new(this._exception) # {{{2
-	enddef # }}}
-
-	def string(): string # {{{2
-		return this._exception
-	enddef # }}}
-endclass # }}}
-
-export class TimeoutException extends Exception # {{{1
-	def new(s: string) # {{{2
-		this._exception = $'Timeout: {s}'
-	enddef # }}}
-endclass # }}}
-
-export class CoroutineDeadException extends Exception # {{{1
-	def new(id: number) # {{{2
-		this._exception = $'Dead: can''t waiting for already dead with {id} coroutine .'
-	enddef # }}}
-endclass # }}}
-
-export enum CoroutineStatus # {{{1
-	Running,
-	Suspended,
-	Dead
-endenum # }}}
-
-export class Coroutine # {{{1
-	var id = coroutine.ID()
-	var delay = 0
-	var Func: func
-	var status = CoroutineStatus.Suspended
-	var _ret: dict<any> = {}
-
-	def new(F: func, ...args: list<any>) # {{{2
-		this.Func = () => {
-			this.status = CoroutineStatus.Running
-
-			try
-				if typename(F) =~# '^func(.\{-\}):'
-					this._ret[this.id] = call(F, args)
-				else
-					call(F, args)
-					this._ret[this.id] = void
-				endif
-			catch
-				this._ret[this.id] = Exception.new(substitute(v:exception, '^Vim.*:', '', ''))
-			finally
-				this.status = CoroutineStatus.Dead
-			endtry
-		}
-	enddef # }}}
-
-	def SetDelay(time: number): Coroutine # {{{2
-		this.delay = time
-		return this
-	enddef # }}}
-
-	# if you is not Await, don't use it.
-	def UnsafeHookReturn(d: dict<any>) # {{{2
-		this._ret = d
-	enddef # }}}
-endclass # }}}
-
-export abstract class Async # {{{1
-	def Await<T>(co: Coroutine, timeout: tuple<number, T> = null_tuple): T # {{{2
-		var ret = {}
-		co.UnsafeHookReturn(ret)
-
-		if co.status == CoroutineStatus.Suspended
-			AsyncIO.Run(co)
-		endif
-
-		var timer = timeout != null_tuple
-			? timer_start(timeout[0], (_) => {
-				if co.status == CoroutineStatus.Running
-					ret[co.id] = timeout[1]
-				endif
-			})
-			: -1
-
-		while !has_key(ret, co.id)
-			:sleep 50m
-		endwhile
-
-		timer_stop(timer)
-
-		var val = ret[co.id]
-		if type(val) == v:t_object && instanceof(val, Exception)
-			throw val->string()
-		endif
-
-		return val
-	enddef # }}}
-endclass # }}}
-
-class InternalAsyncIO extends Async # {{{1
-	def Run(co: Coroutine) # {{{2
-		timer_start(co.delay, (_) => {
-			call(co.Func, [])
-		})
-	enddef # }}}
-
-	def Gather(...cos: list<Coroutine>): Coroutine # {{{2
-		for co in cos:
-				AsyncIO.Run(co)
-		endfor
-
-		return Coroutine.new((cs: list<Coroutine>): list<any> => {
-			return cs->mapnew((_, co) => this.Await<any>(co))->filter((_, v) => !instanceof(v, Void))
-		}, cos)
-	enddef # }}}
-endclass # }}}
-
-export const AsyncIO = InternalAsyncIO.new()
-
-# don't ask why the are 15.
-const timeOfNap = 15
-
-# nap for time later to call function.
-export def NapCall(Fn: func, ...args: list<any>) # {{{1
-	final co = call(function(Coroutine.new, [Fn]), args)
-	co.SetDelay(timeOfNap)
-	AsyncIO.Run(co)
-enddef # }}}
-
 export def AnyRegexp(regexps: list<string>, text: string, ignorecase: bool = false): bool # {{{1
 	def Case(regexp: string, str: string): bool # {{{2
 		return !ignorecase ? str =~# regexp : str =~ regexp
@@ -521,7 +382,7 @@ export def ContainsOf(s: any, F: func(any, any): bool, opts: dict<any> = {starti
 	return index((v:t_list, v:t_tuple, v:t_blob), type(s)) >= 0 && indexof(s, F, opts) >= 0
 enddef # }}}
 
-export def FindMarks(start: string = '', marks: list<string> = []): string # {{{2
+export def FindMarks(start: string = '', marks: list<string> = []): tuple<string, string> # {{{2
 	var curdir = start ==# ''
 		? getcwd()
 		: fnamemodify(start, ':p')
@@ -534,7 +395,7 @@ export def FindMarks(start: string = '', marks: list<string> = []): string # {{{
 		for mark in marks
 			var fs = globpath(curdir, mark, false, true)
 			if !fs->empty()
-				return fs[0]
+				return (curdir, fs[0])
 			endif
 		endfor
 
@@ -545,5 +406,5 @@ export def FindMarks(start: string = '', marks: list<string> = []): string # {{{
 		curdir = fnamemodify(curdir, ':h')
 	endwhile
 
-	return ''
+	return ('', '')
 enddef # }}}
