@@ -353,7 +353,9 @@ export abstract class Execute extends jb.Quickfixer
 		endif
 
 		if this._attr != null_object && exists($'#QuickFixCmdPost#{this._attr.name}')
-			Autocmd.Do('', 'QuickFixCmdPost', this._attr.name, qf)
+			thread.Fork(() => {
+				Autocmd.Do('', 'QuickFixCmdPost', this._attr.name, qf)
+			})
 		endif
 
 		var info = this.Info()

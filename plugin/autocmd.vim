@@ -7,6 +7,7 @@ import 'statusline.vim'
 import 'vim.vim'
 import 'log.vim'
 import 'timer.vim'
+import 'thread.vim'
 
 type Buffer = buffer.Buffer
 type Window = window.Window
@@ -54,14 +55,15 @@ Autocmd.new('BufReadPost')
 	.Desc('auto jump to last cursor position if a buffer read post.')
 	.Callback(() => {
 		var [lnum, col] = Buffer.newCurrent().LastCursorPosition()
+
 		if !vim.Contains(ExcludeFiletype, &filetype)
-			cursor(lnum, col)
+			setcursorcharpos(lnum, col)
 		endif
 	})
 	.Desc('highlight tail whitespace on window.')
 	.Once()
 	.Callback(() => {
-		vim.NapCall(TailWhitespaceHighlight)
+		thread.Fork(TailWhitespaceHighlight)
 	})
 
 
@@ -69,7 +71,7 @@ Autocmd.new('WinNew')
 	.Desc('highlight tail whitespace on window.')
 	.Group(g:myvimrc_group)
 	.Callback(() => {
-		vim.NapCall(TailWhitespaceHighlight)
+		thread.Fork(TailWhitespaceHighlight)
 	})
 
 Autocmd.new('InsertLeave')
@@ -124,7 +126,7 @@ Autocmd.new('OptionSet')
 				return
 			endif
 
-			vim.NapCall(function('execute', ['checktime']))
+			thread.Fork(function('execute', ['checktime']))
 		enddef
 
 		au.Callback(timer.Timer.new(&updatecount, Checktime).Reset)
@@ -137,7 +139,7 @@ Autocmd.new('VimEnter')
 	.Once()
 	.Desc('set autoread')
 	.Callback(() => {
-		vim.NapCall(function('execute', ['set autoread']))
+		thread.Fork(function('execute', ['set autoread']))
 	})
 
 Autocmd.new('TerminalOpen')
