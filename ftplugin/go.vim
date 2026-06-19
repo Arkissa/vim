@@ -17,7 +17,6 @@ g:go_highlight_format_strings = 1
 
 import 'vim.vim'
 import 'log.vim'
-import 'path.vim'
 import 'keymap.vim'
 import 'command.vim'
 import 'autocmd.vim'
@@ -34,24 +33,28 @@ type Command = command.Command
 const group = "Go"
 :compiler go
 
-def RealPath(pt: string): string
-	if exists_compiled("+clipboard")
-		var gopath = $"^{trim(system('go env GOPATH'))}/pkg/mod"
-		if pt =~ gopath
-			return trim(substitute(pt, gopath, '', ''), '/')
-		endif
+if !exists('g:go_project_dir')
+	[g:go_project_dir, _] = vim.FindMarks(getcwd(), ["go.work", "go.mod", ".git"])
+endif
 
-		var goroot = $"^{trim(system('go env GOROOT'))}"
-		if pt =~ goroot
-			return trim(substitute(pt, gopath, '', ''), '/')
-		endif
+# def RealPath(pt: string): string
+# 	if exists_compiled("+clipboard")
+# 		var gopath = $"^{trim(system('go env GOPATH'))}/pkg/mod"
+# 		if pt =~ gopath
+# 			return trim(substitute(pt, gopath, '', ''), '/')
+# 		endif
 
-		return fnamemodify(pt, ':.')
-	else
-		log.Error('clipboard feature not exists.')
-		return ""
-	endif
-enddef
+# 		var goroot = $"^{trim(system('go env GOROOT'))}"
+# 		if pt =~ goroot
+# 			return trim(substitute(pt, gopath, '', ''), '/')
+# 		endif
+
+# 		return fnamemodify(pt, ':.')
+# 	else
+# 		log.Error('clipboard feature not exists.')
+# 		return ""
+# 	endif
+# enddef
 
 Autocmd.new('User')
 	.Group(group)
@@ -66,7 +69,7 @@ Autocmd.new('User')
 					return
 				endif
 
-				var p = $'{path.UnderPath(function(RealPath))}:{line('.')}'
+				var p = $'{substitute(expand('%:p'), g:go_project_dir, '', '')}:{line('.')}'
 				log.Info($'copy path to + registers: {p}')
 				setreg('+', p)
 			})

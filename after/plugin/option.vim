@@ -1,7 +1,20 @@
 vim9script
 
-import 'path.vim'
+def OsStateDir(): string
+    var stateDir = has('win32') || has('win64')
+	? $LOCALAPPDATA .. '/vim'
+	: ($XDG_STATE_HOME !=# ''
+	    ? $XDG_STATE_HOME .. '/vim'
+	    : expand('~/.local/state/vim'))
 
-var stateDir = path.OsStateDir()
+    if !isdirectory(stateDir)
+		mkdir(stateDir, 'p')
+    endif
+
+    return stateDir
+enddef
+
+var stateDir = OsStateDir()
+
 &backupdir = stateDir .. '//'
 &undodir   = stateDir .. '//'
