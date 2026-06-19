@@ -3,38 +3,11 @@ vim9script
 import 'vim.vim'
 import 'buffer.vim'
 import 'quickfix.vim'
-import autoload 'lsp/diag.vim'
 
 type Buffer = buffer.Buffer
 type Coroutine = vim.Coroutine
 type Quickfix = quickfix.Quickfix
 type Location = quickfix.Location
-
-# class Git
-# 	var _cache: dict<string>
-
-# 	def new()
-# 	enddef
-
-# 	def _GetBranch(): string
-# 		if executable('git')
-# 			var branch = trim(system('git branch --show-current'))
-# 			if v:shell_error == 0
-# 				return branch
-# 			endif
-# 		endif
-
-# 		return ''
-# 	enddef
-
-# 	def Branch(bufnr: string): string
-# 		if has_key(this._cache, bufnr)
-# 			return tis._cache[bufnr]
-# 		endif
-
-
-# 	enddef
-# endclass
 
 interface Provider
 	def string(): string
@@ -89,17 +62,19 @@ endclass
 
 export class Diags implements Provider
 	def string(): string
-		var errCount = diag.DiagsGetErrorCount(Buffer.newCurrent().bufnr)
-		var str = []
+		var b = Buffer.newCurrent()
+		var lspDiag = b.GetVar('LspDiag', {})
 
 		var type = {
-			'E': errCount.Error,
-			'W': errCount.Warn,
-			'I': errCount.Info,
-			'N': errCount.Hint,
+			'E': get(lspDiag, 'Error', 0),
+			'W': get(lspDiag, 'Warn', 0),
+			'I': get(lspDiag, 'Info', 0),
+			'N': get(lspDiag, 'Hint', 0),
 		}
 
+		var str = []
 		var typeItems = []
+
 		var qf = Quickfix.newCurrent()
 		if !qf.IsEmpty()
 			typeItems->extend(qf.GetList())
