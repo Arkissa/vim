@@ -125,16 +125,6 @@ Bind.new(Mods.c)
 
 Bind.new(Mods.c)
 	.NoWait()
-	.Callback('<C-y>', () => {
-		var line = getcmdline()
-		var pos = getcmdpos() - 1
-		var start = line->slice(0, pos)
-		if cmdlineYank == ""
-			return
-		endif
-
-		setcmdline(start .. cmdlineYank .. line->slice(pos), pos + len(cmdlineYank) + 1)
-	})
 	.Callback('<C-k>', () => {
 		var line = getcmdline()
 		var pos = getcmdpos() - 1
@@ -156,6 +146,21 @@ Bind.new(Mods.c)
 		setcmdline(start .. substitute(text, wordRegexp, '', ''), pos + 1)
 	})
 	.Map('<C-d>', '<Del>')
+	.Expr()
+	.Callback('<C-y>', () => {
+		if pumvisible()
+			return "\<C-y>"
+		endif
+		var line = getcmdline()
+		var pos = getcmdpos() - 1
+		var start = line->slice(0, pos)
+		if cmdlineYank == ""
+			return ''
+		endif
+
+		setcmdline(start .. cmdlineYank .. line->slice(pos), pos + len(cmdlineYank) + 1)
+		return ''
+	})
 
 Bind.new(Mods.n)
 	.NoRemap()
