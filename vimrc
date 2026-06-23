@@ -27,7 +27,7 @@ g:session_auto_save = true
 g:session_auto_load = true
 
 g:helptoc = {
-	shell_prompt: '^\$\s'
+	shell_prompt: '^[$›❯]\s'
 }
 
 g:lsp_options = {
