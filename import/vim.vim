@@ -344,8 +344,6 @@ export class IncID # {{{1
 	enddef # }}}
 endclass # }}}
 
-final coroutine = IncID.new()
-
 export def AnyRegexp(regexps: list<string>, text: string, ignorecase: bool = false): bool # {{{1
 	def Case(regexp: string, str: string): bool # {{{2
 		return !ignorecase ? str =~# regexp : str =~ regexp
@@ -382,7 +380,7 @@ export def ContainsOf(s: any, F: func(any, any): bool, opts: dict<any> = {starti
 	return index((v:t_list, v:t_tuple, v:t_blob), type(s)) >= 0 && indexof(s, F, opts) >= 0
 enddef # }}}
 
-export def FindMarks(start: string = '', marks: list<string> = []): tuple<string, string> # {{{2
+export def FindMarks(start: string = '', marks: list<string> = []): string # {{{2
 	var curdir = start ==# ''
 		? getcwd()
 		: fnamemodify(start, ':p')
@@ -395,7 +393,7 @@ export def FindMarks(start: string = '', marks: list<string> = []): tuple<string
 		for mark in marks
 			var fs = globpath(curdir, mark, false, true)
 			if !fs->empty()
-				return (curdir, fs[0])
+				return fs[0]
 			endif
 		endfor
 
@@ -406,5 +404,5 @@ export def FindMarks(start: string = '', marks: list<string> = []): tuple<string
 		curdir = fnamemodify(curdir, ':h')
 	endwhile
 
-	return ('', '')
+	return ''
 enddef # }}}

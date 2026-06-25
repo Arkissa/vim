@@ -33,29 +33,6 @@ type Command = command.Command
 const group = "Go"
 :compiler go
 
-if !exists('g:go_project_dir')
-	[g:go_project_dir, _] = vim.FindMarks(getcwd(), ["go.work", "go.mod", ".git"])
-endif
-
-# def RealPath(pt: string): string
-# 	if exists_compiled("+clipboard")
-# 		var gopath = $"^{trim(system('go env GOPATH'))}/pkg/mod"
-# 		if pt =~ gopath
-# 			return trim(substitute(pt, gopath, '', ''), '/')
-# 		endif
-
-# 		var goroot = $"^{trim(system('go env GOROOT'))}"
-# 		if pt =~ goroot
-# 			return trim(substitute(pt, gopath, '', ''), '/')
-# 		endif
-
-# 		return fnamemodify(pt, ':.')
-# 	else
-# 		log.Error('clipboard feature not exists.')
-# 		return ""
-# 	endif
-# enddef
-
 Autocmd.new('User')
 	.Group(group)
 	.Pattern(['LspAttached'])
@@ -69,7 +46,8 @@ Autocmd.new('User')
 					return
 				endif
 
-				var p = $'{substitute(expand('%:p'), g:go_project_dir, '', '')}:{line('.')}'
+				var projectDir = fnamemodify(vim.FindMarks(getcwd(), ["go.work", "go.mod", ".git"]), ':p:h')
+				var p = $'{substitute(expand('%:p'), $'{projectDir}/', '', '')}:{line('.')}'
 				log.Info($'copy path to + registers: {p}')
 				setreg('+', p)
 			})

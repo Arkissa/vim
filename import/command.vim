@@ -3,6 +3,7 @@ vim9script
 import 'log.vim'
 import 'job.vim' as jb
 import 'vim.vim'
+import 'thread.vim'
 import 'autocmd.vim'
 import 'quickfix.vim'
 
