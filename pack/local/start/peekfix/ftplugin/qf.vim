@@ -1,6 +1,6 @@
 vim9script
 
-import autoload 'qfpreview/qfpreview.vim'
+import autoload 'peekfix/peekfix.vim'
 
 import 'keymap.vim'
 
@@ -21,4 +21,4 @@ Bind.new(Mods.n)
 	.Silent()
 	.Map('u', Bind.Cmd('colder'))
 	.Map('<C-r>', Bind.Cmd('cnewer'))
-	.Callback('K', qfpreview.Toggle)
+	.Callback('K', peekfix.Toggle)

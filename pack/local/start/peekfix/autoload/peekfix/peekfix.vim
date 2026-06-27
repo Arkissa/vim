@@ -11,7 +11,7 @@ type Location = quickfix.Location
 type Quickfix = quickfix.Quickfix
 type Quickfixer = quickfix.Quickfixer
 
-const conf = get(g:, 'quickfix_previewer_config', {
+const conf = get(g:, 'peekfix', {
 	highlight: "Cursor",
 	cursorline: false,
 	padding: [],
@@ -20,7 +20,7 @@ const conf = get(g:, 'quickfix_previewer_config', {
 	borderhighlight: [],
 })
 
-const prop_name = "quickfix.Previewer"
+const prop_name = "Peekfix"
 prop_type_add(prop_name, {
 	highlight: get(conf, 'hightlight', 'Cursor'),
 	override: true,
@@ -28,9 +28,17 @@ prop_type_add(prop_name, {
 })
 
 # peek quickfix buffer with popup window.
-class Previewer # {{{1
+class Peekfix # {{{1
 	static var _qf: Quickfixer
-	static var _window: window.Popup
+	static var _window = window.Popup.new({
+		pos: "botleft",
+		padding: get(conf, 'padding', []),
+		border: get(conf, 'border', []),
+		borderchars: get(conf, 'borderchars', []),
+		borderhighlight: get(conf, 'borderhighlight', []),
+		wrap: false,
+		resize: false,
+	})
 
 	static def _Filter(win: window.Popup, key: string): bool # {{{2
 		if ["\<C-u>", "\<C-d>"]->index(key) != -1
@@ -92,30 +100,8 @@ class Previewer # {{{1
 		})
 	enddef # }}}
 
-	static def Open() # {{{2
-		var win = window.Window.newCurrent()
-		var wt = win.GetWinType()
-		if ["quickfix", "loclist"]->index(wt) == -1
-			return
-		endif
-
-		_qf = wt == "loclist"
-			? Location.newCurrent()
-			: Quickfix.newCurrent()
-		var item = _qf.GetItemUnderTheCursor()
-		if _qf.IsEmpty() || item == null_object
-			return
-		endif
-
-		_window.Open()
-
-		_window.SetFilter(_Filter)
-		_CreateAutocmd(_window, win.GetBufnr())
-		_SetCursorUnderBuff()
-	enddef # }}}
-
 	static def _CreateAutocmd(win: window.Popup, bufnr: number) # {{{2
-		var group = "Quickfix.Previewer"
+		var group = "Peekfix"
 		Autocmd.new('BufWinLeave')
 			.Group(group)
 			.Pattern([win.winnr->string()])
@@ -159,29 +145,46 @@ class Previewer # {{{1
 	enddef # }}}
 
 	static def Toggle() # {{{2
-		if _window == null_object || !_window.IsOpen()
-			var info = window.Window.newCurrent().GetInfo()
-			var height = float2nr(&lines * 0.5)
-			var width = info.width
-			_window = window.Popup.new({
-				pos: "botleft",
-				padding: get(conf, 'padding', []),
-				border: get(conf, 'border', []),
-				borderchars: get(conf, 'borderchars', []),
-				borderhighlight: get(conf, 'borderhighlight', []),
-				wrap: false,
-				resize: false,
-				maxheight: height,
-				minheight: height,
-				minwidth: width - 3,
-				maxwidth: width - 3,
-				col: info.wincol,
-				line: info.winrow - 2,
-			})
+		if !_window.IsOpen()
 			Open()
 		else
 			Close()
 		endif
+	enddef # }}}
+
+	static def Open() # {{{2
+		var win = window.Window.newCurrent()
+		var wt = win.GetWinType()
+		if ["quickfix", "loclist"]->index(wt) == -1
+			return
+		endif
+
+		_qf = wt == "loclist"
+			? Location.newCurrent()
+			: Quickfix.newCurrent()
+		var item = _qf.GetItemUnderTheCursor()
+		if _qf.IsEmpty() || item == null_object
+			return
+		endif
+
+		var info = win.GetInfo()
+		var height = float2nr(&lines * 0.5)
+		var width = info.width
+		var option = {
+			maxheight: height,
+			minheight: height,
+			minwidth: width - 3,
+			maxwidth: width - 3,
+			col: info.wincol,
+			line: info.winrow - 2,
+		}
+
+		_window.Open()
+
+		_window.Move(option)
+		_window.SetFilter(_Filter)
+		_CreateAutocmd(_window, win.GetBufnr())
+		_SetCursorUnderBuff()
 	enddef # }}}
 
 	static def Close() # {{{2
@@ -191,4 +194,4 @@ class Previewer # {{{1
 	enddef # }}}
 endclass # }}}
 
-export const Toggle = Previewer.Toggle
+export const Toggle = Peekfix.Toggle
