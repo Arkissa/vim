@@ -286,6 +286,10 @@ export class Popup extends Window # {{{1
 		this._hidden = true
 	enddef # }}}
 
+	def Move(option: dict<any>) # {{{2
+		popup_move(this.winnr, option)
+	enddef # }}}
+
 	def Show(): number # {{{2
 		popup_show(this.winnr)
 		this._hidden = false

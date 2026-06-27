@@ -10,7 +10,7 @@ g:dispatch_no_maps = 1
 g:myvimrc_group = 'MYVIMRC'
 g:hlput_enable = true
 
-g:quickfix_previewer_config = {
+g:peekfix = {
 	highlight: "Cursor",
 	number: true,
 	cursorline: true,
