@@ -1,9 +1,9 @@
-[submodule "pack/browser/start/vim-vinegar"]
+[submodule "vim-vinegar"]
 	path = pack/remote/start/vim-vinegar
 	url = https://github.com/tpope/vim-vinegar.git
-[submodule "pack/git/start/vim-fugitive"]
+[submodule "vim-fugitive"]
 	path = pack/remote/start/vim-fugitive
-	url = https://github.com/tpope/vim-fugitive
-[submodule "pack/remote/opt/lsp"]
+	url = https://github.com/tpope/vim-fugitive.git
+[submodule "lsp"]
 	path = pack/remote/opt/lsp
-	url = https://github.com/yegappan/lsp
+	url = https://github.com/yegappan/lsp.git
