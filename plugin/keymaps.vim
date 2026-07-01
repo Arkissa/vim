@@ -167,6 +167,10 @@ Bind.new(Mods.n)
 	.NoWait()
 	.Callback("'\<CR>", () => {
 		var cmd = expandcmd(input('Command Shell: ', '', 'shellcmdline'))
+		if cmd == ""
+			return
+		endif
+
 		histadd(':', $"terminal {cmd}")
-		Terminal.new(cmd ?? $SHELL, {hidden: false})
+		Terminal.new(cmd, {hidden: false})
 	})
