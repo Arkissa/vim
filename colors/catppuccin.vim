@@ -175,7 +175,7 @@ hlset([
 ])
 
 if has('gui_running')
-	hlset([{name: 'Normal', guibg: '#000000', guifg: text, force: true}])
+	hlset([{name: 'Normal', guibg: '#1e1e2e', guifg: text, force: true}])
 endif
 
 hlset(XtermDefineHl())
