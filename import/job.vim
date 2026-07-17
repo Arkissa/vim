@@ -111,6 +111,12 @@ export class Job
 		return job_getchannel(this._job)
 	enddef
 
+	def Interrupt()
+		if this._job != null_job
+			job_stop(this._job, 'int')
+		endif
+	enddef
+
 	def Stop()
 		if this._job != null_job
 			job_stop(this._job)
