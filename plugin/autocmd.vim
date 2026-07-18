@@ -3,11 +3,12 @@ vim9script
 import 'buffer.vim'
 import 'window.vim'
 import 'autocmd.vim'
-import 'statusline.vim'
 import 'vim.vim'
 import 'log.vim'
 import 'timer.vim'
 import 'thread.vim'
+
+import autoload 'statusline.vim' as st
 
 type Buffer = buffer.Buffer
 type Window = window.Window
@@ -15,20 +16,30 @@ type Autocmd = autocmd.Autocmd
 
 const ExcludeFiletype = ["xxd", "gitrebase", "tutor", "help", "gitcommint", "git", "fugitive", "fugitiveblame"]
 const ExcludeBuftype = ["quickfix", "terminal", "help", "xxd"]
-const g:stl = statusline.Build.new(
-	statusline.Cut.new(),
-	statusline.Mode.new(),
-	statusline.BufName.new(),
-	statusline.Diags.new(),
-	statusline.Sep.new(),
-	statusline.Git.new(),
-	statusline.FileType.new(),
-	statusline.Dir.new(),
-	statusline.Icon.new(),
-	statusline.FileSize.new(),
-	statusline.FilePercent.new(),
-	statusline.LineCol.new(),
-)
+
+g:statusline = {
+	left: [
+		st.Color.new(st.Text.new(' '), {
+			bg: 'NONE',
+			fg: 'NONE',
+		}),
+		st.Mode.new(),
+		st.BufName.new(),
+		st.Diags.new(),
+	],
+	right: [
+		st.Git.new(),
+		st.FileType.new(),
+		st.Dir.new(),
+		st.Icon.new('≡', st.FileSize.new()),
+		st.FilePercent.new(),
+		st.LineCol.new(),
+		st.Color.new(st.Text.new(' '), {
+			bg: 'NONE',
+			fg: 'NONE',
+		}),
+	]
+}
 
 def TailWhitespaceHighlight()
 	var win = Window.newCurrent()
@@ -174,7 +185,7 @@ v:clipproviders["wl_clipboard"] = {
 Autocmd.new('VimEnter')
 	.Group(g:myvimrc_group)
 	.Desc('statusline')
-	.Command('set statusline=%{%g:stl->string()%}')
+	.Command('set statusline=%{%statusline#Statusline()%}')
 	.Once()
 	.Desc('set autoread')
 	.Callback(() => {
