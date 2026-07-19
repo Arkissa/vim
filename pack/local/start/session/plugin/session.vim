@@ -32,8 +32,19 @@ Command.new('SessionSave')
 			return
 		endif
 
+		if exists_compiled('+shellslash')
+			def Recover(saved: any)
+				&shellslash = saved
+			enddef
+
+			defer Recover(&shellslash)
+			&shellslash = true
+		endif
+
 		var dir = get(g:, "session_dir", "")
-		session.Session.Save(dir, fnamemodify(getcwd(), ':t'), attr.mods.silent)
+		var sessionName = substitute(getcwd(), '\v(^[A-Z]):', '\1@', '')->substitute('/', '@', 'g')
+
+		session.Session.Save(dir, sessionName, attr.mods.silent)
 	})
 
 Command.new('SessionLoad')
@@ -50,8 +61,20 @@ Command.new('SessionLoad')
 			return
 		endif
 
+		if exists_compiled('+shellslash')
+			def Recover(saved: any)
+				&shellslash = saved
+			enddef
+
+			defer Recover(&shellslash)
+			&shellslash = true
+		endif
+
 		var dir = get(g:, "session_dir", "")
-		session.Session.Load(dir, attr.args, attr.mods.silent)
+		var sname = attr.args ?? getcwd()
+
+		sname = sname->substitute('\v(^[A-Z]):', '\1@', '')->substitute('/', '@', 'g')
+		session.Session.Load(dir, sname, attr.mods.silent)
 	})
 
 
@@ -65,4 +88,4 @@ Autocmd.new('VimEnter')
 	.When((): bool => exists('g:session_auto_load'))
 	.Group(group)
 	.Once()
-	.Command('if argc() == 0 && v:argv->len() == 1 | SessionLoad | endif')
+	.Command('if argc() == 0 && v:argv->len() == 1 | silent SessionLoad | endif')
