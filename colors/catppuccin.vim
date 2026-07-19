@@ -4,7 +4,7 @@ vim9script
 :set background=dark
 :hi clear
 
-if exists("syntax on")
+if exists("syntax_on")
     :syntax reset
 endif
 
@@ -175,7 +175,7 @@ hlset([
 ])
 
 if has('gui_running')
-	hlset([{name: 'Normal', guibg: '#1e1e2e', guifg: text, force: true}])
+	hlset([{name: 'Normal', guibg: '#24273a', guifg: text, force: true}])
 endif
 
 hlset(XtermDefineHl())

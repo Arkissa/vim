@@ -2,7 +2,11 @@ vim9script
 
 import 'vim.vim'
 import 'buffer.vim'
+import 'thread.vim'
+import 'autocmd.vim'
 import 'quickfix.vim'
+
+type Autocmd = autocmd.Autocmd
 
 const left = 'left'
 const mid = 'mid'
@@ -16,8 +20,31 @@ export interface Provider
 	def string(): string
 endinterface
 
+export class Padding implements Provider
+	const _provider: Provider
+	var _left: string = ' '
+	var _right: string = ' '
+
+	def new(this._provider)
+	enddef
+
+	def Left(n: number = 1): Padding
+		this._left = repeat(' ', n < 1 ? 0 : n)
+		return this
+	enddef
+
+	def Right(n: number = 1): Padding
+		this._right = repeat(' ', n < 1 ? 0 : n)
+		return this
+	enddef
+
+	def string(): string
+		return $'{this._left}{this._provider->string()}{this._right}'
+	enddef
+endclass
+
 export class Text implements Provider
-	var _text: string
+	const _text: string
 
 	def new(this._text)
 	enddef
@@ -28,8 +55,8 @@ export class Text implements Provider
 endclass
 
 export class Icon implements Provider
-	const _icon: string
 	const _provider: Provider
+	const _icon: string
 
 	def new(this._icon, this._provider)
 	enddef
@@ -41,14 +68,17 @@ endclass
 
 const id = vim.IncID.new()
 export class Color implements Provider
-	static const _group_name = 'statusline_color'
-	static var _cache: dict<string> = {}
+	static const _group_name = 'StatuslineColor'
+	static var _cache: dict<dict<any>> = {}
+	static var _once: bool
 
 	const _id: number = id.ID()
 	const _name: string
 	const _provider: Provider
 
 	def new(this._provider, color: any)
+		this._Init()
+
 		if type(color) == v:t_string
 			this._name = color
 			return
@@ -72,21 +102,43 @@ export class Color implements Provider
 		var hash = this._GetColorHash(fg, bg, attr)
 
 		if has_key(_cache, hash)
-			this._name = _cache[hash]
+			this._name = _cache[hash].name
 		else
 			this._name = $'{_group_name}{this._id}'
-			var hl = {name: this._name, term: {[attr]: 1}}
-			_cache[hash] = this._name
+			var hl: dict<any> = {name: this._name}
 
 			hl->extend(fg, 'error')
 			hl->extend(bg, 'error')
+			if !attr->empty()
+				hl.term = {[attr]: 1}
+			endif
 
-			hlset([hl])
+			_cache[hash] = hl
+
+			if hlset([hl]) != 0
+				throw $'hlset {color} failed'
+			endif
 		endif
 	enddef
 
+	def _Init()
+		if _once
+			return
+		endif
+
+		_once = true
+		var cache = _cache
+		Autocmd.new('ColorScheme')
+			.Group('statusline color')
+			.Callback(() => {
+				thread.Fork(() => {
+					hlset(cache->values())
+				})
+			})
+	enddef
+
 	def string(): string
-		return $"%#{this._name}#{this._provider->string()}"
+		return $"%#{this._name}#{this._provider->string()}%0*"
 	enddef
 
 	def _GetColorHash(fg: dict<any>, bg: dict<any>, attr: string): string
@@ -131,14 +183,14 @@ class Sep implements Provider
 	enddef
 endclass
 
-export class BufName implements Provider
+class BufName_ implements Provider
 	def string(): string
 		var buf = buffer.Buffer.newCurrent()
 		return $'[{empty(buf.name) ? '(No Name)' : fnamemodify(buf.name, ':t')}%m]'
 	enddef
 endclass
 
-export class Mode implements Provider
+class Mode_ implements Provider
 	static const modeMap = {
 		'n': 'NORMAL', 'i': 'INSERT', 'R': 'REPLACE', 'v': 'VISUAL', 'V': 'V-LINE', "\<C-v>": 'V-BLOCK',
 		'c': 'COMMAND', 's': 'SELECT', 'S': 'S-LINE', "\<C-s>": 'S-BLOCK', 't': 'TERMINAL'
@@ -149,14 +201,14 @@ export class Mode implements Provider
 	enddef
 endclass
 
-export class Dir implements Provider
+class Dir_ implements Provider
 	def string(): string
 		var str = substitute(expand('%:p:h'), $'^{getcwd()}\(.*\)', '.\1', '') ?? '.'
 		return str =~ '^\.' ? str : fnamemodify(str, ':~:.')
 	enddef
 endclass
 
-export class Git implements Provider
+class Git_ implements Provider
 	def string(): string
 		if exists('*g:FugitiveStatusline')
 			return g:FugitiveStatusline()
@@ -166,7 +218,7 @@ export class Git implements Provider
 	enddef
 endclass
 
-export class Diags implements Provider
+class Diags_ implements Provider
 	def string(): string
 		var b = Buffer.newCurrent()
 		var lspDiag = b.GetVar('LspDiag', {})
@@ -207,25 +259,25 @@ export class Diags implements Provider
 	enddef
 endclass
 
-export class FilePercent implements Provider
+class FilePercent_ implements Provider
 	def string(): string
 		return '%3P'
 	enddef
 endclass
 
-export class LineCol implements Provider
+class LineCol_ implements Provider
 	def string(): string
 		return '%3l:%-3c'
 	enddef
 endclass
 
-export class FileType implements Provider
+class FileType_ implements Provider
 	def string(): string
 		return '%y'
 	enddef
 endclass
 
-export class FileSize implements Provider
+class FileSize_ implements Provider
 	def string(): string
 		var name = expand('%:p')
 		if name == ''
@@ -249,18 +301,97 @@ export class FileSize implements Provider
 	enddef
 endclass
 
-export def Statusline(): string
-	const statusline: dict<list<Provider>> = get(g:, 'statusline', {})
-
-	var sidestrs = []
-
-	for side in [left, mid, right]
-		if has_key(statusline, side)
-			var sidestr = statusline[side]->mapnew((_, provider) => provider->string())->join()
-
-			sidestrs->add(sidestr)
+def Wrap(providers: list<Provider>): list<Provider>
+	return providers->mapnew((_, provider) => {
+		if instanceof(provider, Padding)
+			return provider
 		endif
-	endfor
 
-	return sidestrs->join(Sep.new()->string())
+		return Padding.new(provider)
+	})
+enddef
+
+abstract class Side implements Provider
+	var _providers: list<Provider>
+	var _once: bool
+
+	def string(): string
+		if !this._once
+			this._providers = Wrap(this._providers)
+		endif
+
+		this._once = true
+		return this._providers->mapnew((_, provider) => provider->string())->join('')
+	enddef
+endclass
+
+export class Left extends Side
+	def new(this._providers)
+	enddef
+endclass
+
+export class Middle extends Side
+	def new(this._providers)
+	enddef
+endclass
+
+export class Right extends Side
+	def new(this._providers)
+	enddef
+endclass
+
+def SideOrder(provider: Provider): number
+	if instanceof(provider, Left)
+		return 0
+	elseif instanceof(provider, Middle)
+		return 1
+	else
+		return 2
+	endif
+enddef
+
+export class Builtin
+	static def BufName(): Provider
+		return BufName_.new()
+	enddef
+
+	static def Git(): Provider
+		return Git_.new()
+	enddef
+
+	static def FileType(): Provider
+		return FileType_.new()
+	enddef
+
+	static def Dir(): Provider
+		return Dir_.new()
+	enddef
+
+	static def LineCol(): Provider
+		return LineCol_.new()
+	enddef
+
+	static def FileSize(): Provider
+		return FileSize_.new()
+	enddef
+
+	static def FilePercent(): Provider
+		return FilePercent_.new()
+	enddef
+
+	static def Mode(): Provider
+		return Mode_.new()
+	enddef
+
+	static def Diags(): Provider
+		return Diags_.new()
+	enddef
+endclass
+
+export def Statusline(): string
+	var providers: list<Provider> = get(g:, 'statusline', [])
+		->copy()
+		->sort((p1, p2) => SideOrder(p1) - SideOrder(p2))
+
+	return providers->mapnew((_, provider) => provider->string())->join(Sep.new()->string())
 enddef
