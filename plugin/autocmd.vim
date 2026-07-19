@@ -8,38 +8,12 @@ import 'log.vim'
 import 'timer.vim'
 import 'thread.vim'
 
-import autoload 'statusline.vim' as st
-
 type Buffer = buffer.Buffer
 type Window = window.Window
 type Autocmd = autocmd.Autocmd
 
 const ExcludeFiletype = ["xxd", "gitrebase", "tutor", "help", "gitcommint", "git", "fugitive", "fugitiveblame"]
 const ExcludeBuftype = ["quickfix", "terminal", "help", "xxd"]
-
-g:statusline = {
-	left: [
-		st.Color.new(st.Text.new(' '), {
-			bg: 'NONE',
-			fg: 'NONE',
-		}),
-		st.Mode.new(),
-		st.BufName.new(),
-		st.Diags.new(),
-	],
-	right: [
-		st.Git.new(),
-		st.FileType.new(),
-		st.Dir.new(),
-		st.Icon.new('≡', st.FileSize.new()),
-		st.FilePercent.new(),
-		st.LineCol.new(),
-		st.Color.new(st.Text.new(' '), {
-			bg: 'NONE',
-			fg: 'NONE',
-		}),
-	]
-}
 
 def TailWhitespaceHighlight()
 	var win = Window.newCurrent()
@@ -154,14 +128,13 @@ def Copy(reg: string, type: string, str: list<string>)
 		args ..= " -p"
 	endif
 
-	log.PopInfo(type)
 	system(args, str)
 	# clean dirty control code return from wl-copy.
 	:redraw!
 enddef
 
 def Paste(reg: string): tuple<string, list<string>>
-	var args = ["wl-paste", "--type", "text/plain;charset=utf-8"]
+	var args = ["wl-paste", "--type", "text/plain;charset=utf-8", "--no-newline"]
 
 	if reg == "*"
 		args->add("-p")
@@ -185,7 +158,7 @@ v:clipproviders["wl_clipboard"] = {
 Autocmd.new('VimEnter')
 	.Group(g:myvimrc_group)
 	.Desc('statusline')
-	.Command('set statusline=%{%statusline#Statusline()%}')
+	.Command('set statusline=%!statusline#Statusline()')
 	.Once()
 	.Desc('set autoread')
 	.Callback(() => {
