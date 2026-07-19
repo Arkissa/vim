@@ -6,6 +6,7 @@ import 'completion.vim'
 g:mapleader = ' '
 g:netrw_keepj = 'keepj'
 g:netrw_dirhistmax = 0
+g:netrw_clipboard = 0
 g:dispatch_no_maps = 1
 g:myvimrc_group = 'MYVIMRC'
 g:hlput_enable = true
