@@ -42,13 +42,21 @@ export class Session
 	enddef
 
 	static def Load(dir: string, sessionName: string, silent: bool)
-		var sname = sessionName ?? fnamemodify(getcwd(), ':t')
-		var sessions = All(dir)->filter((_, name) => name =~# $'\/{sname}\/')
+		if empty(sessionName)
+			if !silent
+				:redraw
+				log.Error($'Load Session error: sessionName is empty')
+			endif
+
+			return
+		endif
+
+		var sessions = All(dir)->filter((_, name) => name =~# $'\/{sessionName}\/')
 
 		if empty(sessions)
 			if !silent
 				:redraw
-				log.Error($'Load Session error: {sname} not found in {fnamemodify(dir, ':~:.')}')
+				log.Error($'Load Session error: {sessionName} not found in {fnamemodify(dir, ':~')}')
 			endif
 
 			return
