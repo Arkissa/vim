@@ -154,6 +154,16 @@ Bind.new(Mods.c)
 		return ''
 	})
 
+Bind.new(Mods.x)
+	.NoWait()
+	.Map('<C-c>', '"+y')
+
+Bind.new(Mods.i)
+	.NoWait()
+	.Callback('<C-v>', () => {
+		execute('normal! "+gP')
+	})
+
 Bind.new(Mods.n)
 	.NoRemap()
 	.NoWait()

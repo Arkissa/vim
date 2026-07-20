@@ -73,9 +73,6 @@ export class Bind # {{{1
 	enddef # }}}
 
 	def Callback(lhs: string, Rhs: func): Bind # {{{2
-		if ['func()', 'func(): string', 'func(): any']->index(typename(Rhs)) == -1
-			throw 'Rhs type must be func() or func(): string or func(): any.'
-		endif
 		if this._When != null_function && !call(this._When, [])
 			return this
 		endif
