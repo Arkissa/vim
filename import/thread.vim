@@ -43,7 +43,7 @@ class Thread_ implements Thread
 				if typename(Fn) =~# '^func(.\{-\}):'
 					this.ret = call(Fn, args)
 				else
-					call(Fn, args)
+					call(Fn, [])
 					this.ret = void
 				endif
 
@@ -59,6 +59,16 @@ endclass
 
 export def Fork(Fn: func, ...args: list<any>): Thread
 	return call(function(Thread_.new, [Fn]), args)
+enddef
+
+export def Wrap(Fn: func): func(...list<any>)
+	return (...args: list<any>) => {
+		if typename(Fn) =~# '^func(.\{-\}):'
+			call(Fn, args)
+		else
+			call(Fn, [])
+		endif
+	}
 enddef
 
 export def Join(thread: Thread): any
