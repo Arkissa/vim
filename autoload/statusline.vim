@@ -103,21 +103,22 @@ export class Color implements Provider
 
 		if has_key(_cache, hash)
 			this._name = _cache[hash].name
-		else
-			this._name = $'{_group_name}{this._id}'
-			var hl: dict<any> = {name: this._name}
+			return
 
-			hl->extend(fg, 'error')
-			hl->extend(bg, 'error')
-			if !attr->empty()
-				hl.term = {[attr]: 1}
-			endif
+		endif
+		this._name = $'{_group_name}{this._id}'
+		var hl: dict<any> = {name: this._name}
 
-			_cache[hash] = hl
+		hl->extend(fg, 'error')
+		hl->extend(bg, 'error')
+		if !attr->empty()
+			hl.term = {[attr]: 1}
+		endif
 
-			if hlset([hl]) != 0
-				throw $'hlset {color} failed'
-			endif
+		_cache[hash] = hl
+
+		if hlset([hl]) != 0
+			throw $'hlset {color} failed'
 		endif
 	enddef
 
@@ -130,11 +131,9 @@ export class Color implements Provider
 		var cache = _cache
 		Autocmd.new('ColorScheme')
 			.Group('statusline color')
-			.Callback(() => {
-				thread.Fork(() => {
-					hlset(cache->values())
-				})
-			})
+			.Callback(thread.Wrap(() => {
+				hlset(cache->values())
+			}))
 	enddef
 
 	def string(): string

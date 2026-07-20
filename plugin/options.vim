@@ -2,9 +2,7 @@ vim9script
 
 import 'vim.vim'
 
-if has('gui_running')
-    :set guicursor=n-v-c:block,i-ci:ver25,r-cr:hor20,o:hor50
-else
+if !has('gui_running')
     &t_SI = "\e[6 q"
     &t_EI = "\e[2 q"
     &t_SR = "\e[4 q"
@@ -25,6 +23,7 @@ if has('win')
 	:set winaltkeys
 endif
 
+:set title
 :set autocomplete
 :set nocompatible
 :set smoothscroll
@@ -37,7 +36,6 @@ endif
 :set ignorecase
 :set wildmenu
 :set smartcase
-:set noshowmode
 :set ruler
 :set hlsearch
 :set lazyredraw
@@ -54,7 +52,7 @@ endif
 :set keywordprg=:Man
 
 &autocompletedelay = 300 # 0 is so many noisy.
-&pumborder = vim.Option(['round'])
+# &pumborder = vim.Option(['round'])
 &complete = 'F,o'
 &ttyscroll = 3 # kitty will fast redraw screen.
 &ttimeoutlen = 50
@@ -63,7 +61,7 @@ endif
 &shiftwidth = 4
 &softtabstop = 4
 &tabstop = 4
-&laststatus = 2
+&laststatus = 0
 &updatetime = 300
 &wildoptions = 'pum'
 &wildmode = 'noselect:lastused,full'
@@ -96,6 +94,17 @@ endif
  	'*/.nx/**', '*.app', '*.git', '.git/', '__pycache__/', '*/dist-newstyle/**',
  	'*.wav', '*.mp3', '*.ogg', '*.pcm', 'node_modules/', '*.pb.*', '*/3rd/**'
 ])
+
+def g:Title(): string
+	var title = '%t '
+	var dir = expand("%:~:.:h")
+	if dir == '.'
+		return title .. '%( %m%)'
+	endif
+
+	return $'{title}%( ({dir})%)%( %m%)'
+enddef
+&titlestring = '%{%g:Title()%}'
 
 if $MYVIMDIR =~# $'^{getcwd()}'
 	&wildignore ..= ',*/pack/remote/**'

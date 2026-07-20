@@ -2,6 +2,14 @@ vim9script
 
 import 'vim.vim'
 
+:set guioptions-=T
+:set guioptions-=m
+:set guioptions-=l
+:set guioptions-=L
+:set winaltkeys=no
+
+&guifont = 'Maple Mono NL NF CN 11'
+&guifontwide = 'Maple Mono NL NF CN 11'
 &guicursor = vim.Option([
 	'n-v-c:block',
 	'i-ci:ver25',
@@ -9,13 +17,3 @@ import 'vim.vim'
 	'o:hor50',
 	'a:blinkon0'
 ])
-
-
-&guifont = 'Maple Mono NF 12'
-&guifontwide = 'Maple Mono NF 12'
-
-:set guioptions-=T
-:set guioptions-=m
-:set guioptions-=l
-:set guioptions-=L
-:set winaltkeys=no
