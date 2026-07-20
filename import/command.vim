@@ -9,6 +9,7 @@ import 'quickfix.vim'
 
 type Action = quickfix.Action
 type Autocmd = autocmd.Autocmd
+type QuickfixItem = quickfix.QuickfixItem
 
 export enum NArgs
 	Zero('0'),
@@ -409,12 +410,13 @@ export abstract class ErrorFormat extends Execute
 		endif
 
 		var info = this.Info()
-
-		qf.SetList([], quickfix.Action.A, {
+		var qfinfo = qf.GetList({
 			efm: this.Efm(),
 			lines: [msg],
 			title: info == null_dict ? info.cmd->join(' ') : this.Cmd()
 		})
+
+		qf.SetList(qfinfo.items->mapnew((_, item) => QuickfixItem.new(item.ToRaw()->extend({text: msg}, 'force'))), quickfix.Action.A)
 	enddef
 endclass
 
