@@ -52,7 +52,6 @@ endif
 :set keywordprg=:Man
 
 &autocompletedelay = 300 # 0 is so many noisy.
-# &pumborder = vim.Option(['round'])
 &complete = 'F,o'
 &ttyscroll = 3 # kitty will fast redraw screen.
 &ttimeoutlen = 50
@@ -67,7 +66,7 @@ endif
 &wildmode = 'noselect:lastused,full'
 &completeslash = 'slash'
 &showbreak = '↪ '
-&fillchars = 'eob: '
+&fillchars = 'eob: ,fold: '
 &signcolumn = 'yes'
 &display = 'lastline'
 &diffopt = vim.Option([
@@ -95,16 +94,7 @@ endif
  	'*.wav', '*.mp3', '*.ogg', '*.pcm', 'node_modules/', '*.pb.*', '*/3rd/**'
 ])
 
-def g:Title(): string
-	var title = '%t '
-	var dir = expand("%:~:.:h")
-	if dir == '.'
-		return title .. '%( %m%)'
-	endif
-
-	return $'{title}%( ({dir})%)%( %m%)'
-enddef
-&titlestring = '%{%g:Title()%}'
+&titlestring = '%{expand("%:~:.")}%4( %m%)'
 
 if $MYVIMDIR =~# $'^{getcwd()}'
 	&wildignore ..= ',*/pack/remote/**'
