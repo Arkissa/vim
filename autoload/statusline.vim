@@ -266,7 +266,7 @@ endclass
 
 class LineCol_ implements Provider
 	def string(): string
-		return '%3l:%-3c'
+		return '%3l,%-3c'
 	enddef
 endclass
 
