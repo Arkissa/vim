@@ -102,10 +102,6 @@ hlset([
     {name: "SpellCap", guisp: yellow, guifg: "NONE", guibg: "NONE", ctermfg: "NONE", ctermbg: "NONE", gui: {underline: true}, cterm: {underline: true}},
     {name: "SpellLocal", guisp: blue, guifg: "NONE", guibg: "NONE", ctermfg: "NONE", ctermbg: "NONE", gui: {underline: true}, cterm: {underline: true}, term: {reverse: true}},
     {name: "SpellRare", guisp: green, guifg: "NONE", guibg: "NONE", ctermfg: "NONE", ctermbg: "NONE", gui: {underline: true}, cterm: {underline: true}},
-    {name: "StatusLine", guisp: "NONE", guifg: text, guibg: "NONE", gui: {}, cterm: {}},
-    {name: "StatusLineNC", guisp: "NONE", guifg: surface1, guibg: "NONE", gui: {}, cterm: {}},
-    {name: "StatusLineTerm", guisp: "NONE", guifg: text, guibg: "NONE", gui: {}, cterm: {}},
-    {name: "StatusLineTermNC", guisp: "NONE", guifg: surface1, guibg: "NONE", gui: {}, cterm: {}},
     {name: "TabLine", guisp: "NONE", guifg: surface1, guibg: "NONE", gui: {}, cterm: {}},
     {name: "TabLineFill", guisp: "NONE", guifg: "NONE", guibg: "NONE", gui: {}, cterm: {}},
     {name: "TabLineSel", guisp: "NONE", guifg: green, guibg: "NONE", gui: {}, cterm: {}},
@@ -150,10 +146,14 @@ hlset([
     {name: "SpecialComment", default: true, linksto: "Special"},
     {name: "Debug", default: true, linksto: "Special"},
     {name: "Exception", default: true, linksto: "Error"},
-    {name: "StatusLineTerm", default: true, linksto: "StatusLine"},
-    {name: "StatusLineTermNC", default: true, linksto: "StatusLineNC"},
     {name: "Terminal", default: true, linksto: "Normal"},
     {name: "Ignore", default: true, linksto: "Comment"},
+
+    #Statusline
+    {name: "StatusLine", guisp: "NONE", guifg: text, guibg: "NONE", gui: {underline: true}, cterm: {}},
+    {name: "StatusLineNC", guisp: "NONE", guifg: surface1, guibg: "NONE", gui: {underline: true}, cterm: {}},
+    {name: "StatusLineTerm", default: true, linksto: "StatusLine", cleared: true},
+    {name: "StatusLineTermNC", default: true, linksto: "StatusLineNC", cleared: true},
 
 	# LSP
 	{name: "LspTextRef", default: true, linksto: "Visual"},
