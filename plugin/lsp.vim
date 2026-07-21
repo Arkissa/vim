@@ -14,11 +14,7 @@ Autocmd.new('VimEnter')
 	.Group(group)
 	.Desc("load lsp")
 	.Once()
-	.Callback(() => {
-		thread.Fork(() => {
-			execute('packadd lsp')
-		})
-	})
+	.Callback(thread.Wrap(function('execute', ['packadd lsp'])))
 
 Autocmd.new('User')
 	.Group(group)

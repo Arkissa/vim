@@ -47,17 +47,12 @@ Autocmd.new('BufReadPost')
 	})
 	.Desc('highlight tail whitespace on window.')
 	.Once()
-	.Callback(() => {
-		thread.Fork(TailWhitespaceHighlight)
-	})
-
+	.Callback(thread.Wrap(TailWhitespaceHighlight))
 
 Autocmd.new('WinNew')
 	.Desc('highlight tail whitespace on window.')
 	.Group(g:myvimrc_group)
-	.Callback(() => {
-		thread.Fork(TailWhitespaceHighlight)
-	})
+	.Callback(thread.Wrap(TailWhitespaceHighlight))
 
 Autocmd.new('InsertLeave')
 	.Group(g:myvimrc_group)
@@ -161,9 +156,7 @@ Autocmd.new('VimEnter')
 	.Command('set statusline=%!statusline#Statusline()')
 	.Once()
 	.Desc('set autoread')
-	.Callback(() => {
-		thread.Fork(function('execute', ['set autoread']))
-	})
+	.Callback(thread.Wrap(function('execute', ['set autoread'])))
 	.Desc('see https://github.com/vim/vim/blob/master/runtime/doc/wayland.txt#L56-L103')
 	.Callback(() => {
 		if has('wayland_clipboard')
@@ -174,6 +167,12 @@ Autocmd.new('VimEnter')
 			&clipmethod = 'wl_clipboard'
 		endif
 	})
+	.Desc('gvim load session will redraw screen.')
+	.Callback(thread.Wrap(() => {
+		if has('gui_running')
+			:redraw!
+		endif
+	}))
 
 Autocmd.new('TerminalOpen')
 	.Desc('set signcolumn=no and nowrap for terminal.')

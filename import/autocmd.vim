@@ -188,10 +188,6 @@ export class Autocmd
 	enddef
 
 	def Callback(F: func): Autocmd
-		if ['func()', 'func(any)', 'func(object<EventArgs>)']->index(typename(F)) == -1
-			throw 'Autocmd Callback parameter type must be func() or func(any) or func(object<EventArgs>).'
-		endif
-
 		if this._when != null_function && !call(this._when, [])
 			return this
 		endif
