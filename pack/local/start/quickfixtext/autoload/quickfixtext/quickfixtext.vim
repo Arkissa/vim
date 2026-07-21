@@ -105,33 +105,11 @@ class Text # {{{1
 				sign_unplace(Text.group)
 			})
 		return qfitems->mapnew((i, item) => {
-			var lnum = Text.GetLnum(item)
-			var text = item.text
-			var fname = ''
-			if item.valid
-				if !filereadable(item.buffer.name)
-					text = [item.buffer.name, lnum, text]
-						->filter((_, v) => !v->empty())
-						->join(':')
-					fname = ''
-					lnum = ''
-
-					return text
-				endif
-
-				if item.buffer.bufnr > 0
-					fname = Text.GetFname(fnamemodify(item.buffer.name, ":~:."), maxFnameWidth)
-				endif
-
-				if item.type != quickfix.Type.Empty
-					sign_place(0, Text.group, item.type.Value, qflist.qfbufnr, {lnum: info.start_idx + i})
-				endif
+			if item.valid && item.type != quickfix.Type.Empty
+				sign_place(0, Text.group, item.type.Value, qflist.qfbufnr, {lnum: info.start_idx + i})
 			endif
 
-			# Build line with conditional spacing
-			var parts = [Text.EscapeFnameSpace(fname), lnum, text]->filter((_, v) => !v->empty())
-			var line = parts->join(' ')
-			return line ?? " "
+			return item.text
 		})
 	enddef # }}}
 endclass # }}}

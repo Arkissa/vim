@@ -74,7 +74,12 @@ class Peekfix # {{{1
 		endif
 
 		var lnum = item.lnum ?? 1
-		var col = item.col ?? 1
+		var col = item.col
+		# when col is invalid will be get first non-empty character position to be col.
+		if col == 0
+			col = match(win.GetBuffer().GetOneLine(lnum), '\S') + 1
+		endif
+
 		prop_add(lnum, col, {
 			type: prop_name,
 			end_lnum: item.end_lnum ?? lnum,

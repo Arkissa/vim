@@ -83,10 +83,10 @@ export class QuickfixItem
 	enddef
 
 	def string(): string
-		return string(this.ToRow())
+		return string(this.ToRaw())
 	enddef
 
-	def ToRow(): dict<any>
+	def ToRaw(): dict<any>
 		return {
 			bufnr: this.buffer.bufnr,
 			lnum: this.lnum,
@@ -181,7 +181,7 @@ export class Quickfix implements Quickfixer
 	enddef
 
 	def SetList(entry: list<QuickfixItem>, action: Action, what: dict<any> = null_dict): bool
-		var items = entry->mapnew((_, item) => item.ToRow())
+		var items = entry->mapnew((_, item) => item.ToRaw())
 		if what == null_dict
 			return setqflist(items, action.Value) == 0
 		endif
@@ -199,7 +199,7 @@ export class Quickfix implements Quickfixer
 		endif
 
 		var qf = getqflist(what)
-		if what->has_key('items')
+		if qf->has_key('items')
 			qf.items->map((_, item) => QuickfixItem.new(item))
 		endif
 
@@ -296,7 +296,7 @@ export class Location implements Quickfixer
 	enddef
 
 	def SetList(entry: list<QuickfixItem>, action: Action, what: dict<any> = null_dict): bool
-		var items = entry->mapnew((_, item) => item.ToRow())
+		var items = entry->mapnew((_, item) => item.ToRaw())
 		if what == null_dict
 		   return setloclist(this.winnr, items, action.Value) == 0
 		endif
@@ -314,7 +314,7 @@ export class Location implements Quickfixer
 		endif
 
 		var loc = getloclist(this.winnr, what)
-		if what->has_key('items')
+		if loc->has_key('items')
 			loc.items->map((_, item) => QuickfixItem.new(item))
 		endif
 
