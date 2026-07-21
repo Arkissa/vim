@@ -217,4 +217,8 @@ g:LspServer = [
 	},
 ]
 
+g:ask_prompt =<< trim END
+	just anwser the question or just to do, don't ask anything.
+END
+
 :set exrc

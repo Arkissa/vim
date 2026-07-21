@@ -22,6 +22,7 @@ const searchURLs = {
 
 const askURL = get(askURLs, get(g:, 'ask_engine') ?? 'google')
 const searchURL = get(searchURLs, get(g:, 'search_engine') ?? 'google')
+const ask_prompt = get(g:, 'ask_prompt', '')
 
 def WebSearch(s: string)
 	var content = s
@@ -51,7 +52,8 @@ def Ask(range: number, s: string)
 		content = lines->join("\r\n")
 	endif
 
-	echom askURL
+	content = $'{content}\r\n{ask_prompt}'
+
 	vim9.Open(askURL .. uri_encode(content))
 enddef
 
