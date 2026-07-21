@@ -43,7 +43,7 @@ class Thread_ implements Thread
 				if typename(Fn) =~# '^func(.\{-\}):'
 					this.ret = call(Fn, args)
 				else
-					call(Fn, [])
+					call(Fn, args)
 					this.ret = void
 				endif
 
