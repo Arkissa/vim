@@ -150,10 +150,10 @@ hlset([
     {name: "Ignore", default: true, linksto: "Comment"},
 
     #Statusline
-    {name: "StatusLine", guisp: "NONE", guifg: text, guibg: "NONE", gui: {underline: true}, cterm: {}},
-    {name: "StatusLineNC", guisp: "NONE", guifg: surface1, guibg: "NONE", gui: {underline: true}, cterm: {}},
-    {name: "StatusLineTerm", default: true, linksto: "StatusLine", cleared: true},
-    {name: "StatusLineTermNC", default: true, linksto: "StatusLineNC", cleared: true},
+    {name: "StatusLine", guisp: "NONE", guifg: text, guibg: "NONE", gui: {underline: true}, cterm: {underline: true}},
+    {name: "StatusLineNC", guisp: "NONE", guifg: surface1, guibg: "NONE", gui: {underline: true}, cterm: {underline: true}},
+    {name: "StatusLineTerm", default: true, linksto: "StatusLine", force: true},
+    {name: "StatusLineTermNC", default: true, linksto: "StatusLineNC", force: true},
 
 	# LSP
 	{name: "LspTextRef", default: true, linksto: "Visual"},
