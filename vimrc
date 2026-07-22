@@ -1,7 +1,7 @@
 vim9script
 
 import 'vim.vim'
-import 'completion.vim'
+import autoload 'completion.vim'
 
 g:mapleader = ' '
 g:netrw_keepj = 'keepj'
