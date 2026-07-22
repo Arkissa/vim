@@ -76,7 +76,6 @@ endif
 &sessionoptions = vim.Option([
 	'buffers', 'tabpages', 'winsize',
 	'winpos', 'resize', 'terminal', 'folds', 'help',
-	'localoptions'
 ])
 &completeopt = vim.Option(['menuone', 'noinsert', 'fuzzy', 'noselect', 'popup', 'preview'])
 &completeitemalign = vim.Option(['kind', 'abbr', 'menu'])
