@@ -5,23 +5,21 @@ export interface CompleteFunc
 	def Complete(base: string): any
 endinterface
 
-export class Complete
-	var _cmp: CompleteFunc
+var cmps: list<CompleteFunc> = []
 
-	def new(this._cmp)
-		if this._cmp == null_object
-			throw 'Complete.new(): argument must not be null_object'
-		endif
-	enddef
+def CallByIdx(idx: number, first: number, base: string): any
+	var cmp = cmps[idx]
+	if first == 1
+		return cmp.First()
+	endif
 
-	def Func(first: number, base: string): any
-		if first == 1
-			return this._cmp.First()
-		endif
+	return cmp.Complete(base)
+enddef
 
-		return this._cmp.Complete(base)
-	enddef
-endclass
+export def Func(cmp: CompleteFunc): func(number, string): any
+	cmps->add(cmp)
+	return funcref(CallByIdx, [cmps->len() - 1])
+enddef
 
 export const kinds = {
 	Text: '󰦨',
