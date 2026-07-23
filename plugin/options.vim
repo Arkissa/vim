@@ -9,8 +9,8 @@ if !has('gui_running')
 endif
 
 if !empty($KITTY_WINDOW_ID)
-    &t_ti ..= $"\e]1337;SetUserVar=in_editor={base64_encode(str2blob(['1']))}\a"
-    &t_te ..= "\e]1337;SetUserVar=in_editor\a"
+    &t_ti ..= $"\e]1337;SetUserVar=in_editor={base64_encode(str2blob(['1']))}\e\\"
+    &t_te ..= "\e]1337;SetUserVar=in_editor\e\\"
 endif
 
 # fouce enable FocusGained and FocusLost event.

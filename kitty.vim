@@ -10,11 +10,14 @@ if $TERM != 'xterm-kitty'
 	finish
 endif
 
-const SetEditorVar = $"\e]1337;SetUserVar=in_editor={base64_encode(str2blob(['1']))}\a"
-const UnsetEditorVar = "\e]1337;SetUserVar=in_editor\a"
+const SetEditorVar = $"\e]1337;SetUserVar=in_editor={base64_encode(str2blob(['1']))}\e\\"
+const UnsetEditorVar = "\e]1337;SetUserVar=in_editor\e\\"
 
 def SendKittyOSC(seq: string)
-	writefile([seq], '/dev/tty', 'b')
+	try
+		writefile([seq], '/dev/tty', 'b')
+	catch
+	endtry
 enddef
 
 def RejectExtraWindow(_)
