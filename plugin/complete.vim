@@ -51,9 +51,7 @@ def IsStringOrComment(lnum: number, col: number): bool
 	for id in synstack(lnum, col)
 		var name = id->synIDattr('name')
 		var linked = id->synIDtrans()->synIDattr('name')
-		if name =~? 'string\|comment'
-				|| linked ==# 'String'
-				|| linked ==# 'Comment'
+		if name =~# 'String\|Comment' || linked =~# 'String\|Comment'
 			return true
 		endif
 	endfor
