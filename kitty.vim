@@ -10,9 +10,44 @@ if $TERM != 'xterm-kitty'
 	finish
 endif
 
+const SetEditorVar = $"\e]1337;SetUserVar=in_editor={base64_encode(str2blob(['1']))}\a"
+const UnsetEditorVar = "\e]1337;SetUserVar=in_editor\a"
+
+def SendKittyOSC(seq: string)
+	writefile([seq], '/dev/tty', 'b')
+enddef
+
+def RejectExtraWindow(_)
+  if win_getid() == g:kitty_main_winid
+    return
+  endif
+
+  if win_gettype() ==# 'popup'
+    return
+  endif
+
+  if winnr('$') == 1
+    silent! tabclose!
+  else
+    silent! close!
+  endif
+enddef
+
+# Disable any window and tab to open.
+augroup KittyScroolback
+	autocmd!
+	autocmd VimEnter * SendKittyOSC(SetEditorVar)
+	autocmd VimLeavePre * SendKittyOSC(UnsetEditorVar)
+	autocmd WinNew * timer_start(0, RejectExtraWindow)
+	autocmd TabNew * timer_start(0, RejectExtraWindow)
+	autocmd WinEnter * timer_start(0, RejectExtraWindow)
+augroup END
+
 :set nomore
 :set laststatus=0
 :set showtabline=0
+:set noswapfile
+:set nobackup
 :setlocal nomodified
 :setlocal bufhidden=hide
 :packadd hlyank
@@ -20,7 +55,8 @@ endif
 :setlocal termwinscroll=100000
 :setlocal nonumber norelativenumber
 :nnoremap <silent> q :qa!<CR>
-:xmap <silent> <C-c> "+y
+:nnoremap <silent> i :qa!<CR>
+:xnoremap <silent> <C-c> "+y
 
 &clipboard = 'unnamedplus'
 
@@ -64,7 +100,6 @@ if has('wayland_clipboard') && !empty(v:wayland_display) && v:clipmethod ==# 'no
 	}
 
 	&clipmethod = 'wl_clipboard'
-else
 endif
 
 def RestoreKittyView(_)
@@ -96,5 +131,8 @@ enddef
 execute(':%terminal ++curwin ++noclose cat')
 
 g:kitty_term_buf = bufnr()
+g:kitty_main_winid = win_getid()
+
+:set winfixbuf
 
 timer_start(10, RestoreKittyView)

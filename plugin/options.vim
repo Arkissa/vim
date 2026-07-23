@@ -8,6 +8,11 @@ if !has('gui_running')
     &t_SR = "\e[4 q"
 endif
 
+if !empty($KITTY_WINDOW_ID)
+    &t_ti ..= $"\e]1337;SetUserVar=in_editor={base64_encode(str2blob(['1']))}\a"
+    &t_te ..= "\e]1337;SetUserVar=in_editor\a"
+endif
+
 # fouce enable FocusGained and FocusLost event.
 &t_fe = "\<Esc>[?1004h"
 &t_fd = "\<Esc>[?1004l"
