@@ -7,7 +7,7 @@ endinterface
 
 var cmps: list<CompleteFunc> = []
 
-def CallByIdx(idx: number, first: number, base: string): any
+def CompleteFunction(idx: number, first: number, base: string): any
 	var cmp = cmps[idx]
 	if first == 1
 		return cmp.First()
@@ -18,7 +18,7 @@ enddef
 
 export def Func(cmp: CompleteFunc): func(number, string): any
 	cmps->add(cmp)
-	return funcref(CallByIdx, [cmps->len() - 1])
+	return funcref(CompleteFunction, [cmps->len() - 1])
 enddef
 
 export const kinds = {
