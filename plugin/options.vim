@@ -71,7 +71,7 @@ endif
 &wildmode = 'noselect:lastused,full'
 &completeslash = 'slash'
 &showbreak = '↪ '
-&fillchars = 'eob: ,fold: '
+&fillchars = 'eob: ,fold: ,vert:▏'
 &signcolumn = 'yes'
 &display = 'lastline'
 &diffopt = vim.Option([
