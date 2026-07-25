@@ -112,44 +112,6 @@ Autocmd.new('OptionSet')
 		au.Callback(timer.Timer.new(&updatecount, Checktime).Reset)
 	})
 
-def Available(): bool
-	return executable('wl-copy') && executable('wl-paste')
-enddef
-
-def Copy(reg: string, type: string, str: list<string>)
-	var args = "wl-copy"
-
-	if reg == "*"
-		args ..= " -p"
-	endif
-
-	system(args, str)
-	# clean dirty control code return from wl-copy.
-	:redraw!
-enddef
-
-def Paste(reg: string): tuple<string, list<string>>
-	var args = ["wl-paste", "--type", "text/plain;charset=utf-8", "--no-newline"]
-
-	if reg == "*"
-		args->add("-p")
-	endif
-
-	return ("", systemlist(args))
-enddef
-
-v:clipproviders["wl_clipboard"] = {
-	available: Available,
-	copy: {
-		"+": Copy,
-		"*": Copy
-	},
-	paste: {
-		"+": Paste,
-		"*": Paste
-	}
-}
-
 Autocmd.new('VimEnter')
 	.Group(g:myvimrc_group)
 	.Desc('statusline')
@@ -157,16 +119,6 @@ Autocmd.new('VimEnter')
 	.Once()
 	.Desc('set autoread')
 	.Callback(thread.Wrap(function('execute', ['set autoread'])))
-	.Desc('see https://github.com/vim/vim/blob/master/runtime/doc/wayland.txt#L56-L103')
-	.Callback(() => {
-		if has('wayland_clipboard')
-			&& !has('gui_running')
-			&& !empty(v:wayland_display)
-			&& v:clipmethod ==# 'none'
-
-			&clipmethod = 'wl_clipboard'
-		endif
-	})
 	.Desc('gvim load session will redraw screen.')
 	.Callback(thread.Wrap(() => {
 		if has('gui_running')
