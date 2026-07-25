@@ -156,13 +156,13 @@ Bind.new(Mods.c)
 
 Bind.new(Mods.x)
 	.NoWait()
+	.NoRemap()
 	.Map('<C-c>', '"+y')
 
 Bind.new(Mods.i)
 	.NoWait()
-	.Callback('<C-v>', () => {
-		execute('normal! "+gP')
-	})
+	.NoRemap()
+	.Map('<C-v>', paste#paste_cmd['i'])
 
 Bind.new(Mods.n)
 	.NoRemap()

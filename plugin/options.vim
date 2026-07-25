@@ -2,6 +2,8 @@ vim9script
 
 import 'vim.vim'
 
+import autoload 'clipboard.vim'
+
 if !has('gui_running')
     &t_SI = "\e[6 q"
     &t_EI = "\e[2 q"
@@ -53,8 +55,6 @@ endif
 :colorscheme catppuccin
 :filetype plugin indent on
 :syntax on
-:runtime ftplugin/man.vim
-:set keywordprg=:Man
 
 &autocompletedelay = 300 # 0 is so many noisy.
 &complete = 'F,o'
@@ -99,7 +99,18 @@ endif
 ])
 
 &titlestring = '%{expand("%:~:.")}%4( %m%)'
+&backupskip ..= ',.env,.netrc,_netrc,*.pem,*.key,*.crt,*.rsc,*ed25519,.git/*'
 
 if $MYVIMDIR =~# $'^{getcwd()}'
 	&wildignore ..= ',*/pack/remote/**'
+endif
+
+# see https://github.com/vim/vim/blob/master/runtime/doc/wayland.txt#L56-L103
+if v:clipmethod ==# 'none' || !has('gui_running')
+	var clip: clipboard.Clipboard = empty($KITTY_WINDOW_ID)
+		? clipboard.Wayland.new()
+		: clipboard.Kitty.new()
+
+	v:clipproviders[clip.name] = clip.Provider()
+	&clipmethod = clip.name
 endif
