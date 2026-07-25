@@ -20,30 +20,19 @@ def SendKittyOSC(seq: string)
 	endtry
 enddef
 
-def RejectExtraWindow(_)
-  if win_getid() == g:kitty_main_winid
-    return
-  endif
-
-  if win_gettype() ==# 'popup'
-    return
-  endif
-
-  if winnr('$') == 1
-    silent! tabclose!
-  else
-    silent! close!
-  endif
-enddef
-
-# Disable any window and tab to open.
 augroup KittyScroolback
 	autocmd!
 	autocmd VimEnter * SendKittyOSC(SetEditorVar)
 	autocmd VimLeavePre * SendKittyOSC(UnsetEditorVar)
-	autocmd WinNew * timer_start(0, RejectExtraWindow)
-	autocmd TabNew * timer_start(0, RejectExtraWindow)
-	autocmd WinEnter * timer_start(0, RejectExtraWindow)
+	autocmd WinNew * timer_start(0, (_) => execute('close!', 'silent!'))
+	autocmd TabNew * timer_start(0, (_) => execute('tabclose!', 'silent!'))
+	autocmd TerminalOpen * {
+			:set winfixbuf
+			:setlocal termwinscroll=100000
+			:nnoremap <silent> <buffer> q :qa!<CR>
+			:nnoremap <silent> <buffer> i :qa!<CR>
+			:xnoremap <silent> <buffer> <C-c> "+y
+		}
 augroup END
 
 :set nomore
@@ -51,47 +40,42 @@ augroup END
 :set showtabline=0
 :set noswapfile
 :set nobackup
-:setlocal nomodified
+:set nonumber norelativenumber
+:set clipboard=unnamedplus
 :setlocal bufhidden=hide
 :packadd hlyank
 :colorscheme default
-:setlocal termwinscroll=100000
-:setlocal nonumber norelativenumber
-:nnoremap <silent> q :qa!<CR>
-:nnoremap <silent> i :qa!<CR>
-:xnoremap <silent> <C-c> "+y
 
-&clipboard = 'unnamedplus'
-
+# see https://github.com/vim/vim/blob/master/runtime/doc/wayland.txt#L56-L103
 if has('wayland_clipboard') && !empty(v:wayland_display) && v:clipmethod ==# 'none'
-	def Available(): bool
-		return executable('wl-copy') && executable('wl-paste')
-	enddef
-
 	def Copy(reg: string, type: string, str: list<string>)
-		var args = "wl-copy"
-
-		if reg == "*"
-			args ..= " -p"
-		endif
-
-		system(args, str)
-		# clean dirty control code return from wl-copy.
-		:redraw!
-	enddef
-
-	def Paste(reg: string): tuple<string, list<string>>
-		var args = ["wl-paste", "--type", "text/plain;charset=utf-8", "--no-newline"]
+		var args = ["kitten", "clipboard", "--mime", $"text/plain;charset={&encoding}"]
 
 		if reg == "*"
 			args->add("-p")
 		endif
 
-		return ("", systemlist(args))
+		system(args, str)
 	enddef
 
-	v:clipproviders["wl_clipboard"] = {
-		available: Available,
+	def Paste(reg: string): tuple<string, list<string>>
+		var args = ["kitten", "clipboard", "--mime", $"text/plain;charset={&encoding}", "-g"]
+
+		if reg == "*"
+			args->add("-p")
+		endif
+
+		var mode = visualmode()
+		var text = systemlist(args)
+		if empty(mode)
+			return ('v', text)
+		endif
+
+		return (mode, text)
+	enddef
+
+	v:clipproviders.kitty = {
+		available: () => !empty($KITTY_WINDOW_ID) && executable('kitten'),
 		copy: {
 			"+": Copy,
 			"*": Copy
@@ -102,40 +86,25 @@ if has('wayland_clipboard') && !empty(v:wayland_display) && v:clipmethod ==# 'no
 		}
 	}
 
-	&clipmethod = 'wl_clipboard'
+	&clipmethod = 'kitty'
 endif
 
-def RestoreKittyView(_)
-  var job = term_getjob(g:kitty_term_buf)
+term_start('cat', {
+	in_io: 'buffer',
+	in_buf: bufnr(),
+	term_name: 'kitty scrollback pager',
+	term_finish: 'noclose',
+	curwin: true,
+	norestore: true,
+	exit_cb: (job, _) => {
+		term_wait(bufnr(), 0)
+		var top = max([1, g:kitty_top])
+		var row = max([1, g:kitty_cursor_row])
+		var col = max([1, g:kitty_cursor_col])
 
-  if job_status(job) ==# 'run'
-    timer_start(10, RestoreKittyView)
-    return
-  endif
-
-  term_wait(g:kitty_term_buf, 30)
-
-  var top = max([1, g:kitty_top])
-  var row = max([1, g:kitty_cursor_row])
-  var col = max([1, g:kitty_cursor_col])
-
-  var target = min([
-	  line('$'),
-	  top + row - 1,
-  ])
-
-  winrestview({
-	  topline: min([line('$'), top]),
-	  lnum: target,
-	  col: col - 1,
-  })
-enddef
-
-execute(':%terminal ++curwin ++noclose cat')
-
-g:kitty_term_buf = bufnr()
-g:kitty_main_winid = win_getid()
-
-:set winfixbuf
-
-timer_start(10, RestoreKittyView)
+		winrestview({
+			topline: min([line('$'), top]),
+			lnum: min([line('$'), top + row - 1]),
+			col: col - 1})
+	}
+})
