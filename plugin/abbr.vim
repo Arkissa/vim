@@ -1,7 +1,7 @@
 vim9script
 
 def ExpandCmd(lhs: string, rhs: string): string
-	if !(getcmdtype() ==# ':' && getcmdline() ==# lhs)
+	if !(getcmdtype() =~# '[:@]' && getcmdline() =~# $'^{lhs}')
 		return lhs
 	endif
 
