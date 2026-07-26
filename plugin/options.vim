@@ -10,11 +10,6 @@ if !has('gui_running')
     &t_SR = "\e[4 q"
 endif
 
-if !empty($KITTY_WINDOW_ID)
-    &t_ti ..= $"\e]1337;SetUserVar=in_editor={base64_encode(str2blob(['1']))}\e\\"
-    &t_te ..= "\e]1337;SetUserVar=in_editor\e\\"
-endif
-
 # fouce enable FocusGained and FocusLost event.
 &t_fe = "\<Esc>[?1004h"
 &t_fd = "\<Esc>[?1004l"
@@ -56,6 +51,16 @@ endif
 :filetype plugin indent on
 :syntax on
 
+&viminfofile = $'{$XDG_CACHE_HOME}/vim/viminfo'
+
+var viminfodir = fnamemodify(&viminfofile, ':p:h')
+if !isdirectory(viminfodir)
+	if filereadable(viminfodir)
+		echoerr $'{viminfodir} is a file not a directory.'
+	else
+		mkdir(viminfodir, 'p')
+	endif
+endif
 &autocompletedelay = 300 # 0 is so many noisy.
 &complete = 'F,o'
 &ttyscroll = 3 # kitty will fast redraw screen.
@@ -68,7 +73,7 @@ endif
 &laststatus = 0
 &updatetime = 300
 &wildoptions = 'pum'
-&wildmode = 'noselect:lastused,full'
+&wildmode = 'noinsert:lastused,full'
 &completeslash = 'slash'
 &showbreak = '↪ '
 &fillchars = 'eob: ,fold: ,vert:▏'
@@ -82,7 +87,7 @@ endif
 	'buffers', 'tabpages', 'winsize',
 	'winpos', 'resize', 'terminal', 'folds', 'help',
 ])
-&completeopt = vim.Option(['menuone', 'noinsert', 'fuzzy', 'noselect', 'popup', 'preview'])
+&completeopt = vim.Option(['menuone', 'fuzzy', 'popup', 'popuphidden', 'preview'])
 &completeitemalign = vim.Option(['kind', 'abbr', 'menu'])
 &completepopup = vim.Option(['border:round', 'borderhighlight:Title', 'highlight:Normal'])
 &suffixes = vim.Option(['.bak', '~', '.o', '.h', '.info', '.swp', '.obj', '.pyc', '.pyo', '.egg-info', '.class'])
@@ -98,7 +103,15 @@ endif
  	'*.wav', '*.mp3', '*.ogg', '*.pcm', 'node_modules/', '*.pb.*', '*/3rd/**'
 ])
 
-&titlestring = '%{expand("%:~:.")}%4( %m%)'
+def g:TitleFunc(): string
+	var file = expand("%:~:.")
+	if empty(file)
+		file = '%f'
+	endif
+	return $'{file}%4( %m%)'
+enddef
+
+&titlestring = '%{%TitleFunc()%}'
 &backupskip ..= ',.env,.netrc,_netrc,*.pem,*.key,*.crt,*.rsc,*ed25519,.git/*'
 
 if $MYVIMDIR =~# $'^{getcwd()}'
