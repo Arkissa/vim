@@ -160,7 +160,13 @@ Autocmd.new('CompleteChanged')
 
 Autocmd.new('StdinReadPost')
 	.Group(g:myvimrc_group)
-	.Command('if &modified | &modified = false | endif')
+	.Callback(() => {
+		:setlocal nomodified
+		:setlocal buftype=nofile
+		:setlocal nomodifiable
+		:setlocal signcolumn
+		:setlocal wrap
+	})
 
 Autocmd.new('FileType')
 	.Group(g:myvimrc_group)
