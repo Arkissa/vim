@@ -166,3 +166,7 @@ Autocmd.new('FileType')
 	.Group(g:myvimrc_group)
 	.Pattern(['qf'])
 	.Command(':packadd cfilter')
+
+Autocmd.new('CmdwinEnter')
+	.Group(g:myvimrc_group)
+	.Command($':resize {&cmdwinheight}')

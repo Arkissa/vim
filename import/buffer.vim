@@ -115,7 +115,8 @@ export class Buffer # {{{1
 	enddef # }}}
 
 	def Clear() # {{{2
-		this.DeleteLine(1, '$')
+		this.DeleteLine(2, '$')
+		this.SetLines([''], 1)
 	enddef # }}}
 
 	def DeleteLine(start: number, end: any = start) # {{{2
