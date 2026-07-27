@@ -20,7 +20,7 @@ class TerminalMode implements st.Provider
 			return ''
 		endif
 
-		return $'-- TERMINAL --'
+		return '-- TERMINAL --'
 	enddef
 endclass
 
