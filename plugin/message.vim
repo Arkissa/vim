@@ -1,5 +1,9 @@
 vim9script
 
+if get(g:, 'disable_message', false)
+	finish
+endif
+
 import 'keymap.vim'
 import 'autocmd.vim'
 
