@@ -181,7 +181,7 @@ class Peekfix # {{{1
 			minwidth: width - 3,
 			maxwidth: width - 3,
 			col: info.wincol,
-			line: info.winrow - 2,
+			line: info.winrow - 1,
 		}
 
 		_window.Open()
