@@ -57,7 +57,7 @@ Autocmd.new('WinNew')
 Autocmd.new('InsertLeave')
 	.Group(g:myvimrc_group)
 	.When(() => executable('ibus') == 1)
-	.Command('system("ibus engine xkb:us::eng")')
+	.Command('job_start("ibus engine xkb:us::eng", {in_io: "null", out_io: "null", err_io: "null"})')
 
 Autocmd.new('CmdlineChanged')
 	.Group(g:myvimrc_group)
