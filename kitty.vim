@@ -14,23 +14,24 @@ g:helptoc = {
 	shell_prompt: '^\$\s'
 }
 
+:set shortmess+=I
+:setlocal bufhidden=wipe
+
 augroup KittyScroolback
 	autocmd!
 	autocmd WinNew * timer_start(0, (_) => execute('close!', 'silent!'))
 	autocmd TabNew * timer_start(0, (_) => execute('tabclose!', 'silent!'))
 	autocmd TerminalOpen * {
-			:set winfixbuf
 			:set nomore
 			:set nomodified
 			:set nomodifiable
-			:set laststatus=2
+			:set laststatus=0
 			:set showtabline=0
 			:set noswapfile
 			:set nobackup
 			:set nonumber norelativenumber
 			:set clipboard=unnamedplus
 			:set termwinscroll=100000
-			:setlocal bufhidden=hide
 			:set fillchars=eob:\ 
 			:set scrolloff=1
 			:set sidescrolloff=1
@@ -45,8 +46,8 @@ augroup KittyScroolback
 			:nnoremap <silent> <ESC> <CMD>qa!<CR>
 			:xnoremap <silent> <C-c> "+y
 
-			hi! StatusLine ctermbg=NONE cterm=NONE
-			:set statusline=%#StatusLine#\ \ Kitty\ VIM\ %#StatusLine#%=%-12(%l,%c%V%)%P
+			var mode = '\ Kitty\ VIM'
+			execute($':set rulerformat=%{len(mode) * 2}({mode}%=%-12(%l,%c%V%)%P%)')
 		}
 augroup END
 
@@ -93,22 +94,31 @@ if has('wayland_clipboard') && !empty(v:wayland_display) && v:clipmethod ==# 'no
 	&clipmethod = 'kitty'
 endif
 
-term_start(['sed', "s/$/\e[m/"], {
+def g:ResetView(bufnr: number)
+	term_wait(bufnr(), 0)
+	execute($'buffer {bufnr}')
+	var top = max([1, g:kitty_top])
+	var row = max([1, g:kitty_cursor_row])
+	var col = max([1, g:kitty_cursor_col])
+
+	winrestview({
+		topline: min([line('$'), top]),
+		lnum: min([line('$'), top + row - 1]),
+		col: col - 1})
+	:set winfixbuf
+enddef
+
+term_start([
+	'sed',
+	'-e', ':trim',
+	'-e', '/^[[:space:]]*$/{ $d; N; b trim; }',
+	'-e', "s/$/\e[m/",
+], {
 	in_io: 'file',
 	in_name: '/dev/fd/63',
 	term_name: 'kitty scrollback pager',
-	term_finish: 'noclose',
-	curwin: true,
+	term_finish: 'open',
+	term_opencmd: 'call g:ResetView(%d)',
+	hidden: true,
 	norestore: true,
-	exit_cb: (job, _) => {
-		term_wait(bufnr(), 0)
-		var top = max([1, g:kitty_top])
-		var row = max([1, g:kitty_cursor_row])
-		var col = max([1, g:kitty_cursor_col])
-
-		winrestview({
-			topline: min([line('$'), top]),
-			lnum: min([line('$'), top + row - 1]),
-			col: col - 1})
-	}
 })
