@@ -222,5 +222,6 @@ g:ask_prompt =<< trim END
 END
 
 g:disable_message = 1
+g:kitty_equalwin = 1
 
 :set exrc
