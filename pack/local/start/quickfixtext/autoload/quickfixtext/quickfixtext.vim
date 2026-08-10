@@ -109,7 +109,14 @@ class Text # {{{1
 				sign_place(0, Text.group, item.type.Value, qflist.qfbufnr, {lnum: info.start_idx + i})
 			endif
 
-			return item.text
+            var user_data = item.user_data
+            if type(user_data) == v:t_string && user_data == 'from_execute'
+                return item.text
+            endif
+
+            var fname = Text.GetFname(fnamemodify(item.buffer.name, ":~:."), maxFnameWidth)
+            var lnum = Text.GetLnum(item)
+            return [Text.EscapeFnameSpace(fname), lnum, item.text]->filter((_, v) => !v->empty())->join(':') ?? ' '
 		})
 	enddef # }}}
 endclass # }}}
