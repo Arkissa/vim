@@ -126,7 +126,7 @@ Autocmd.new('VimEnter')
 		endif
 	}))
 
-Autocmd.new('TerminalOpen')
+Autocmd.new('TerminalWinOpen')
 	.Desc('set signcolumn=no and nowrap for terminal.')
 	.Group(g:myvimrc_group)
 	.Callback((attr) => {

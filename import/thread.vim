@@ -63,10 +63,10 @@ enddef
 
 export def Wrap(Fn: func): func(...list<any>)
 	return (...args: list<any>) => {
-		if typename(Fn) =~# '^func(.\{-\}):'
-			call(Fn, args)
+		if typename(Fn) =~# '^func(.\{1,\})'
+			call(function(Thread_.new, [Fn]), args)
 		else
-			call(Fn, [])
+			call(function(Thread_.new, [Fn]), [])
 		endif
 	}
 enddef

@@ -133,7 +133,7 @@ export class Window # {{{1
 	def SetBuf(bufnr: number, au: bool = true) # {{{2
 		var winnr = this.winnr->string()
 		if au && exists($'#BufWinLeave#{winnr}')
-				Autocmd.Do('', 'BufWinLeave', winnr, this)
+            Autocmd.Do('', 'BufWinLeave', winnr, this)
 		endif
 
 		this.Execute($'{au ? '' : 'noautocmd '}buffer! {bufnr}', 'silent')
