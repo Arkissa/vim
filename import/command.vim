@@ -416,7 +416,17 @@ export abstract class ErrorFormat extends Execute
 			title: info == null_dict ? info.cmd->join(' ') : this.Cmd()
 		})
 
-		qf.SetList(qfinfo.items->mapnew((_, item) => QuickfixItem.new(item.ToRaw()->extend({text: msg}, 'force'))), quickfix.Action.A)
+        var items = qfinfo.items->mapnew((_, item) => {
+            var raw = item.ToRaw()
+            raw.text = msg
+            if raw.user_data == null
+                raw.user_data = 'from_execute'
+            endif
+
+            return QuickfixItem.new(raw)
+        })
+
+        qf.SetList(items, quickfix.Action.A)
 	enddef
 endclass
 

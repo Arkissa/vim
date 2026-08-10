@@ -51,7 +51,7 @@ export class QuickfixItem
 	var type: Type = Type.Empty
 	var valid: bool
 	var pattern: string
-	const user_data: dict<any>
+	const user_data: any
 
 	def new(item: dict<any>)
 		this.buffer = Buffer.newByBufnr(item.bufnr)
@@ -64,7 +64,7 @@ export class QuickfixItem
 		this.type = Type.FromString(get(item, 'type', ''))
 		this.vcol = get(item, 'vcol', 0)
 		this.module = get(item, 'module', '')
-		this.user_data = get(item, 'user_data', null_dict)
+		this.user_data = get(item, 'user_data', null)
 		this.pattern = get(item, 'pattern', '')
 		this.nr = get(item, 'nr', 0)
 	enddef
