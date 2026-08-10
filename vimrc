@@ -12,13 +12,13 @@ g:myvimrc_group = 'MYVIMRC'
 g:hlput_enable = true
 
 g:peekfix = {
-	highlight: "Cursor",
-	number: true,
-	cursorline: true,
-	padding: [0, 0, 0, 0],
-	border: [1, 1, 1, 1],
-	borderchars: ['─', '│', '─', '│', '╭', '╮', '╯', '╰'],
-	borderhighlight: ["Title", "Title", "Title", "Title"],
+    highlight: "Cursor",
+    number: true,
+    cursorline: true,
+    padding: [0, 0, 0, 0],
+    border: [1, 1, 1, 1],
+    borderchars: ['─', '│', '─', '│', '╭', '╮', '╯', '╰'],
+    borderhighlight: ["Title", "Title", "Title", "Title"],
 }
 
 g:lsp_enable = true
@@ -28,30 +28,30 @@ g:session_auto_save = true
 g:session_auto_load = true
 
 g:helptoc = {
-	shell_prompt: '^\$\s'
+    shell_prompt: '^\$\s'
 }
 
 g:lsp_options = {
-	autoComplete: false,
-	omniComplete: true,
+    autoComplete: false,
+    omniComplete: true,
     autoHighlight: true,
     autoHighlightDiags: true,
     completionMatcher: 'fuzzy',
-	completionTextEdit: true,
+    completionTextEdit: true,
     diagSignErrorText: '✘',
     diagSignWarningText: '',
     diagSignHintText: '',
     diagSignInfoText: '',
-	snippetSupport: true,
+    snippetSupport: true,
     keepFocusInDiags: true,
     keepFocusInReferences: true,
-	ignoreMissingServer: true,
-	outlineOnRight: true,
-	outlineWinSize: 50,
+    ignoreMissingServer: true,
+    outlineOnRight: true,
+    outlineWinSize: 50,
     popupBorder: true,
-	hoverInPreview: true,
-	popupBorderCompletion: true,
-	definitionFallback: true,
+    hoverInPreview: true,
+    popupBorderCompletion: true,
+    definitionFallback: true,
     popupBorderHighlight: 'Title',
     popupBorderHighlightPeek: 'Title',
     popupBorderSignatureHelp: true,
@@ -62,8 +62,8 @@ g:lsp_options = {
     showDiagWithSign: true,
     showInlayHints: true,
     showSignature: true,
-	condensedCompletionMenu: true,
-	filterCompletionDuplicates: true,
+    condensedCompletionMenu: true,
+    filterCompletionDuplicates: true,
     useQuickfixForLocations: true,
     usePopupInCodeAction: true,
     customCompletionKinds: true,
@@ -71,154 +71,152 @@ g:lsp_options = {
 }
 
 g:LspServer = [
-	{
-		name: 'gopls',
-		filetype: ['go', 'gomod', 'gohtmltmpl', 'gotexttmpl'],
-		path: 'gopls',
-		workspaceConfig: {
-			gopls: {
-				directoryFilters: [],
-				workspaceFiles: [],
-				completionBudget: '50ms',
-				codelenses: {
-					tests: true,
-					tidy: true,
-					upgrade_dependency: true,
-					vendor: true,
-				},
-				usePlaceholders: true,
-				gofumpt: true,
-				analyses: {
-					shadow: false, unusedparams: false, SA5008: false,
-					QF1002: false, QF1003: false, any: false, SA4: false,
-					ST1020: false, ST1003: false, ST1001: false,
-					ST1021: false, ST1022: false,
-					ST1000: false, S1033: false, S1028: false,
-				},
-				staticcheck: true,
-				hints: {
-					assignVariableTypes: true,
-					compositeLiteralFields: true,
-					constantValues: true,
-					rangeVariableTypes: true,
-					parameterNames: true,
-					functionTypeParameters: true
-				},
-			}
+    {
+        name: 'gopls',
+        filetype: ['go', 'gomod', 'gohtmltmpl', 'gotexttmpl'],
+        path: 'gopls',
+        workspaceConfig: {
+            gopls: {
+                directoryFilters: [],
+                workspaceFiles: [],
+                completionBudget: '50ms',
+                codelenses: {
+                    tests: true,
+                    tidy: true,
+                    upgrade_dependency: true,
+                    vendor: true,
+                },
+                usePlaceholders: true,
+                gofumpt: true,
+                analyses: {
+                    shadow: false, unusedparams: false, SA5008: false,
+                    QF1002: false, QF1003: false, any: false, SA4: false,
+                    ST1020: false, ST1003: false, ST1001: false,
+                    ST1021: false, ST1022: false,
+                    ST1000: false, S1033: false, S1028: false,
+                },
+                staticcheck: true,
+                hints: {
+                    assignVariableTypes: true,
+                    compositeLiteralFields: true,
+                    constantValues: true,
+                    rangeVariableTypes: true,
+                    parameterNames: true,
+                    functionTypeParameters: true
+                },
+            }
 
-		}
-	},
-	{
-		name: 'jdtls',
-		filetype: 'java',
-		path: 'jdtls',
-		workspaceConfig: {
-			java: {
-				errors: {
-					incompleteClasspath: {
-						severity: "warning"
-					}
-				},
-				configuration: {
-					updateBuildConfiguration: "interactive",
-					maven: {
-						userSettings: null
-					}
-				},
-				foldingRange: {
-					enable: true
-				},
-				import: {
-					gradle: {
-						enabled: true
-					},
-					maven: {
-						enabled: true
-					},
-					exclusions: [
-						"**/node_modules/**",
-						"**/.metadata/**",
-						"**/archetype-resources/**",
-						"**/META-INF/maven/**",
-						"/**/test/**"
-					]
-				},
-				referencesCodeLens: {
-					enabled: false
-				},
-				signatureHelp: {
-					enabled: false
-				},
-				implementationCodeLens: "all",
-				format: {
-					enabled: true
-				},
-				saveActions: {
-					organizeImports: true
-				},
-				contentProvider: {
-					preferred: null
-				},
-				autobuild: {
-					enabled: false
-				},
-				completion: {
-					favoriteStaticMembers: [
-						"org.junit.Assert.*",
-						"org.junit.Assume.*",
-						"org.junit.jupiter.api.Assertions.*",
-						"org.junit.jupiter.api.Assumptions.*",
-						"org.junit.jupiter.api.DynamicContainer.*",
-						"org.junit.jupiter.api.DynamicTest.*"
-					],
-					importOrder: [
-						"java",
-						"javax",
-						"com",
-						"org"
-					]
-				}
-			}
-		},
-	},
-	{
-		name: 'rustanalyzer',
-		filetype: 'rust',
-		path: 'rust-analyzer',
-		initializationOptions: {
-			inlayHints: {
-				typeHints: {
-					enable: true
-				},
-				parameterHints: {
-					enable: true
-				}
-			},
-		}
-	},
-	{
-		name: 'python',
-		filetype: 'python',
-		path: 'basedpyright-langserver',
-		args: ['--stdio'],
-		workspaceConfig: {
-			basedpyright: {
-				analysis: {
-					venv: ".venv",
-					diagnosticMode: "openFilesOnly",
-					useLibraryCodeForTypes: true,
-					reportMissingTypeStubs: "none",
-					inlayHints: {
-						callArgumentNames: true
-					}
-				}
-			}
-		}
-	},
+        }
+    },
+    {
+        name: 'jdtls',
+        filetype: 'java',
+        path: 'jdtls',
+        workspaceConfig: {
+            java: {
+                errors: {
+                    incompleteClasspath: {
+                        severity: "warning"
+                    }
+                },
+                configuration: {
+                    updateBuildConfiguration: "interactive",
+                    maven: {
+                        userSettings: null
+                    }
+                },
+                foldingRange: {
+                    enable: true
+                },
+                import: {
+                    gradle: {
+                        enabled: true
+                    },
+                    maven: {
+                        enabled: true
+                    },
+                    exclusions: [
+                        "**/node_modules/**",
+                        "**/.metadata/**",
+                        "**/archetype-resources/**",
+                        "**/META-INF/maven/**",
+                        "/**/test/**"
+                    ]
+                },
+                referencesCodeLens: {
+                    enabled: false
+                },
+                signatureHelp: {
+                    enabled: false
+                },
+                implementationCodeLens: "all",
+                format: {
+                    enabled: true
+                },
+                saveActions: {
+                    organizeImports: true
+                },
+                contentProvider: {
+                    preferred: null
+                },
+                autobuild: {
+                    enabled: false
+                },
+                completion: {
+                    favoriteStaticMembers: [
+                        "org.junit.Assert.*",
+                        "org.junit.Assume.*",
+                        "org.junit.jupiter.api.Assertions.*",
+                        "org.junit.jupiter.api.Assumptions.*",
+                        "org.junit.jupiter.api.DynamicContainer.*",
+                        "org.junit.jupiter.api.DynamicTest.*"
+                    ],
+                    importOrder: [
+                        "java",
+                        "javax",
+                        "com",
+                        "org"
+                    ]
+                }
+            }
+        },
+    },
+    {
+        name: 'rustanalyzer',
+        filetype: 'rust',
+        path: 'rust-analyzer',
+        initializationOptions: {
+            inlayHints: {
+                typeHints: {
+                    enable: true
+                },
+                parameterHints: {
+                    enable: true
+                }
+            },
+        }
+    },
+    {
+        name: 'pyrefly',
+        filetype: 'python',
+        path: 'pyrefly',
+        args: ['lsp'],
+        initializationOptions: {
+            pyrefly: {
+                typeCheckingMode: 'default',
+            }
+        }
+    },
+    {
+        name: 'ruff',
+        filetype: 'python',
+        path: 'ruff',
+        args: ['server'],
+    },
 ]
 
 g:ask_prompt =<< trim END
-	just anwser the question or just to do, don't ask anything.
+    just anwser the question or just to do, don't ask anything.
 END
 
 g:disable_message = 1
