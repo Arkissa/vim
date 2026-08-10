@@ -14,14 +14,15 @@ type Autocmd = autocmd.Autocmd
 const kitty_direction = {
 	j: 'bottom',
 	k: 'top',
-	h: 'right',
-	l: 'left',
+	h: 'left',
+	l: 'right',
 }
 
 const group = 'KittyNavigator'
 const IN_VIM = 'IN_VIM'
 const VIM_SERVERNAME = 'VIM_SERVERNAME'
 const VIM_MODE = 'VIM_MODE'
+const VIM_EQUALWIN = 'VIM_EQUALWIN'
 
 def KittyCommand(name: string, ...args: list<string>): string
 	var cmd = ['kitten', '@', name] + args
@@ -63,6 +64,7 @@ Autocmd.newMulti(['VimEnter', 'VimResume'])
 			(IN_VIM, true),
 			(VIM_SERVERNAME, v:servername),
 			(VIM_MODE, mode()),
+			(VIM_EQUALWIN, get(g:, 'kitty_equalwin', 0)),
 		)
 	})
 
