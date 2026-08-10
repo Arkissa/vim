@@ -4,11 +4,13 @@ import 'log.vim'
 import 'keymap.vim'
 import 'buffer.vim'
 import 'quickfix.vim'
+import 'autocmd.vim'
 
 type Terminal = buffer.Terminal
 
 type Bind = keymap.Bind
 type Mods = keymap.Mods
+type Autocmd = autocmd.Autocmd
 
 def QuickfixRingIdx(locl: bool, prev: bool)
 	var qf: quickfix.Quickfixer = locl
@@ -92,8 +94,6 @@ Bind.newMulti(Mods.i, Mods.c, Mods.t)
 	.Map('<M-b>', '<C-Left>')
 	.Map('<M-f>', '<C-Right>')
 
-var cmdlineYank = ""
-
 Bind.new(Mods.c)
 	.NoRemap()
 	.NoWait()
@@ -102,7 +102,7 @@ Bind.new(Mods.c)
 		var line = getcmdline()
 		var pos = getcmdpos() - 1
 
-		cmdlineYank = line->strcharpart(0, pos)
+		g:cmdlineYank = line->strcharpart(0, pos)
 
 		return "\<C-u>"
 	})
@@ -110,7 +110,7 @@ Bind.new(Mods.c)
 		var line = getcmdline()
 		var pos = getcmdpos() - 1
 		var text = line->strcharpart(0, pos)->matchstr('\v<\w+>$')
-		cmdlineYank = text
+		g:cmdlineYank = text
 
 		return "\<C-w>"
 	})
@@ -122,7 +122,7 @@ Bind.new(Mods.c)
 		var pos = getcmdpos() - 1
 
 		var n = line->strdisplaywidth() - pos
-		cmdlineYank = line->strcharpart(pos, n)
+		g:cmdlineYank = line->strcharpart(pos, n)
 		var text = line->strcharpart(0, pos)
 
 		setcmdline(text)
@@ -134,7 +134,7 @@ Bind.new(Mods.c)
 		var start = line->slice(0, pos)
 		var text = line->slice(pos)
 
-		cmdlineYank = matchstr(text, wordRegexp)
+		g:cmdlineYank = matchstr(text, wordRegexp)
 		setcmdline(start .. substitute(text, wordRegexp, '', ''), pos + 1)
 	})
 	.Map('<C-d>', '<Del>')
@@ -146,11 +146,11 @@ Bind.new(Mods.c)
 		var line = getcmdline()
 		var pos = getcmdpos() - 1
 		var start = line->slice(0, pos)
-		if cmdlineYank == ""
+		if get(g:, 'cmdlineYank', '') == ''
 			return ''
 		endif
 
-		setcmdline(start .. cmdlineYank .. line->slice(pos), pos + len(cmdlineYank) + 1)
+		setcmdline(start .. g:cmdlineYank .. line->slice(pos), pos + len(g:cmdlineYank) + 1)
 		return ''
 	})
 
@@ -176,3 +176,47 @@ Bind.new(Mods.n)
 		histadd(':', $"terminal {cmd}")
 		Terminal.new(cmd, {hidden: false})
 	})
+
+Bind.newMulti(Mods.n, Mods.t)
+    .NoRemap()
+    .Callback('<C-w>t', () => {
+        const just_view = 'JustView'
+
+        var aus = Autocmd.Get({group: just_view})
+        if !aus->empty()
+            for au in aus
+                Autocmd.Do(au.group, au.event, au.pattern)
+            endfor
+
+            return
+        endif
+
+        if winnr('$') == 1
+            return
+        endif
+
+        const bnr = bufnr()
+        var fname = bufname(bnr)
+
+        var save_view = winsaveview()
+        execute($'tab sbuffer {bnr}')
+        winrestview(save_view)
+        t:showtab = &showtabline
+        &showtabline = 0
+
+        if fname == ''
+            fname = string(bnr)
+        endif
+
+        Autocmd.new('TabLeave')
+            .Group(just_view)
+            .Pattern([fname])
+            .Once()
+            .Command('tabclose!')
+
+        Autocmd.new('TabClosedPre')
+            .Group(just_view)
+            .Pattern([fname])
+            .Once()
+            .Command('&showtabline = t:showtab')
+    })
