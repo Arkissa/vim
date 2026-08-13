@@ -3,8 +3,8 @@ vim9script
 import 'log.vim'
 import 'keymap.vim'
 import 'buffer.vim'
-import 'quickfix.vim'
 import 'autocmd.vim'
+import 'quickfix.vim'
 
 type Terminal = buffer.Terminal
 
@@ -182,41 +182,33 @@ Bind.newMulti(Mods.n, Mods.t)
     .Callback('<C-w>t', () => {
         const just_view = 'JustView'
 
-        var aus = Autocmd.Get({group: just_view})
-        if !aus->empty()
-            for au in aus
-                Autocmd.Do(au.group, au.event, au.pattern)
-            endfor
-
-            return
-        endif
-
         if winnr('$') == 1
             return
         endif
 
-        const bnr = bufnr()
-        var fname = bufname(bnr)
+        const save_view = winsaveview()
+        const save_winid = win_getid()
 
-        var save_view = winsaveview()
-        execute($'tab sbuffer {bnr}')
+        execute($'tab sbuffer {bufnr()}')
         winrestview(save_view)
-        t:showtab = &showtabline
-        &showtabline = 0
+        const view_winid = win_getid()
+        const showtabline = &showtabline
 
-        if fname == ''
-            fname = string(bnr)
-        endif
+        &showtabline = 0
 
         Autocmd.new('TabLeave')
             .Group(just_view)
-            .Pattern([fname])
             .Once()
-            .Command('tabclose!')
+            .Nested()
+            .Command($'if !getwininfo({view_winid})->empty() | win_execute({view_winid}, "silent! close!") | endif')
 
-        Autocmd.new('TabClosedPre')
+        Autocmd.new('WinClosed')
             .Group(just_view)
-            .Pattern([fname])
+            .Desc('just view a buffer on window.')
             .Once()
-            .Command('&showtabline = t:showtab')
+            .Pattern([view_winid->string()])
+            .Callback(() => {
+                &showtabline = showtabline
+                win_gotoid(save_winid)
+            })
     })
